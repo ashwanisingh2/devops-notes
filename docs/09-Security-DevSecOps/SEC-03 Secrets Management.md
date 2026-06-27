@@ -1,6 +1,6 @@
 ---
-tags: [devops, security, secrets, vault, iam]
-aliases: [Secrets Management]
+tags: [devops, security, secrets, vault, iam, cyber-security]
+aliases: [Secrets Management, HashiCorp Vault, AWS Secrets Manager, Azure Key Vault]
 created: 2025-06-27
 status: #complete
 difficulty: #advanced
@@ -9,86 +9,103 @@ cert-relevant: #none
 
 # SEC-03 Secrets Management
 
-> [!abstract] Overview
-> Passwords, API tokens, and private SSH keys are the keys to the kingdom. Historically, developers hardcoded these directly into the source code, leading to catastrophic breaches when the code was uploaded to GitHub. Secrets Management is the discipline of removing all sensitive data from code and configuration files, securely storing them in an encrypted central vault, and dynamically injecting them into applications at runtime. If you cannot securely manage secrets, your entire infrastructure is compromised by default.
+## Overview
+**Ye kya hai?**
+Secrets Management ek practice aur discipline hai jahan hum sensitive credentials (jaise database passwords, API tokens, aur SSH keys) ko apne source code ya configuration files se nikal kar ek highly secure, encrypted digital locker mein store karte hain. 
 
----
+**Kyu use hota hai?**
+Historically developers in secrets ko directly code mein hardcode karte the. Jab yeh code GitHub pe push hota tha, hackers bots ke through easily secrets nikal lete the, causing catastrophic breaches. Secrets management ensures zero credentials in plain text. Pura system dynamic aur automated hota hai.
 
-## Concept Overview
+**Real life example / Simple Analogy:**
+Pehle hum ghar ki chabi (password) doormat ke niche (code) chupa dete the, jo koi bhi chor (hacker) dhoond leta tha. Secrets Management ek digital locker (Vault) hai. Chabi code mein nahi, locker mein hai. Jab app start hota hai, wo identity dikhata hai, locker khulta hai, app ko chabi milti hai, aur kaam ho jata hai.
 
-- **What it is** — The lifecycle management (generation, storage, rotation, and revocation) of digital credentials. 
-- **Why DevOps engineers use it** — To prevent credentials from leaking in Git, CI/CD logs, or Docker images. It also solves the "rotation" problem. If an API key is compromised, you can rotate it in the central vault, and all 50 microservices instantly use the new key upon restart, without changing any code.
-- **Where you encounter this in a real job** — Configuring a Kubernetes Pod to fetch database credentials from AWS Secrets Manager using the External Secrets Operator, or setting up HashiCorp Vault to generate dynamic, temporary database users for a CI/CD pipeline.
-- **Responsibility Split:**
-  - **Junior DevOps**: Scans code with `git-secrets` or `trufflehog` to ensure no passwords are accidentally committed.
-  - **Mid DevOps**: Integrates CI/CD pipelines with secret stores (e.g., using GitHub Actions Secrets or Jenkins Credentials) to avoid hardcoding deployment tokens.
-  - **Senior/SRE**: Architects and operates HashiCorp Vault clusters, implements "Dynamic Secrets" (credentials that expire in 10 minutes), and handles K8s identity mapping (IRSA in AWS).
+**Industry kaha use karti hai?**
+Har modern production environment jahan CI/CD, Kubernetes, aur Cloud (AWS/Azure/GCP) use hota hai, wahan Secrets Management (HashiCorp Vault, AWS Secrets Manager, Azure Key Vault) standard hota hai. Microservices ko db credentials fetch karne ke liye vault ki zarurat padti hai.
 
-*Seedha simple mein: Pehle hum ghar ki chabi (password) doormat ke niche (code) chupa dete the, jo koi bhi chor dhoond leta tha. Secrets Management ek digital locker (Vault) hai. Chabi code mein nahi, locker mein hai. Jab app start hota hai, wo identity dikhata hai, locker khulta hai, app ko chabi milti hai, aur kaam ho jata hai.*
+**Real production use-case:**
+Ek Kubernetes Pod ko database se connect hona hai. Password pod ke YAML file mein likhne ke bajaye, K8s External Secrets Operator ka use karke Pod run-time pe AWS Secrets Manager se password fetch karta hai aur memory mein inject karta hai.
 
----
-
-## Technical Deep Dive
-
-### 1. The Zero-Trust Secret Lifecycle
-1. **Never in Code**: Secrets must never touch `git`.
-2. **Never in Image**: Secrets must never be baked into a Docker image (`ENV DB_PASS=secret` in a Dockerfile is highly insecure because anyone who pulls the image can run `docker inspect` and see it).
-3. **Never in Configs**: Avoid putting plain text secrets in Terraform state or Kubernetes `Secret` YAMLs.
-4. **Injection at Runtime**: The app should boot up, authenticate itself to a Secret Store (via IAM role or Service Account), retrieve the secret into memory, and use it.
-
-### 2. HashiCorp Vault Architecture
-Vault is the industry gold standard for secrets.
-- **Storage Backend**: Where the encrypted data actually lives (Consul, AWS S3, or Raft).
-- **Auth Methods**: How clients prove who they are (Token, AWS IAM, Kubernetes ServiceAccount, AppRole).
-- **Secrets Engines**:
-  - **KV (Key-Value)**: Standard static passwords.
-  - **Dynamic Secrets**: Vault connects to PostgreSQL. When an app asks for a password, Vault creates a *brand new* SQL user with a password, gives it to the app, and automatically deletes the SQL user after 1 hour. This is the holy grail of security.
-
-### 3. Kubernetes Integration (External Secrets)
-Kubernetes native `Secret` objects are just base64 encoded strings—they are NOT encrypted by default! 
-The modern approach is the **External Secrets Operator (ESO)**. ESO runs in K8s, reaches out to AWS Secrets Manager or Vault, fetches the real secret, and injects it into a native K8s Secret just-in-time, allowing K8s to mount it as a file or environment variable for the Pod.
-
----
-
-## Step-by-Step Lab (HashiCorp Vault Basics)
-
-> [!warning] Pre-requisites
-> - Vault CLI installed (`brew tap hashicorp/tap && brew install hashicorp/tap/vault`)
-
-### Step 1: Start Vault in Dev Mode
-Dev mode runs entirely in memory and auto-unseals for learning purposes.
-```bash
-# Start server in background
-vault server -dev &
-
-# Expected output will show the Root Token and the Vault address.
-# Export the environment variables shown in the output:
-export VAULT_ADDR='http://127.0.0.1:8200'
-export VAULT_TOKEN='hvs.xxxxxxxxxxxxxxxxxxxx'
+**Architecture (HashiCorp Vault Example)**
+```mermaid
+graph TD
+    A[Microservice / K8s Pod] -->|1. Authenticate JWT/IAM/AppRole| B(HashiCorp Vault / Secrets Store)
+    B -->|2. Verify Identity| C{Identity Provider K8s/AWS/OIDC}
+    C -->|3. Valid Identity| B
+    B -->|4. Return Temp Token/Secret| A
+    A -->|5. Connect using Secret| D[(PostgreSQL / API)]
+    B -->|Logs & Audit| E[SIEM / Splunk]
 ```
 
-### Step 2: Store and Retrieve a Static Secret
+## Working
+**Internal working & Data flow:**
+1. **Never in Code:** Secrets ko source code, git, ya Dockerfile se complete ban karna.
+2. **Never in Image:** Docker images mein environment variables (`ENV DB_PASS=secret`) nahi dalna.
+3. **Authentication:** App boot hota hai, apna IAM Role ya Kubernetes ServiceAccount token Secret Store ko dikhata hai.
+4. **Injection at Runtime:** Store verify karke secret wapas karta hai in-memory (file ya env var mein inject karke) not on disk.
+5. **Dynamic Secrets:** Vault directly DB se connect hota hai. Jab bhi koi app password mangta hai, Vault DB mein ek *new temporary SQL user* banata hai (e.g. valid for 1 hour). 1 hour baad auto-delete.
+
+**Communication, Ports & Protocols:**
+- Protocol: HTTPS (TLS)
+- Vault Port: 8200 (default API port)
+- Cluster Port: 8201 (server-to-server)
+- Dependencies: Storage backend (Consul, Raft, S3, etcd), KMS for auto-unseal.
+
+## Installation
+**Prerequisites:** 
+- A Linux/Windows machine or Kubernetes cluster.
+- Basic networking and DNS configured.
+
+**Installation (HashiCorp Vault CLI for Lab):**
+```bash
+# macOS
+brew tap hashicorp/tap && brew install hashicorp/tap/vault
+
+# Ubuntu/Debian
+wget -O- https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
+echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
+sudo apt update && sudo apt install vault
+```
+
+**Verification:**
+`vault version` output should show Vault v1.x.x
+
+**Rollback:**
+Stop the Vault service and remove the binary/packages.
+
+## Practical Lab
+**Scenario: Run HashiCorp Vault in Dev Mode, store a secret, and fetch it.**
+
+**Step 1: Start Vault in Dev Mode (In-memory, auto-unsealed)**
+```bash
+vault server -dev &
+```
+*Note: Dev mode is ONLY for learning.*
+
+**Step 2: Configure Environment Variables**
+```bash
+# Vault CLI needs to know where to connect and authenticate
+export VAULT_ADDR='http://127.0.0.1:8200'
+export VAULT_TOKEN='hvs.xxxxxxxxxxxxxxxxxxxx' # Use the root token from the output of step 1
+```
+
+**Step 3: Store and Retrieve a Static Secret**
 ```bash
 # Store a key-value secret (KV-v2 is enabled by default at 'secret/')
 vault kv put secret/my-database username="admin" password="SuperSecretPassword123"
 
-# Expected output: Success! Data written to: secret/my-database
-
 # Retrieve the secret
 vault kv get secret/my-database
 
-# View just the password field (useful for scripting)
+# Scripting: Fetch only the password
 vault kv get -field=password secret/my-database
-# Output: SuperSecretPassword123
 ```
 
-### Step 3: Setup AppRole Authentication (For Machines/CI)
-Humans use tokens or OIDC; machines (like Jenkins or backend apps) use AppRole (similar to a Client ID and Secret).
+**Step 4: Setting up AppRole Authentication (for CI/CD)**
 ```bash
 # Enable the AppRole auth method
 vault auth enable approle
 
-# Create a strict policy allowing read-only access to our specific secret
+# Create read-only policy
 cat <<EOF > app-policy.hcl
 path "secret/data/my-database" {
   capabilities = ["read"]
@@ -96,102 +113,152 @@ path "secret/data/my-database" {
 EOF
 vault policy write myapp-readonly app-policy.hcl
 
-# Create a role linking to the policy
+# Link role to policy
 vault write auth/approle/role/myapp policies="myapp-readonly"
 
-# Fetch the Role ID (Client ID)
+# Fetch Role ID & Secret ID
 vault read auth/approle/role/myapp/role-id
-
-# Fetch a Secret ID (Client Secret)
 vault write -f auth/approle/role/myapp/secret-id
-```
 
-### Step 4: Authenticate as the App
-Now, simulate being the application booting up.
-```bash
-# Login using the Role ID and Secret ID obtained in Step 3
+# App login using Role & Secret ID
 vault write auth/approle/login role_id="<YOUR_ROLE_ID>" secret_id="<YOUR_SECRET_ID>"
-
-# Expected output: A new temporary Vault Token is generated.
-# The app uses this token to fetch the secret!
 ```
 
-> [!tip] Pro Tip
-> In production Vault environments, the Vault starts in a "Sealed" state. It cannot read its own storage until humans provide "Unseal Keys" (using Shamir's Secret Sharing algorithm). This ensures that even if someone physically steals the hard drive containing the Vault storage, they cannot read the secrets without the cooperation of multiple trusted security officers.
+**Expected Output & Verification:**
+Successful login will generate a temporary token that the app will use to read `secret/data/my-database`.
 
----
+## Daily Engineer Tasks
+- **L1 Engineer**: Monitoring Vault service up/down status. Rotating basic passwords in the portal manually. Running security scans using `git-secrets`.
+- **L2 Engineer**: Troubleshooting access denied issues for apps. Creating basic Vault policies. Managing CI/CD secrets variables (GitHub Actions/Jenkins).
+- **L3 / Senior Engineer**: Configuring Auto-Unseal with AWS KMS, setting up High Availability (Raft cluster), implementing Dynamic Secrets. 
+- **Production/SRE**: K8s External Secrets Operator (ESO) integration. Disaster Recovery planning (taking Vault snapshots and restoring). K8s IAM IRSA mapping.
 
-## Common Commands Cheat Sheet
+## Real Industry Tasks
+- **Real Tickets**: "App team A is getting 403 Forbidden while reading secrets from path /app-a".
+- **Change Requests**: "Migration of hardcoded K8s secrets to HashiCorp Vault using External Secrets Operator."
+- **Maintenance Work**: Upgrading HashiCorp Vault cluster version in production (Rolling upgrade).
+- **Patch Management**: Updating base images for Vault containers due to CVE vulnerabilities.
 
-| Command / Tool | What It Does | Real Example |
-|----------------|-------------|--------------|
-| `vault status` | Checks if Vault is sealed or unsealed | `vault status` |
-| `vault kv put` | Writes a static secret | `vault kv put secret/api-key key=123` |
-| `vault kv get` | Reads a static secret | `vault kv get secret/api-key` |
-| `vault operator init`| Initializes a brand new Vault cluster | `vault operator init` |
-| `vault operator unseal`| Provides 1 part of the unseal key | `vault operator unseal` |
-| `vault policy write` | Uploads an ACL policy to Vault | `vault policy write read-only pol.hcl` |
-| `aws secretsmanager get-secret-value` | Fetches secret from AWS | `aws secretsmanager get-secret-value --secret-id my-db` |
+## Troubleshooting
+- **Problem**: `Error response from server: sealed`
+  - **Symptoms**: Vault is up, API responds, but all secret reads return 503 or sealed errors.
+  - **Root Cause**: Vault was restarted. By default, it locks itself to protect data.
+  - **Resolution**: 3 out of 5 key holders must run `vault operator unseal` and provide their portion of the key. Or configure AWS KMS Auto-unseal for automated unsealing.
+- **Problem**: App gets `permission denied` reading secret.
+  - **Root Cause**: The attached policy doesn't have the `read` capability, OR the path is wrong. For KV-v2, the API path requires `/data/` in the policy (e.g., `secret/data/my-app`).
+  - **Resolution**: Update policy to include `/data/` and verify token capabilities.
+- **Problem**: Kubernetes External Secret shows `SecretSyncedError`.
+  - **Root Cause**: External Secrets Operator (ESO) pod doesn't have correct AWS IAM Role (IRSA) to talk to AWS Secrets Manager.
+  - **Resolution**: Fix OIDC/Trust relationships on AWS IAM Role.
 
----
+## Interview Preparation
+- **Basic**: What is the difference between encryption and encoding? (Ans: Base64 encoding can be reversed by anyone. Encryption requires a key to decrypt.)
+- **Intermediate**: Why are default Kubernetes Secrets insecure? (Ans: They are only base64 encoded strings in etcd. Unless etcd encryption at rest is enabled, anyone with etcd access can read them).
+- **Advanced / Scenario Based**: Your CI/CD pipeline pushes to Docker Hub. How do you pass the password without hardcoding it? (Ans: Store it in GitHub Secrets / GitLab Variables, reference it as `${{ secrets.DOCKER_PASSWORD }}`. CI runner injects it dynamically and masks logs).
+- **Production**: Explain Shamir's Secret Sharing in Vault. (Ans: A master key decrypts the encryption key. This master key is split into multiple parts, e.g., 5. You need a quorum, say 3 out of 5, to reconstruct the master key and unseal Vault).
 
-## Troubleshooting Guide
+## Production Scenarios
+**Scenario: "Developer accidentally committed AWS access key to public GitHub repo"**
+- **How to think**: Bots scrape GitHub in milliseconds. Assume the key is already compromised and being used to mine crypto.
+- **Where to check**: AWS CloudTrail logs to see what actions that key has performed.
+- **Commands**: 
+  - `aws iam update-access-key --access-key-id AKIA... --status Inactive --user-name dev`
+  - `aws iam delete-access-key --access-key-id AKIA... --user-name dev`
+- **Resolution**: NEVER force-push to hide it. Disable the key immediately. Delete it. Rotate the credential. Investigate CloudTrail for any unauthorized resources spawned (EC2 instances).
+- **Prevention**: Setup `trufflehog` or `git-secrets` as pre-commit hooks. Enforce GitHub Advanced Security secret scanning.
 
-| Problem | Likely Cause | Step-by-Step Fix |
-|---------|-------------|------------------|
-| `Error response from server: sealed` | Vault is locked | Vault restarted and is protecting its data. 3 out of 5 key holders must run `vault operator unseal` and provide their portion of the master key. (Or configure AWS KMS Auto-unseal). |
-| `permission denied` when app tries to read secret | Policy mismatch | The policy attached to the AppRole/Token doesn't have the `read` capability for the exact path. Note: in KV-v2, the API path requires `/data/`, so `secret/my-app` becomes `secret/data/my-app` in the policy! |
-| K8s External Secret shows `SecretSyncedError` | Provider Auth Failure | The External Secrets Operator in K8s does not have the correct AWS IAM Role (via IRSA) to talk to AWS Secrets Manager. Check OIDC/Trust relationships. |
-| Developer accidentally commits AWS key to GitHub | The key is burned | DO NOT try to hide it by force-pushing. Bots scrape GitHub in milliseconds. Go to AWS IAM, delete the compromised Access Key immediately, then generate a new one and rotate it. |
+## Commands
+| Command | Purpose | Syntax | Example | Danger Level |
+|---------|---------|--------|---------|--------------|
+| `vault status` | Check if sealed | `vault status` | `vault status` | Low |
+| `vault kv put` | Store secret | `vault kv put path key=val` | `vault kv put secret/api-key key=123` | Medium |
+| `vault kv get` | Read secret | `vault kv get path` | `vault kv get secret/api-key` | Low |
+| `vault operator init` | Initialize new cluster | `vault operator init` | `vault operator init` | High (Only run once!) |
+| `vault operator unseal` | Unseal vault | `vault operator unseal` | `vault operator unseal` | Medium |
+| `vault policy write` | Upload ACL policy | `vault policy write name file` | `vault policy write dev-pol pol.hcl`| Medium |
 
----
+## Cheat Sheet
+- **Default Port**: 8200 (Client API)
+- **KV V2 API Path**: `secret/data/your-path` (Always remember the `/data/` in policies!)
+- **Shamir's Secret Sharing**: Unseal process using split keys.
+- **Auto-Unseal**: AWS KMS, Azure Key Vault, or GCP KMS.
+- **Dynamic Secrets**: Secrets generated on demand with a TTL (Time-To-Live).
 
-## Real-World Job Scenario
+## SOP & Runbook & KB Article
+**SOP: Vault Node Restart and Unseal**
+- **Purpose**: Safely restart a Vault node and bring it back to active state.
+- **Procedure**: 
+  1. Drain node if in K8s. 
+  2. Restart service (`systemctl restart vault` or restart pod). 
+  3. Run `vault status`. If Sealed=true, execute `vault operator unseal` multiple times with different unseal keys until quorum is met.
+- **Validation**: `vault status` shows Sealed=false.
 
-> [!info] Scenario
-> **Situation:** "A massive breach hits the news. Hackers got access to a company's production database because a disgruntled ex-employee still had the database password saved on their laptop."
+**Runbook: Compromised Secret Detected**
+- **Detection**: Secret scanning tool alerts in CI/CD.
+- **Investigation**: Find the secret owner and system.
+- **Resolution**: Invalidate secret on the provider (AWS, DB, etc.). Generate a new one and update the Vault/Secret Manager.
+- **Validation**: Verify applications reconnected successfully with new credentials.
 
-**What Junior DevOps Does:**
-Changes the database password manually, updates the Kubernetes YAML files, and restarts all the pods. Hopes they didn't forget to update any legacy apps that might crash with the new password.
+**KB Article: K8s Secrets are NOT Encrypted**
+- **Problem**: Auditors found passwords in plain text in K8s `etcd`.
+- **Cause**: Kubernetes Secrets use Base64 encoding by default.
+- **Resolution**: Enable `EncryptionConfiguration` in K8s API server to encrypt secrets at rest using a KMS provider, or use External Secrets Operator to avoid storing long-term secrets in K8s entirely.
 
-**Escalation Trigger:**
-Static, shared passwords are a ticking time bomb. Every time a developer leaves the company, rotating shared passwords causes immense friction and downtime.
+## Best Practices & Beginner Mistakes
+- **Best Practice**: Use Dynamic Secrets with short TTLs whenever possible. If a password expires in 15 minutes, leaking it is much less dangerous.
+- **Best Practice**: Integrate AWS IAM Roles for Service Accounts (IRSA) with Vault so Pods authenticate natively without needing passwords to get passwords.
+- **Beginner Mistake**: Putting `ENV DB_PASSWORD=my_secret` in a `Dockerfile`. 
+  - **Impact**: Anyone with access to the image can run `docker inspect` and see the password. 
+  - **Correct Approach**: Pass environment variables at runtime via K8s, or use Vault Agent injector.
+- **Beginner Mistake**: Committing `.env` files to git. Always add `.env` to `.gitignore`.
 
-**Senior Engineer Resolution:**
-1. Implements **HashiCorp Vault Dynamic Secrets**.
-2. Configures Vault to talk to the PostgreSQL database with administrative rights.
-3. Configures the microservices to never use static passwords. When an app boots, it asks Vault for database access.
-4. Vault dynamically generates a brand new Postgres user (e.g., `v-myapp-8f92a`) with a random 32-character password.
-5. Vault attaches a Time-To-Live (TTL) of 1 hour to this user.
-6. The app uses it to connect. After 1 hour, Vault automatically drops the user from the database. The app must fetch a new one.
-7. Now, even if an employee steals the password, it is completely useless 60 minutes later. The ex-employee threat is mathematically eliminated.
+## Advanced Concepts
+- **Vault Architecture**: Vault uses a storage backend (like Consul or Raft) to persist encrypted data. The data is encrypted *before* it hits the storage. Vault never trusts the storage backend.
+- **Encryption Algorithm**: Vault uses AES-256 in GCM mode for data encryption.
+- **Seal/Unseal**: Vault starts in a sealed state. It knows where data is but cannot decrypt it because it lacks the Master Key. The unseal process reconstructs the Master Key in memory.
+- **OIDC/JWT Authentication**: A highly secure way for CI/CD pipelines (like GitHub Actions) to authenticate with Cloud providers without storing any permanent credentials. The CI pipeline presents a JWT token signed by GitHub, which the Cloud provider validates cryptographically.
 
-**Lesson Learned:**
-The only truly secure secret is one that doesn't exist yet, and one that expires quickly. Dynamic secrets neutralize credential theft.
+## Related Topics & Flashcards & Revision
+**Related Topics:**
+- [[09-Security-DevSecOps/SEC-01 DevSecOps Fundamentals|DevSecOps Foundations]]
+- [[04-Orchestration/K8S-03 ConfigMaps and Secrets|Kubernetes ConfigMaps and Secrets]]
+- [[09-Security-DevSecOps/SEC-02 IAM and RBAC|Identity and Access Management (IAM)]]
 
----
+**Flashcards:**
+- **Q**: Kubernetes native Secrets default encoding? **A**: Base64 (NOT encryption).
+- **Q**: Tool to inject external secrets into K8s? **A**: External Secrets Operator (ESO) or Vault Agent Injector.
+- **Q**: Vault Dev mode vs Prod mode? **A**: Dev is in-memory and auto-unsealed. Prod uses persistent storage and starts sealed.
 
-## Interview Questions
+**Revision Timer:**
+- **5 min**: What is Vault, why not hardcode secrets, `.env` gitignore.
+- **15 min**: K8s Secrets vs Vault, Unseal process.
+- **30 min**: AppRole auth, Dynamic Secrets architecture, Auto-unseal with KMS.
 
-**Q1 (Conceptual):** Why is storing secrets in Kubernetes `Secret` objects considered insecure out-of-the-box?
-**A:** Native Kubernetes `Secret` objects are not encrypted; they are only `base64` encoded. Base64 is an encoding format, not encryption, and can be instantly decoded by anyone. Anyone with `get secrets` RBAC permissions, or access to the underlying `etcd` datastore, can read the passwords in plain text. (To fix this, you must explicitly enable KMS Encryption at Rest for `etcd` in the cluster configuration).
+## Real Production Logs & Commands & Decision Tree
+**Vault Operator Init Output:**
+```text
+Unseal Key 1: qwe...
+Unseal Key 2: asd...
+Unseal Key 3: zxc...
+Unseal Key 4: rty...
+Unseal Key 5: fgh...
 
-**Q2 (Practical):** Your CI/CD pipeline needs to push a Docker image to Docker Hub. How do you pass the Docker Hub password to the pipeline without hardcoding it in the YAML?
-**A:** I would store the password securely in the CI provider's secrets manager (e.g., GitHub Actions Secrets or GitLab CI/CD Variables). In the pipeline YAML file, I reference it using a variable syntax, such as `${{ secrets.DOCKER_PASSWORD }}`. The CI runner will inject it dynamically at runtime and mask it (replace it with `***`) in the pipeline logs so it never leaks.
+Initial Root Token: hvs.xyz...
 
-**Q3 (Scenario-based):** You notice a developer has added `ENV DB_PASSWORD=my_secret_password` into a Dockerfile. Why is this bad, and how should it be done instead?
-**A:** It is bad because the `ENV` instruction bakes the plain-text password into the Docker image layers. Anyone who pulls the image can run `docker history` or `docker inspect` to see the password. Instead, the Dockerfile should have no secrets. The password should be passed at runtime (e.g., via Kubernetes Secrets mounted as environment variables, or `docker run -e DB_PASSWORD=...`).
+Vault initialized with 5 key shares and a key threshold of 3. Please securely distribute the key shares...
+```
+*Explanation*: 
+- `Unseal Keys`: 5 generated keys. You need 3 (threshold) to unseal Vault.
+- `Root Token`: God-mode token. Use this to setup initial policies and auth methods, then revoke it! Do not use Root Token for daily tasks.
 
-**Q4 (Deep dive):** Explain how "Auto-Unseal" works in HashiCorp Vault.
-**A:** Normally, Vault uses Shamir's Secret Sharing, requiring humans to manually input 3 out of 5 keys to decrypt the master key when Vault restarts. This is terrible for automated scaling. Auto-Unseal delegates this to a trusted Cloud Key Management Service (like AWS KMS). When Vault boots, it reaches out to AWS KMS using an IAM role, asks KMS to decrypt the master key, and unseals itself automatically without human intervention.
-
-**Q5 (Trick/Gotcha):** If you use a `.env` file to manage secrets locally, is it safe to commit this file to a private Git repository?
-**A:** No, it is never safe. Private repositories are regularly cloned to developers' local laptops, backup servers, and CI/CD caches. If the private repo is ever compromised, accidentally made public, or accessed by a rogue employee, all secrets are exposed. `.env` files must strictly be added to `.gitignore`.
-
----
-
-## Related Notes
-
-[[00-MOC/Master-Index|Master Index]]
-[[09-Security-DevSecOps/SEC-01 DevSecOps Fundamentals|DevSecOps Foundations]]
-[[04-Orchestration/K8S-03 ConfigMaps and Secrets|Kubernetes ConfigMaps and Secrets]]
+**Troubleshooting Decision Tree (Vault Access):**
+```mermaid
+graph TD
+    A[App gets 403 Forbidden reading secret] --> B{Is Vault Sealed?}
+    B -->|Yes| C[Run vault operator unseal]
+    B -->|No| D{Is Auth Token Valid?}
+    D -->|No| E[Check AppRole / IAM identity]
+    D -->|Yes| F{Does Policy cover the exact path?}
+    F -->|No| G[Update Policy. Ensure /data/ is in path for KV v2]
+    F -->|Yes| H[Check capabilities: read vs list]
+```

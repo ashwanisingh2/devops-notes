@@ -9,182 +9,152 @@ cert-relevant: #aws-devops
 
 # CICD-01 CI/CD Concepts
 
-> [!abstract] Overview
-> Writing code is useless if you can't deliver it to customers securely, reliably, and quickly. Continuous Integration (CI) and Continuous Deployment (CD) form the heartbeat of DevOps culture. It is the philosophy and practice of automating the software delivery lifecycle—from the moment a developer commits code to the moment it runs in production. Mastering CI/CD concepts is what separates manual sysadmins from modern DevOps engineers.
+# Overview
+Ye kya hai? Kyu use hota hai? CI/CD (Continuous Integration / Continuous Delivery & Deployment) ek software delivery pipeline hai jo code push hone se lekar production tak release karne ka process automate karti hai. Iska main goal hai development teams ko fast aur reliable tareeke se software deliver karne me help karna, bina manual errors ke.
 
----
+Real life example: Socho ek car manufacturing assembly line. Ek developer naya engine (code) rakhta hai. CI us engine ko automatically test karta hai ki start hota hai ya nahi. CD us engine ko car me fit karke directly showroom (production) tak automatically le jata hai. Koi manual driver (human intervention) nahi chahiye!
 
-## Concept Overview
-
-- **What it is** — A set of practices and automated pipelines. **CI** automates building and testing code. **CD (Delivery)** automates preparing it for release. **CD (Deployment)** automates pushing it live.
-- **Why DevOps engineers use it** — Human intervention is slow and prone to error. Automated pipelines enforce quality gates (tests, security scans) and allow teams to release software multiple times a day instead of once a month.
-- **Where you encounter this in a real job** — Designing the architecture of a new GitHub Actions pipeline, deciding between a Blue-Green or Canary deployment strategy for a risky release, or tracking DORA metrics to measure team velocity.
-- **Responsibility Split:**
-  - **Junior DevOps**: Monitors pipelines, restarts failed jobs, and fixes simple broken test dependencies.
-  - **Mid DevOps**: Writes the pipeline scripts (Jenkinsfile, `.gitlab-ci.yml`), integrates Docker builds, and pushes artifacts to registries.
-  - **Senior/SRE**: Architects deployment strategies (Canary/Rollbacks), integrates automated security (DevSecOps), and shifts teams from legacy branching to Trunk-Based Development.
-
-*Seedha simple mein: CI/CD ek car manufacturing assembly line hai. Developer ne engine (code) rakha. CI usko test karega ki engine start hota hai ya nahi. CD usko car mein fit karke showroom (production) tak automatically le jayega. Koi manual driver nahi chahiye.*
-
----
-
-## Technical Deep Dive
-
-### 1. The CI/CD Pipeline Stages
-A robust pipeline flows linearly through specific gates:
-1. **Source**: Developer pushes code to Git. A Webhook triggers the pipeline.
-2. **Build**: Code is compiled (if Java/Go) or packaged (Node.js). A Docker image is built.
-3. **Test**: Unit tests and integration tests are executed. If they fail, the pipeline halts immediately (breaking the build).
-4. **Scan (DevSecOps)**: Static analysis (SAST) and container vulnerability scans (Trivy) run.
-5. **Push/Store**: The artifact (Docker Image or `.jar` file) is pushed to an immutable registry (like GHCR or AWS ECR).
-6. **Deploy**: The artifact is pulled and deployed to Staging or Production infrastructure.
+Industry kaha use karti hai? Har modern tech company (FAANG, start-ups, enterprises) ise use karti hai taaki din me 100+ releases ho sake, wo bhi zero downtime ke sath. Manual deployments ab purane zamane ki baat ho gayi.
 
 ```mermaid
 flowchart LR
-    A[Code Commit] -->|Webhook| B(Build)
-    B --> C{Unit Tests}
-    C -->|Pass| D[Security Scan]
-    C -->|Fail| Z[Alert Developer]
-    D --> E[Push Artifact to Registry]
-    E --> F[Deploy to Staging]
-    F --> G{Integration Tests}
-    G -->|Pass| H[Deploy to Production]
-    G -->|Fail| Z
+    Dev[Developer] -->|Git Push| Repo(Source Code Repo)
+    Repo -->|Webhook Trigger| CI[CI Server - Build & Test]
+    CI -->|Pass| Registry[Artifact Registry]
+    Registry --> CD[CD Server - Deploy]
+    CD --> Prod[Production Environment]
 ```
 
-### 2. Continuous Delivery vs. Continuous Deployment
-This is the most commonly confused concept in interviews.
-- **Continuous Delivery**: The pipeline fully automates building, testing, and staging the code. The code is *ready* to go to production at any moment, but a human must click a manual "Approve" button to trigger the final prod deployment.
-- **Continuous Deployment**: True automation. There is no human gate. If the code passes all automated tests, it goes directly to production automatically. (Requires extreme confidence in your automated testing suite).
+# Working
+Internal working aur Data flow kaise chalta hai:
+1. **Continuous Integration (CI):** Jab developer code commit/push karta hai, Git ek webhook trigger karta hai CI server (like GitHub Actions, Jenkins, GitLab CI) ko. CI server code pull karke usko compile/build karta hai, linting karta hai, aur **Unit Tests** run karta hai. Agar test fail hota hai, to pipeline turant ruk jati hai (ise kehte hain *Breaking the build*).
+2. **Security & Package (DevSecOps):** Source code scan (SAST) hota hai aur vulnerabilities check hoti hain. Phir application ka ek Docker image build hota hai aur use Artifact Registry (AWS ECR, Docker Hub) mein push kar diya jata hai.
+3. **Continuous Delivery / Deployment (CD):** Yahan se deployment start hota hai. Naya artifact pull karke Staging/QA me deploy hota hai. 
+   - Agar *Continuous Delivery* hai, to QA/Manager manually "Approve" click karega Production deploy ke liye.
+   - Agar *Continuous Deployment* hai, to bina human interaction ke automated E2E tests ke baad seedha Production mein deploy ho jayega.
 
-### 3. Deployment Strategies and Feature Flags
-Deploying to production is scary. We mitigate risk using strategies:
-- **Recreate**: Shut down old app, start new app. (Causes downtime, rarely used).
-- **Rolling Update**: Replace instances one by one. (Default in Kubernetes).
-- **Blue-Green**: Run two identical environments. Blue is live (v1). Deploy v2 to Green. Test Green. Flip the load balancer to point to Green. If Green fails, flip back to Blue instantly. Zero downtime, fast rollback, but costs 2x infrastructure.
-- **Canary**: Deploy v2 to a small subset of servers (or 5% of users). Monitor for errors. If healthy, slowly ramp up to 100%. (Most advanced, safest).
-**Feature Flags**: A code-level strategy. You deploy unfinished code to production, but wrap it in an `if (feature_enabled)` block. The code is live, but hidden from users until you toggle the flag in a dashboard.
+# Installation
+Prerequisites aur architecture setup karne ke liye:
+Conceptually ek CI/CD environment banane ke liye aapko 4 components chahiye:
+1. **Version Control System:** (GitHub, GitLab, Bitbucket) jahan source code rakha ho.
+2. **CI/CD Server / Runner:** (Jenkins Master/Worker, GitLab Runners, GitHub Actions) jo actually compute power provide karte hain automation scripts chalane ke liye.
+3. **Artifact Registry:** (AWS ECR, Nexus, Artifactory) jahan final binaries ya Docker images store hongi.
+4. **Compute Environment:** (AWS EC2, Kubernetes, ECS) jahan final application deploy hogi aur run karegi.
 
----
+# Practical Lab
+Step-by-step implementation (Mental Walkthrough & Concept):
+1. **Source Code Repo:** GitHub par ek Node.js app repo create karo.
+2. **Pipeline Script:** Repo me `.github/workflows/main.yml` (ya Jenkinsfile) create karo.
+3. **CI Steps:** Pipeline script me commands add karo: `npm install` (dependencies), `npm run test` (testing).
+4. **Build & Push:** `docker build -t myapp:${GITHUB_SHA} .` aur `docker push` ke steps add karo (Secrets ka use karke credentials safely manage karo).
+5. **CD Step:** `kubectl apply -f deployment.yaml` run karke K8s cluster pe naya version deploy karo.
+*Expected Output:* Jaise hi developer `main` branch me push karega, 5 minute ke andar naya code staging website pe live ho jayega bina ek bhi CLI command manually type kiye.
 
-## Step-by-Step Lab (Mental Architecture)
+# Daily Engineer Tasks
+- **L1/L2 Engineer:** Pipeline monitoring. Agar pipeline fail hoti hai to check karna ki network timeout issue tha ya code issue. Agar code issue hai to developer ko tag karna.
+- **L3/Senior Engineer:** Pipeline optimization. Build time ko 20 mins se 5 mins tak kam karna by implementing dependency and Docker layer caching.
+- **DevOps/SRE/Platform Engineer:** Naye deployment strategies (Canary, Blue-Green) design karna, automated rollback triggers set karna, aur DevSecOps (Trivy, SonarQube) implement karna across the organization.
 
-> [!warning] Pre-requisites
-> - A whiteboard or drawing tool (excalidraw.com)
+# Real Industry Tasks
+- **Migration Tickets:** Purane Jenkins server se sabhi pipelines ko GitHub Actions ya GitLab CI me migrate karna aur unhe YAML-as-code format me standardize karna.
+- **Speed Optimization:** Jenkins master-slave architecture scale karna, parallel testing implement karna.
+- **Release Automation:** Developer ke PR merge karte hi automatically Slack notification bhejna aur Jira ticket status update karna webhook ke through.
 
-### Step 1: Design the Source and CI Phase
-**Action:** Draw a GitHub repository.
-1. Developer opens a Pull Request.
-2. GitHub Webhook triggers a CI server (e.g., Jenkins).
-3. Jenkins runs `npm run test`.
-4. Jenkins runs SonarQube for code quality.
-*Rule:* The PR cannot be merged into `main` unless these checks pass.
+# Troubleshooting
+Common issues, Unke Symptoms aur Resolution:
+1. **Issue: Pipeline is extremely slow (Takes 30+ mins).** 
+   - *Root Cause:* Har run me `npm install` ya `maven package` internet se sabhi dependencies scratch se re-download kar raha hai.
+   - *Resolution:* CI tool ka caching mechanism use karo (e.g. GitHub Actions cache for `~/.npm` or `.m2`).
+2. **Issue: Flaky Tests (Pipeline randomly 10% fail hoti hai).**
+   - *Root Cause:* Tests network calls ya shared Database pe depend kar rahe hain jisse race condition ban rahi hai.
+   - *Resolution:* External DB/APIs ko mock karo. Ensure karo ki test start hone se pehle DB environment wipe/clean hota ho.
+3. **Issue: Docker Push fails with "401 Unauthorized".**
+   - *Cause:* Static password ya token expire ho gaya hai.
+   - *Resolution:* OIDC (OpenID Connect) configure karo taaki short-lived, dynamically generated cloud tokens ka use ho.
 
-### Step 2: Design the Build and Artifact Phase
-**Action:** Draw the `main` branch.
-1. PR is merged to `main`.
-2. Pipeline triggers again.
-3. Jenkins runs `docker build -t myapp:${GIT_COMMIT_HASH} .`
-4. Jenkins runs `trivy image myapp:${GIT_COMMIT_HASH}` to scan for CVEs.
-5. Jenkins runs `docker push` to AWS ECR.
+# Interview Preparation
+- **Basic:** CI aur CD mein kya main difference hai? (Continuous Delivery me Prod deployment ke liye manual approval hota hai, Continuous Deployment me sab 100% automated hota hai bina human touch ke).
+- **Intermediate:** DORA Metrics kya hoti hain? (Deployment Frequency, Lead Time for changes, MTTR, Change Failure Rate. Ye 4 metrics ek DevOps team ki performance measure karti hain).
+- **Advanced / Scenario Based:** Apki CI pipeline deployment ke waqt phat gayi aur half deploy ho gaya. K8s downtime prevent karne ke liye konsi strategy best hai?
+  - *Expected Answer:* Hum Kubernetes me Rolling Update deployment use karenge with properly configured Readiness Probes. Jab tak naya pod ready nahi hoga, traffic purane pod pe hi rahega, so zero downtime.
+- **Production (Rapid Fire):** Secret scanning kahan lagani chahiye? -> Commit phase me (pre-commit hooks) aur CI pipeline ke start me. Secret leak hone par pipeline wahi fail honi chahiye, build image me nahi jani chahiye.
 
-### Step 3: Design the CD (Delivery) Phase
-**Action:** Draw a Staging Kubernetes Cluster.
-1. Jenkins authenticates to the Staging K8s cluster.
-2. Jenkins updates the Deployment YAML to use the new `${GIT_COMMIT_HASH}` image tag.
-3. Jenkins runs `kubectl apply`.
-4. Automated UI tests (Selenium/Cypress) run against the staging URL.
+# Production Scenarios
+Scenario: "Website completely down ho gayi 5 minute baad Prod deploy hone ke."
+- **How to think:** Kya recent change live gaya tha? Monitoring tools kya kah rahe hain?
+- **Where to check:** APM (Datadog/NewRelic), Kubernetes Pod Status (CrashLoopBackOff?), CI/CD logs.
+- **Root Cause Analysis:** Say code me ek bug tha jo unit test pakad nahi paya ya DB schema update fail hua.
+- **Resolution:** Immediate resolution hai "Rollback". CI/CD portal me jao aur previous successful pipeline ke artifact ko wapas deploy karo (One-click rollback).
+- **Prevention:** Canary Deployment use karna chahiye tha. Naya code sirf 5% users ko diya jata, errors aate to automatically rollback ho jata bina 95% users ko impact kiye.
 
-### Step 4: Design the CD (Deployment) Phase
-**Action:** Draw a Production Kubernetes Cluster and a Slack channel.
-1. Pipeline halts. Sends a Slack message with an "Approve Prod Deployment" button (Continuous Delivery).
-2. QA Engineer clicks Approve.
-3. Jenkins updates the Production Deployment YAML using a Rolling Update strategy.
-4. Pipeline completes successfully.
+# Commands
+| Command | Purpose | Syntax | Example | When to use | Danger Level |
+|---------|---------|--------|---------|-------------|--------------|
+| `npm test` | Unit tests chalana | `npm test` | `npm test` | CI test phase mein | Low |
+| `docker build` | Code aur dependencies ko pack karna | `docker build -t <tag> .` | `docker build -t myapp:${GIT_COMMIT} .` | CI build phase mein | Low |
+| `docker push` | Artifact registry me upload karna | `docker push <image>` | `docker push ecr.../myapp:v1` | CD phase se pehle | Medium |
 
-> [!tip] Pro Tip
-> Never use mutable tags like `latest` for Docker images in your CI/CD pipelines. Always tag artifacts with the Git Commit Hash (e.g., `v1.0.0-a1b2c3d`). This guarantees absolute traceability: looking at a running container, you know exactly which line of code it came from.
+# Cheat Sheet
+- **CI**: Build, Test, Code Quality check. Fast feedback loop.
+- **CD (Delivery)**: Code ready to deploy. Automated up to Staging. Manual approval for Prod.
+- **CD (Deployment)**: 100% Automation directly to Production. Requires crazy good testing.
+- **Blue-Green Deployment**: 2 identical environments. Shift 100% traffic instantly. Zero downtime, fast rollback. Costs 2x infrastructure.
+- **Canary Deployment**: Slowly shift traffic (5% -> 20% -> 100%). Safest, catches bugs with minimal user impact.
+- **Feature Flags**: Code production me live hai, par user se chhupa hua hai. UI se button on/off karke feature enable hota hai.
 
----
+# SOP & Runbook & KB Article
+- **SOP - Adding a new service to CI/CD:** Purpose: Naye microservice ke liye standard pipeline template banana. Validation: Verify image ECR me push ho gayi aur staging me deploy ho gayi.
+- **Runbook - Build Queue is Full/Stuck:**
+  - *Detection:* Developers complain pipeline is not starting.
+  - *Investigation:* Check CI runner nodes. CPU/Memory full ho sakti hai ya scale-up fail ho gaya.
+  - *Resolution:* Manually spin up temporary runner nodes ya K8s HPA (Horizontal Pod Autoscaler) limits ko badhana.
+- **KB Article - "Works on my machine" Issue:** Problem: Code local me chal raha hai par CI me fail ho raha. Cause: OS/Node version mismatch. Resolution: Hamesha Docker container ke andar build steps run karo taaki local aur CI ka environment 100% identical rahe.
 
-## Common Commands Cheat Sheet
-*(Note: CI/CD is tool-agnostic; these are conceptual actions implemented differently in Jenkins/GitLab/GitHub)*
+# Best Practices & Beginner Mistakes
+- **Beginner Mistake:** Docker images ko `latest` tag se push karna. Isse immutability destroy ho jati hai aur rollback karna impossible ho jata hai kyuki aapko nahi pata ki pichla 'latest' kya tha.
+- **Best Practice:** Hamesha Git Commit Hash (e.g., `myapp:a1b2c3d`) ko as a tag use karo. Ye ensure karta hai ki aap exactly track kar sako ki image kis code se bani hai.
+- **Best Practice (Immutability):** "Build once, deploy everywhere." Ek baar build karke Docker image bana lo, phir Dev, Staging aur Prod sab jagah same image use karo, bas environment variables pass karo.
 
-| Concept / Action | What It Does | Tool Examples |
-|------------------|-------------|---------------|
-| `linting` | Checks code for stylistic errors before compilation | `eslint`, `flake8`, `shellcheck` |
-| `unit testing` | Tests individual functions in isolation | `jest`, `pytest`, `JUnit` |
-| `artifact registry` | Immutable storage for compiled binaries/images | Nexus, Artifactory, Docker Hub, ECR |
-| `SAST` | Static Application Security Testing (scans code) | SonarQube, Semgrep, Checkmarx |
-| `DAST` | Dynamic Application Security Testing (attacks live app) | OWASP ZAP, Burp Suite |
-| `Webhook` | HTTP POST sent by Git to trigger pipelines | GitHub Webhooks |
-| `DORA Metrics` | 4 key metrics to measure DevOps team performance | Deployment Frequency, Lead Time, MTTR, Change Failure Rate |
+# Advanced Concepts
+- **Trunk-Based Development (TBD):** DevOps me lambi lambi feature branches nahi banayi jati. Sab developers roz (multiple times a day) seedha `main` branch me choti-choti commits push karte hain. Adhuri chizein feature flags ke peeche chupa di jati hain.
+- **GitOps:** Ye CI/CD ka next level hai (Tools: ArgoCD, FluxCD). Yahan aap external script se `kubectl apply` nahi chalate (Push model). K8s cluster khud continuously Git repo ko check karta hai (Pull model) aur apna state Git state se match karta hai. Ye zyada secure aur reliable hai.
 
----
+# Related Topics & Flashcards & Revision
+- [[00-MOC/Master-Index|Master Index]]
+- [[02-Version-Control/GIT-02 Branching Strategies|Branching Strategies]]
+- [[05-CI-CD/CICD-03 GitHub Actions|GitHub Actions (Implementation)]]
+- [[07-Containers/Docker-01 Concepts|Docker Concepts]]
 
-## Troubleshooting Guide
+**Flashcards:**
+- *Q: Continuous Delivery aur Deployment me kya farq hai?* -> A: Delivery me manual gate hota hai Prod ke liye, Deployment me sab auto hota hai.
+- *Q: Blue-Green aur Canary me kya farq hai?* -> A: Blue-Green ek jhatke me 100% traffic shift karta hai, Canary ahista-ahista (like 10%).
 
-| Problem | Likely Cause | Step-by-Step Fix |
-|---------|-------------|------------------|
-| "It works on my machine but fails in CI" | Environment mismatch | Developer is using Node v18 locally, but CI runner has Node v14. Standardize using Docker for CI build environments. |
-| Pipeline is extremely slow (takes 30 mins) | Re-downloading dependencies every run | Implement caching in your pipeline tool (e.g., cache `~/.npm` or `.m2` directories). |
-| Flaky Tests (fail randomly 10% of the time) | Timing issues or shared state | Tests are likely depending on external databases or network calls. Mock external services, or ensure the DB is wiped clean before every test. |
-| Artifact push fails with `401 Unauthorized` | Expired or incorrect credentials | CI runners should use short-lived, dynamically generated cloud tokens (OIDC) rather than static passwords that expire. |
-| Deployment to Prod caused 5 minutes of downtime | Used Recreate strategy | The pipeline tore down the old version before starting the new one. Ensure K8s is using `RollingUpdate` with proper readiness probes. |
+**Revision Timeline:**
+- 5 min: Cheat sheet aur DORA metrics revise.
+- 15 min: Interview Questions aur Production Scenarios go-through karo.
+- 30 min: Ek mental architecture draw karo (Git -> CI -> ECR -> CD -> K8s) on a whiteboard.
 
----
+# Real Production Logs & Commands & Decision Tree
+Sample Production CI Log when a pipeline fails:
+```text
+[INFO] Scanning for projects...
+[INFO] Running tests...
+[ERROR] Tests run: 45, Failures: 1, Errors: 0, Skipped: 0
+[ERROR] NullPointerException at PaymentService.process(PaymentService.java:38)
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+```
+*Explanation:* Yahan Code test stage pe fail hua (Unit test fail). Pipeline automatically ruk gayi, image build step skip ho gaya, ensuring ki toota hua code aage push na ho.
 
-## Real-World Job Scenario
-
-> [!info] Scenario
-> **Situation:** "A startup is releasing features very slowly. They use 'Git Flow'—developers merge to a `develop` branch, test for 2 weeks, cut a `release` branch, fix bugs for 1 week, and finally deploy to `main`."
-
-**What Junior DevOps Does:**
-Tries to make the Jenkins pipeline run faster by upgrading the AWS EC2 runner instance to a larger size. It shaves 2 minutes off the build, but releases still take 3 weeks.
-
-**Escalation Trigger:**
-The business is losing to competitors because they cannot ship features fast enough. The CEO demands weekly releases.
-
-**Senior Engineer Resolution:**
-1. Recognizes this is a process problem, not a tooling problem.
-2. Migrates the engineering team to **Trunk-Based Development**.
-3. All developers must merge code directly to `main` at least once a day.
-4. Enforces strict automated testing on every PR. If tests fail, it cannot merge.
-5. Introduces **Feature Flags**. Developers merge half-finished features to `main`, but hide them behind a flag so users don't see them.
-6. Automates the pipeline so every merge to `main` deploys to production automatically (Continuous Deployment).
-7. Result: The team goes from 1 release every 3 weeks to 10 releases a day safely.
-
-**Lesson Learned:**
-CI/CD is heavily dependent on your Git Branching Strategy. Complex branching kills Continuous Delivery. Small, frequent, automated commits lead to high velocity.
-
----
-
-## Interview Questions
-
-**Q1 (Conceptual):** What are the 4 DORA Metrics, and why do they matter?
-**A:** DORA (DevOps Research and Assessment) metrics are the industry standard for measuring DevOps success. 
-1. **Deployment Frequency**: How often code is deployed.
-2. **Lead Time for Changes**: Time from code commit to production.
-3. **Change Failure Rate**: Percentage of deployments causing failures.
-4. **Time to Restore Service (MTTR)**: How long it takes to recover from a failure. 
-They matter because they prove that deploying *faster* actually makes systems *more stable*.
-
-**Q2 (Practical):** Your team wants to implement a Blue-Green deployment on AWS. How do you conceptually architect this?
-**A:** I would maintain two identical environments: Blue (currently active) and Green (idle). The CI/CD pipeline deploys the new version to the Green environment. We run automated integration tests against Green. Once passed, we update the AWS Application Load Balancer (ALB) or Route53 DNS record to swap the traffic from Blue to Green. If anything fails, we simply swap the load balancer back to Blue instantly.
-
-**Q3 (Scenario-based):** A developer pushes a commit containing an AWS secret key to GitHub. The CI pipeline runs successfully and deploys to staging. How should the pipeline have prevented this?
-**A:** The CI pipeline should have a "Scan" or "DevSecOps" stage early in the process that includes secret scanning tools like `git-secrets`, `trufflehog`, or GitHub Advanced Security. If a secret is detected, the pipeline must fail immediately *before* the build phase, preventing the artifact from being created or deployed.
-
-**Q4 (Deep dive):** Explain the concept of an Immutable Artifact in CI/CD.
-**A:** Immutability means an artifact (like a Docker image) is built exactly *once* and never changed. Instead of pulling code from Git on the Dev server, and then pulling code again from Git on the Prod server, the CI pipeline builds the Docker image once and pushes it to a registry. That exact same binary image is then promoted through Dev, Staging, and Prod. This guarantees that the exact code tested in QA is what runs in Prod.
-
-**Q5 (Trick/Gotcha):** Can you achieve true Continuous Deployment (direct to production) without comprehensive automated testing?
-**A:** Absolutely not. Continuous Deployment removes the human approval gate. If you do not have comprehensive, trustworthy automated unit, integration, and UI tests, you are simply automating the deployment of broken code and bugs directly to your customers at high speed. Robust testing is the prerequisite for CD.
-
----
-
-## Related Notes
-
-[[00-MOC/Master-Index|Master Index]]
-[[02-Version-Control/GIT-02 Branching Strategies|Branching Strategies]]
-[[05-CI-CD/CICD-03 GitHub Actions|GitHub Actions (Implementation)]]
+**Troubleshooting Decision Tree:**
+```mermaid
+flowchart TD
+    A[CI/CD Pipeline Failed] --> B{Konsa Stage Fail Hua?}
+    B -->|Build/Test Stage| C[Review Code Tests/Logs]
+    C --> D[Fix Code Logic or Dependencies]
+    B -->|Registry Push Stage| E[Check IAM Auth/Token]
+    E --> F[Renew Secrets / Free Disk Space]
+    B -->|Deployment Stage| G[Check K8s Event Logs]
+    G --> H[Fix YAML Config / Resource Limits]
+```

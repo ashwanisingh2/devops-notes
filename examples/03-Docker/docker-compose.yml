@@ -1,0 +1,54 @@
+version: '3.8'
+
+# This compose file sets up a standard 3-tier architecture (Proxy, API, Database)
+services:
+  # 1. Reverse Proxy (Frontend/Load Balancer)
+  proxy:
+    image: nginx:alpine
+    ports:
+      - "8080:80"
+    depends_on:
+      api:
+        condition: service_started
+    networks:
+      - backend_network
+
+  # 2. API Tier (Node.js/Backend)
+  api:
+    image: node:18-alpine
+    command: sh -c "sleep 3600" # Dummy process for demonstration
+    environment:
+      - DB_HOST=${DB_HOST:-db}
+      - DB_PASS=${POSTGRES_PASSWORD}
+    depends_on:
+      db:
+        # Crucial for stability: Wait until DB is actually ready to accept connections
+        condition: service_healthy 
+    networks:
+      - backend_network
+
+  # 3. Database Tier (PostgreSQL)
+  db:
+    image: postgres:14-alpine
+    env_file:
+      - .env # Load variables from local .env file
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      # Use pg_isready to verify the database is fully booted and ready
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - backend_network
+
+# Define explicit persistent storage
+volumes:
+  pgdata:
+    name: "3tier_pgdata"
+
+# Define explicit custom networks
+networks:
+  backend_network:
+    driver: bridge

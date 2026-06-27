@@ -9,151 +9,186 @@ cert-relevant: #none
 
 # SRE-02 Incident Management
 
-> [!abstract] Overview
-> Systems will break. Databases will corrupt, network cables will be cut, and bad code will bypass tests. How an engineering team responds when production catches fire determines whether an outage lasts 15 minutes or 15 hours. Incident Management brings military-style structure and clear communication to chaotic outages, ensuring that issues are triaged, mitigated, and resolved quickly, followed by a postmortem to guarantee the exact same failure never happens twice.
+# Overview
+Ye kya hai? Incident Management ek structured process hai jo unplanned IT outages ya interruptions (incidents) ko efficiently handle karne ke liye use hota hai. Jab production system break hota hai, toh ek chaotic situation ban sakti hai. Incident Management is chaos ko order mein convert karta hai.
+Kyu use hota hai? To reduce MTTR (Mean Time To Recovery). Bina process ke 10 engineers ek hi issue par Zoom pe chila rahe hote hain, duplicate kaam karte hain, aur outage lamba chalega.
+Real life example: Socho ek hospital ka emergency room (ER). Jab koi accident wala patient aata hai, sab doctors panic nahi karte. Ek senior doctor lead karta hai (Commander), ek nurse vitals check karti hai, ek aur doctor blood flow rokta hai. Sabka role fixed hota hai. Incident Management bhi IT systems ka emergency room hai.
+Industry kaha use karti hai? Har IT company (FAANG se leke startups tak) PagerDuty, Opsgenie, ya xMatters jaise tools use karti hai on-call rotation aur incident response manage karne ke liye.
+Real production use-case: Amazon Prime Day pe achanak checkout service crash ho gayi. SRE team turant ek incident declare karti hai aur war room (Zoom/Slack) mein aake roles assign karke issue mitigate karti hai.
 
----
+```mermaid
+graph TD
+    A[System Alert / User Report] --> B[Detection]
+    B --> C[Declare Incident]
+    C --> D[Assemble War Room]
+    D --> E[Triage & Investigation]
+    E --> F[Mitigation - Stop Bleeding]
+    F --> G[Resolution - Fix Bug]
+    G --> H[Postmortem]
+    H --> I[Action Items - Prevent Recurrence]
+    style F fill:#f96,stroke:#333,stroke-width:2px
+    style H fill:#9cf,stroke:#333,stroke-width:2px
+```
 
-## Concept Overview
+# Working
+Internal working: Incident Management usually SRE principles aur ICS (Incident Command System - jo fire brigade use karti hai) pe based hota hai. 
+Data flow & Communication: Incident declare hote hi ek dedicated Slack/Teams channel aur Zoom bridge automatically create hota hai (via ChatOps bots like Rootly, FireHydrant). 
+Roles: 
+1. **Incident Commander (IC)**: Ye boss hai incident ka. Ye code fix nahi karta, decision leta hai aur tasks delegate karta hai. 
+2. **Communications Lead (Comms)**: Stakeholders ko update karta hai (Status page update karna, CEO/Managers ko update dena). Engineers ko external noise se bachata hai.
+3. **Operations/SME (Subject Matter Experts)**: Asli engineers jo logs check karte hain aur fix apply karte hain.
 
-- **What it is** — A structured, standardized process for responding to unplanned IT interruptions (incidents). It defines distinct roles, communication channels, and phases (Detection, Triage, Mitigation, Resolution, Postmortem).
-- **Why DevOps engineers use it** — To reduce MTTR (Mean Time To Recovery). During an outage, 10 engineers jumping into a Zoom call and shouting over each other creates confusion, duplicated effort, and prolonged downtime. Incident management imposes order.
-- **Where you encounter this in a real job** — Being paged at 2 AM, declaring a SEV-1 incident, acting as the Incident Commander in a Slack War Room, or writing the public Status Page update for customers.
-- **Responsibility Split:**
-  - **Junior SRE/DevOps**: Acts as a Subject Matter Expert (SME) during an incident, investigating logs or metrics when directed by the Commander.
-  - **Mid SRE/DevOps**: Serves as the Incident Commander for lower severity (SEV-2/3) issues, coordinates the Zoom bridge, and drafts the Postmortem document.
-  - **Senior/SRE**: Acts as the Incident Commander for catastrophic SEV-1 outages, manages executive communication, and drives systemic architectural changes derived from postmortem Action Items.
+# Installation
+Pre-requisites: Slack/Teams, PagerDuty/Opsgenie account, Datadog/NewRelic monitoring setup.
+Installation & Configuration:
+1. PagerDuty mein "Escalation Policies" banai jati hain (Level 1 On-call -> Agar 5 min mein acknowledge nahi kiya -> Pings Level 2 Backup).
+2. Monitoring tools (Datadog/Prometheus) ko PagerDuty se integrate kiya jata hai via Webhooks.
+3. Slack mein incident bot install kiya jata hai (e.g., FireHydrant, Rootly, Jeli).
 
-*Seedha simple mein: Incident Management ek Fire Brigade ka system hai. Jab aag lagti hai (outage), toh sab log paani nahi daalte. Ek leader (Commander) hota hai jo bahar khada hoke directions deta hai, ek insaan public ko handle karta hai (Comms), aur baaki log aag bujhate hain (Engineers). Bina leader ke sirf panic hoga.*
+# Practical Lab
+Step-by-step implementation: Mock SEV-1 Incident
+1. **Detection (CLI/GUI)**: PagerDuty app pe raat ko 2 AM alert aaya: `High Error Rate on Payment Gateway`.
+2. **Declaration**: SRE slack ke `#sre-alerts` channel mein jata hai aur bot command type karta hai: `/incident declare SEV-1 Payment Gateway Failing`.
+3. **War Room**: Bot ek naya slack channel `#inc-payment-gateway` banayega. IC channel mein aate hi announce karta hai: *"I am the IC. Rohan, please check the Datadog logs. Priya, take Comms and update the Status Page."*
+4. **Mitigation**: Rohan dekhta hai ki recently deploy kiye gaye naye code mein Stripe API key missing hai. IC order deta hai: *"Rohan, execute rollback immediately to the previous tag."*
+5. **Verification**: Rohan executes `kubectl rollout undo deployment/payment-gateway`. Pods cycle hote hain. Error rates 0% pe aa jate hain. Incident is mitigated!
+6. **Closing**: IC says, *"Great job team. We are stable. I am ending the active incident."* Bot command: `/incident resolve`.
 
----
+# Daily Engineer Tasks
+- **L1 Engineer**: Alerts ko acknowledge karna, runbooks follow karke basic services restart karna, disk space clear karna.
+- **L2 Engineer**: Log analysis, root cause dhundhna, complex issues ko L3 pe escalate karna, stakeholder update drafts banana.
+- **L3/Senior Engineer**: SEV-1/SEV-2 issues mein Incident Commander banna, cross-team coordination karna, architectural bugs resolve karna.
+- **SRE / DevOps / Cloud Engineer**: Monitoring and alerting setup karna, auto-remediation scripts likhna (jaise disk full hone pe khud temp files delete ho jayein), Postmortem meetings drive karna.
 
-## Technical Deep Dive
+# Real Industry Tasks
+- **Tickets/Incidents**: "Website loading slow in EU region." -> SEV-3 incident, investigating Cloudflare edge nodes.
+- **Change Requests (CRs)**: Database schema upgrade on a Saturday night. (Incident process standby pe rakhte hain in case CR fails, so turant SEV declare kar sakein).
+- **Maintenance Work**: SSL certificate renewals, Kubernetes cluster upgrades. Agar downtime unexpectedly lamba ho, toh SEV incident declare karna padta hai.
+- **Postmortems**: Har major outage ke baad ek "Blameless Postmortem" document likhna aur engineers ke sath review karna.
 
-### 1. Incident Severity Levels (SEVs)
-Every company defines these slightly differently, but the standard structure is:
-- **SEV-1 (Critical)**: Core business functions are entirely down. Massive revenue loss. (e.g., Checkout page is broken for all users). All hands on deck immediately.
-- **SEV-2 (High)**: Major functionality is broken, but workarounds exist or only a subset of users is affected. (e.g., PayPal integration is down, but Credit Cards work).
-- **SEV-3 (Medium)**: Minor feature broken, no significant revenue impact. (e.g., User avatars aren't loading).
-- **SEV-4 (Low)**: Internal tools issue or cosmetic bug. Handled during normal business hours.
+# Troubleshooting
+- **Problem**: Executive/Manager bar bar engineering Slack channel mein aa ke pooch raha hai "Aur kitna time lagega?".
+  - **Resolution**: IC turant ek Comms lead assign karega jo ek separate `#executive-updates` thread/channel mein managers ko update dega. Engineers ko direct message karna strict NO hai.
+- **Problem**: 2 hours ho gaye aur outage theek nahi hua kyunki engineers bug fix karne mein lage hue hain.
+  - **Resolution**: IC ko bich mein aake bolna padega: *"Stop trying to fix the bug. Mitigation pe focus karo. Rollback to the previous version NOW."* Stop the bleeding first, cure the disease tomorrow.
+- **Problem**: Pager alert miss ho gaya kyunki raat mein phone silent tha.
+  - **Prevention**: PagerDuty mein "Override System Volume / Do Not Disturb" policy allow karni hoti hai smartphone app mein.
 
-### 2. The Roles of Incident Response
-Borrowed from the ICS (Incident Command System) used by firefighters:
-- **Incident Commander (IC)**: The boss of the incident. They do NOT fix the code or look at logs. They delegate tasks, keep the team focused, and make hard decisions (like "Roll back the database now").
-- **Communications Lead**: Handles all non-technical communication. Updates the public Status Page, updates the C-Suite executives, and insulates the engineers from managers asking "Is it fixed yet?".
-- **Operations / Subject Matter Experts (SMEs)**: The engineers actually executing commands, querying logs, and fixing the problem.
+# Interview Preparation
+- **Basic (L1/L2)**: What is MTTD and MTTR?
+  - *Ans*: MTTD is Mean Time To Detect (kab pata chala issue hai). MTTR is Mean Time To Recovery (kab mitigate/theek hua). Dono ko minimum rakhna is the main goal.
+- **Intermediate**: Mitigation vs Resolution mein kya difference hai?
+  - *Ans*: Mitigation matlab temporary fix ya rollback karna taaki customers ka system chalne lage (Stopping the bleeding). Resolution matlab naya PR banakar root cause code mein fix karna aur permanently deploy karna (Curing the disease).
+- **Scenario Based (FAANG/Senior)**: You are the IC. Two very senior engineers are arguing aggressively over Zoom about whether it's a network routing issue or a database lock, wasting 15 minutes. What do you do?
+  - *Ans*: As IC, mai unka argument turant rokunga aur parallel tracks assign karunga: "Engineer A, 5 mins lo aur network logs prove karo. Engineer B, 5 mins lo aur DB locks prove karo. Hum 5 minute baad wapas update lenge."
+- **Production Round**: How do you conduct a Blameless Postmortem?
+  - *Ans*: Hum humans ko blame ya fire nahi karte. Hum system failures ko blame karte hain. Example: "Why was a junior able to drop the prod DB table? Because our Terraform and IAM policies failed to restrict manual access." Hum fix system me lagate hain, aadmi par nahi.
 
-### 3. Mitigation vs. Resolution
-- **Mitigation**: Stopping the bleeding. If a bad code push breaks the site, Mitigation is rolling back to the previous version. The site is up, the bleeding has stopped.
-- **Resolution**: Curing the disease. Finding out *why* the bad code broke the site, fixing the bug in the new code, writing a test, and deploying it successfully.
-During an incident, the IC's primary goal is ALWAYS Mitigation, not Resolution.
+# Production Scenarios
+- **Scenario**: "Database 100% CPU spike mar raha hai, Website is Down."
+  - *How to think*: Pehle mitigate karna hai. Kya hum read replicas ko auto-scale kar sakte hain? Kya koi recent code push hui thi jiski queries inefficient hain?
+  - *Commands*: Check DB processes via `SHOW PROCESSLIST` in MySQL, ya RDS Performance Insights/Datadog APM dekho.
+  - *Resolution*: Bad query ko kill karo aur agar code change tha, toh rollback the recent deployment.
+- **Scenario**: "Third-party dependency (like Stripe for Payments ya AWS S3) is down."
+  - *How to think*: Hum AWS S3 ya Stripe theek nahi kar sakte. Hum apne system ko gracefully degrade karenge.
+  - *Resolution*: Circuit Breaker pattern trigger karo taaki humari app unhe ping karke timeout na ho. Frontend pe message dikhao: "Payments temporarily unavailable". Rest of the app zinda rahegi.
 
----
+# Commands
+- **Command**: `kubectl rollout undo deployment/api-service`
+  - *Purpose*: Rollback Kubernetes deployment to the previous stable state.
+  - *When to use*: Jab bhi naya deployment fail ho aur SEV-1 create kar de. Fastest mitigation!
+  - *Danger Level*: Medium. Pata hona chahiye ki rollback kis version par ho raha hai.
+- **Command**: `/incident declare` (In Slack with Incident bots)
+  - *Purpose*: Slack war room, Zoom bridge aur Jira ticket automatically create karta hai.
+- **Command**: `git revert <commit-hash>`
+  - *Purpose*: Bad code ko undo karne ke liye ek naya commit push karna (safe rollback in code).
 
-## Step-by-Step Lab (Running a Mock SEV-1)
+# Cheat Sheet
+- **Severity Levels**:
+  - **SEV-1 (Critical)**: Core business down. Heavy revenue loss. Drop everything & join bridge immediately.
+  - **SEV-2 (High)**: Major functionality broken, partial user impact. Workarounds exist.
+  - **SEV-3 (Medium)**: Minor bug, no major revenue impact.
+  - **SEV-4 (Low)**: Internal tool issue, fix during next business hours.
 
-> [!warning] Pre-requisites
-> - A communication platform (Slack/Teams)
+- **Postmortem Structure**:
+  Incident resolve hone ke baad, humesha ek document likha jata hai. Vault ki `examples/` directory me ek production standard template available hai:
+  - FAANG Post-Mortem Template: [examples/10-SRE/post-mortem-template.md](file:///C:/Users/SPTL/Documents/devops/devops/examples/10-SRE/post-mortem-template.md)
 
-### Step 1: Detection and Declaration
-- **02:00 AM**: PagerDuty alerts the On-Call Engineer: `Critical: Checkout API 500 Error Rate > 20%`.
-- The engineer verifies it's a real issue, goes to the `#sre-alerts` Slack channel, and declares the incident.
-- **Action**: `/incident declare SEV-1 Checkout API Failing`
+# SOP & Runbook & KB Article
+- **SOP**: "How to Declare an Incident" -> Login to Slack -> Go to `#sre-alerts` -> Type `/incident declare` -> Fill the modal -> Assign Incident Commander.
+- **Runbook**: "Handling 502 Bad Gateway" 
+  - *Detection*: Datadog synthetic test ya Prometheus alert trigger hua.
+  - *Investigation*: Check Nginx Ingress logs, check upstream app pods status (`kubectl get pods`).
+  - *Resolution*: If pods are in CrashLoopBackOff, check logs (`kubectl logs`). Agar recent code push hua, rollback.
+- **KB Article**: "Why we get occasional 504 Gateway Timeouts at midnight" 
+  - *Reason*: Nightly database backup script locks tables for 2 mins. 
+  - *Resolution*: Known and expected behavior. No action needed, but ideally move backups to a read replica.
 
-### Step 2: Assemble the War Room
-- The Incident Commander (IC) takes charge in the dedicated `#inc-checkout-outage` channel.
-- **IC**: *"I am the IC. Alice, you are Comms Lead. Bob and Charlie, you are SMEs. Bob, check the APM logs. Charlie, check the recent GitHub deployments."*
+# Best Practices & Beginner Mistakes
+- **Best Practices**: Hamesha explicitly handoff karo. Agar IC ko washroom jana hai ya debug karna hai, he must say: *"Alice, I am handing off IC duties to you."* Action Items (Jira tickets) hamesha next sprint mein highest priority par hone chahiye.
+- **Beginner Mistakes**:
+  - *Mistake*: IC khud terminal khol ke debug karne lag gaya. 
+  - *Impact*: Leadership lost, team bhatak jaati hai. 
+  - *Correct Approach*: IC only coordinates. Delegating is key.
+  - *Mistake*: Incident declare karne mein late hona dar ke maare (fear of blame). 
+  - *Correct Approach*: "Declare early, declare often." False alarm better hai banisbat 1-hour late SEV-1 ke.
 
-### Step 3: Triage and Investigation
-- **Charlie**: *"I see a deployment to the Checkout service at 01:50 AM."*
-- **Bob**: *"Logs show the new code is failing to authenticate with the Stripe API due to a missing environment variable."*
-- **IC**: *"Understood. The new deployment is the likely cause."*
+# Advanced Concepts
+- **Chaos Engineering**: Jan bujh kar production mein controlled failures inject karna (like unplugging servers, randomly killing pods) taaki check ho sake ki system ki resilience and monitoring/incident response kitna strong hai (e.g., Netflix Chaos Monkey).
+- **The "5 Whys" Method**: Root cause (RCA) dhundhne ke liye 5 baar "Why" pucho. 
+  - *Problem*: Checkout down. 
+  - *Why?* DB connection failed. 
+  - *Why?* Max connections reached. 
+  - *Why?* Naya code connections leak kar raha hai. 
+  - *Why?* PR mein `db.close()` miss ho gaya. 
+  - *Why?* PR review process and CI tests cover nahi karte. (Real Systemic Root Cause).
 
-### Step 4: Mitigation
-- **IC**: *"Charlie, roll back the Checkout deployment to the previous stable tag immediately."*
-- **Charlie**: *"Executing rollback via ArgoCD... Rollback complete. Pods are cycling."*
-- **Bob**: *"Error rates are dropping back to 0%. Checkout is succeeding."*
-- **IC**: *"Excellent. We are mitigated at 02:15 AM."*
+# Related Topics & Flashcards & Revision
+- [[10-SRE-Practices/SRE-01 SRE Fundamentals|SRE Fundamentals]]
+- [[10-SRE-Practices/SRE-03 Chaos Engineering|Chaos Engineering]]
+- [[08-Observability/OBS-01 Observability and Monitoring|Observability and Monitoring]]
+- **Flashcard Q**: Ek SEV-1 incident mein "Stop the bleeding" ko kya bolte hain? **A**: Mitigation.
+- **Revision Tip**: Interview se pehle Incident roles (IC, Comms, SME), SEV levels, aur Blameless Postmortem concept revise karke jao.
 
-### Step 5: Communications and Stand-down
-- **Alice (Comms)**: *"Updating public Status Page: Issue identified and mitigated. Monitoring system stability."*
-- **IC**: *"Great job team. We are stable. I am ending the active incident. Bob, create a Jira ticket for the root cause resolution tomorrow. Charlie, schedule the blameless postmortem for Thursday."*
+# Real Production Logs & Commands & Decision Tree
+Sample PagerDuty Alert JSON:
+```json
+{
+  "incident_key": "payment_gateway_500s",
+  "service": "checkout-service",
+  "status": "triggered",
+  "urgency": "high",
+  "title": "P1 - HTTP 500 error rate > 10% for 5m",
+  "details": {
+    "dashboard_url": "https://datadoghq.com/dashboard/checkout"
+  }
+}
+```
+**Decision Tree for Triage**:
+Alert received -> Is it impacting real customers? 
+- **YES** -> Declare SEV-1 -> Assemble War Room -> Identify recent changes -> Mitigate (Rollback) -> Resolve Bug -> Postmortem.
+- **NO** (Only internal impact) -> Declare SEV-3 / Create JIRA ticket -> Fix during business hours.
 
-> [!tip] Pro Tip
-> If you are the Incident Commander, the fastest way to fail is to open a terminal and start typing commands. The moment the IC starts debugging, the incident loses its leader. If you must debug because you are the only one who knows how, explicitly hand off the IC role to someone else first: *"Alice, I am handing off IC duties to you so I can investigate the database."*
+# Visuals
+```mermaid
+mindmap
+  root((Incident Management))
+    Roles
+      Incident Commander (Boss)
+      Comms Lead (External Updates)
+      SME / Ops (Engineers)
+    Severities
+      SEV-1 (Critical / Drop everything)
+      SEV-2 (High / Partial Impact)
+      SEV-3 (Medium / Minor Bug)
+      SEV-4 (Low / Internal tools)
+    Lifecycle
+      1 Detection
+      2 Triage & War Room
+      3 Mitigation (Stop Bleeding)
+      4 Resolution (Cure Disease)
+      5 Blameless Postmortem
+```
 
----
-
-## Common Commands Cheat Sheet
-*(Incident management relies on ChatOps and processes)*
-
-| Action / Chat Command | What It Does | Real Example |
-|-----------------------|-------------|--------------|
-| `/incident declare` | Triggers incident bot (Rootly/FireHydrant) | `/incident declare SEV1 Database Down` |
-| `Status Page Update` | Publicly acknowledges the issue | "Investigating elevated error rates." |
-| `Zoom/Meet Bridge` | Dedicated voice channel for the incident | Pinned in the Slack war room. |
-| `Rollback` | The most common mitigation strategy | `kubectl rollout undo deployment/api` |
-| `Postmortem Template` | Standardized Google Doc for review | Contains Timeline, Impact, Root Cause. |
-| `Action Items (AIs)` | Jira tickets generated from the postmortem | "AI: Add pre-commit hook for env vars." |
-
----
-
-## Troubleshooting Guide
-
-| Problem | Likely Cause | Step-by-Step Fix |
-|---------|-------------|------------------|
-| Executives keep interrupting the engineers in Slack | Missing Comms Lead | The IC must immediately designate a Communications Lead. The Comms Lead creates a separate Slack channel or thread specifically for stakeholder updates, telling execs to stay out of the engineering channel. |
-| Engineers spend 2 hours trying to fix a bug during downtime | Focusing on Resolution, not Mitigation | The IC must intervene: "Stop debugging the new code. Roll back to the previous version immediately." Stop the bleeding first, cure the disease tomorrow. |
-| Nobody knows who is doing what | Unclear Commander | The IC must explicitly direct people by name, and require acknowledgment. "Bob, check the DB logs. (Wait for Bob to say 'On it')." |
-| The same incident happens again a month later | Failed Postmortem Process | The postmortem didn't generate Action Items, or the Action Items were put in the backlog and ignored. Action Items from a SEV-1 must take priority over all new feature work in the next sprint. |
-
----
-
-## Real-World Job Scenario
-
-> [!info] Scenario
-> **Situation:** "A Junior DevOps engineer accidentally drops a production table while trying to clean up a staging database. The website goes down immediately."
-
-**What Junior DevOps Does:**
-Panics. Sweats profusely. Tries to secretly restore a backup themselves using Google searches. Fails. An hour later, customers are complaining, and the Junior finally admits it.
-
-**Escalation Trigger:**
-Fear of blame caused a 1-hour delay in declaring the incident.
-
-**Senior Engineer Resolution (Postmortem Phase):**
-1. The incident is resolved (using automated RDS backups).
-2. During the Postmortem, the Senior Engineer explicitly enforces a **Blameless Culture**.
-3. They state: "We are not here to discuss the Junior's mistake. We are here to discuss why the system allowed a Junior engineer to have destructive access to Production using the same credentials they use for Staging."
-4. **Action Item 1**: Implement strict IAM separation between Staging and Prod.
-5. **Action Item 2**: Implement Terraform so DB changes are done via PR, not manual CLI access.
-6. The Junior engineer feels supported, learns from the experience, and the entire system becomes fundamentally more secure.
-
-**Lesson Learned:**
-Human error is inevitable. If your system relies on humans never making a mistake, your system is poorly designed. Fix the system, don't fire the human.
-
----
-
-## Interview Questions
-
-**Q1 (Conceptual):** What is the difference between Mitigation and Resolution in incident response?
-**A:** Mitigation is the act of restoring service to the customer as quickly as possible, even if it's a hacky workaround or a rollback (stopping the bleeding). Resolution is the long-term fix applied later to ensure the root cause is permanently eliminated (curing the disease).
-
-**Q2 (Practical):** You are the Incident Commander on a SEV-1 call. Two very senior engineers are arguing aggressively over Zoom about whether the issue is a network routing problem or a database lock, wasting 15 minutes. What do you do?
-**A:** As the IC, I must break the deadlock. I would intervene firmly and assign parallel tracks: "Stop arguing. Alice, I want you to spend the next 5 minutes proving it's a network issue. Bob, you spend 5 minutes proving it's the database. Report back here in 5 minutes with evidence." 
-
-**Q3 (Scenario-based):** A massive outage occurs, and the CEO joins the engineering Slack channel, asking every 2 minutes for an ETA on the fix, causing the engineers to panic. How do you handle this?
-**A:** I immediately step in as the Communications Lead (or assign one). I direct-message the CEO or reply in the channel: "Hello [CEO], we are currently in an active SEV-1 triage. I will be your point of contact. Please join the #executive-updates channel where I will provide you with a status report every 15 minutes. We need to keep this channel clear for engineering commands."
-
-**Q4 (Deep dive):** Describe the core sections of a standard Blameless Postmortem document.
-**A:** A standard postmortem includes: 1. **Summary/Impact** (What happened and who was affected), 2. **Timeline** (Chronological order of events from detection to mitigation), 3. **Root Cause** (The deepest systemic failure, found using the "5 Whys" method), 4. **What Went Well / What Went Wrong** (Reviewing the incident response itself), and 5. **Action Items** (Concrete, assigned Jira tickets to prevent recurrence).
-
-**Q5 (Trick/Gotcha):** Should you write a postmortem for every single alert that goes off in PagerDuty?
-**A:** No, that would create massive administrative toil. Postmortems require significant time investment. You generally only write them for user-impacting outages (SEV-1 and SEV-2), or for "near-misses" where a catastrophic failure was narrowly avoided by luck.
-
----
-
-## Related Notes
-
-[[00-MOC/Master-Index|Master Index]]
-[[10-SRE-Practices/SRE-01 SRE Fundamentals|SRE Fundamentals]]
-[[10-SRE-Practices/SRE-03 Chaos Engineering|Chaos Engineering (Preventing Incidents)]]
+# AI Enhancement
+*Automatically enhanced with: Blameless Postmortem Deep Dive, Real-World FAANG Scenario-Based Questions, "5 Whys" Root Cause Analysis methodology, ChatOps/Bot configurations, and advanced visual mapping of the incident lifecycle.*

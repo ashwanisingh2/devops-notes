@@ -9,221 +9,170 @@ cert-relevant: #cka
 
 # K8S-03 ConfigMaps and Secrets
 
-> [!abstract] Overview
-> A core principle of modern DevOps (12-Factor App) is that configuration must be strictly separated from code. You should not bake database passwords or environment-specific API URLs directly into your Docker images. Kubernetes solves this using ConfigMaps (for non-sensitive data) and Secrets (for sensitive data), allowing you to inject configuration into your Pods at runtime via environment variables or mounted files.
+# Overview
+Kubernetes me applications ko run karne ke liye hume configuration aur passwords chahiye hote hain. Agar hum inko container image ke andar hardcode kar de (bake karein), toh har environment (dev, qa, prod) ke liye alag image banani padegi, jo ki galat hai. ConfigMaps aur Secrets is problem ko solve karte hain. Ye K8s ke objects hain jo configuration (ConfigMaps) aur sensitive data (Secrets) ko store karte hain, taaki hum ek hi container image ko har jagah reuse kar sakein.
 
----
+Real life example: Container ek worker (Pod) hai. ConfigMap ek instruction manual hai ki kaam kaise karna hai. Secret ek locker ki chabhi (password) hai. Aap worker ko bina manual ya chabhi ke hire karte ho (image), aur jab usko kaam pe lagate ho, tab aap usko manual aur chabhi pakda dete ho taaki code me koi changing na aaye.
 
-## Concept Overview
-
-- **What it is** — **ConfigMaps** are K8s objects used to store non-confidential data in key-value pairs. **Secrets** are similar but are used to store sensitive data like passwords, OAuth tokens, and SSH keys.
-- **Why DevOps engineers use it** — To make container images reusable. You build a single `my-app:v1` image, but you inject a `dev-config` ConfigMap in the Dev cluster and a `prod-config` ConfigMap in the Prod cluster. No need to rebuild images for different environments.
-- **Where you encounter this in a real job** — Changing an application's log level from INFO to DEBUG without touching the code, or mounting a custom `nginx.conf` file into a web server pod.
-- **Responsibility Split:**
-  - **Junior DevOps**: Creates basic ConfigMaps from literal values and mounts them as environment variables.
-  - **Mid DevOps**: Mounts ConfigMaps as files in volumes, and manages base64 encoding for native K8s Secrets.
-  - **Senior/SRE**: Implements GitOps-friendly secret management using Sealed Secrets or the External Secrets Operator (syncing HashiCorp Vault/AWS Secrets Manager to K8s).
-
-*Seedha simple mein: ConfigMap ek instruction manual hai aur Secret ek locker ki chabhi hai. Aap apne worker (Pod) ko kaam pe lagate waqt manual (env vars) aur chabhi (password) pakda dete ho, taaki worker ko pata ho ki kaam kaise karna hai bina code change kiye.*
-
----
-
-## Technical Deep Dive
-
-### 1. ConfigMaps: Env Vars vs. Volumes
-ConfigMaps can be injected into a Pod in two ways:
-1. **Environment Variables**: The key-value pairs become standard Linux env vars inside the container. Limitation: If you update the ConfigMap, the Pod *will not* see the changes until it is restarted.
-2. **Volume Mounts**: The ConfigMap is mounted as a physical file (or directory) inside the container's filesystem. Benefit: If you update the ConfigMap, K8s will eventually update the mounted file automatically without restarting the pod (useful for apps that can auto-reload config files).
-
-### 2. K8s Secrets (The Base64 Illusion)
-By default, native Kubernetes Secrets are **NOT encrypted**. They are merely **Base64 encoded**. This means anyone who can run `kubectl get secret` can easily decode the password. Secrets are stored in `etcd`, so `etcd` encryption at rest must be enabled by the cluster administrator to achieve true security.
-K8s supports different secret types, such as `Opaque` (generic data), `kubernetes.io/tls` (for SSL certificates), and `kubernetes.io/dockerconfigjson` (to authenticate to private Docker registries).
-
-### 3. The GitOps Secret Problem (External/Sealed Secrets)
-If we want to store all our K8s YAML files in GitHub (GitOps), we have a problem: we cannot commit plain-text or Base64 Secrets to GitHub.
-To solve this, SREs use:
-- **Sealed Secrets**: A tool by Bitnami that encrypts the Secret using public-key cryptography. You can safely commit the encrypted `SealedSecret` YAML to GitHub. Only the Sealed Secrets controller running *inside* the K8s cluster has the private key to decrypt it into a normal K8s Secret.
-- **External Secrets Operator (ESO)**: Instead of defining secrets in K8s, you define them in AWS Secrets Manager or HashiCorp Vault. ESO runs in K8s, authenticates to AWS/Vault, fetches the secret, and automatically creates a native K8s Secret.
-
----
-
-## Step-by-Step Lab
-
-> [!warning] Pre-requisites
-> - A running K8s cluster
-> - Kubectl configured
-
-### Step 1: Create a ConfigMap and a Secret
-```bash
-# Create a ConfigMap from literal values
-kubectl create configmap app-config --from-literal=APP_COLOR=blue --from-literal=LOG_LEVEL=info
-
-# Create a Secret (kubectl handles the base64 encoding for you here)
-kubectl create secret generic db-credentials --from-literal=username=admin --from-literal=password=SuperSecret123!
-
-# Expected output:
-# configmap/app-config created
-# secret/db-credentials created
+```mermaid
+graph TD
+    A[Docker Image] --> D(K8s Pod)
+    B[ConfigMap<br/>Env/Configs] -. Injected .-> D
+    C[Secret<br/>Passwords/Keys] -. Injected .-> D
+    D --> E[Application Running<br/>with specific Configs]
 ```
 
-### Step 2: Decode the Secret to prove it is NOT encrypted
+# Working
+Internal working K8s me in objects ki kaafi simple hai. ConfigMaps aur Secrets dono `etcd` me store hote hain (Kubernetes ka brain/database). Jab aap ek Pod banate ho aur usme in objects ko reference karte ho, `kubelet` inko etcd se fetch karta hai aur container ke andar inject karta hai.
+
+Ye injection mainly do tarah se hota hai:
+1. **Environment Variables:** Data as key-value pair env variables me pass ho jata hai. (Fast, par CM update hone par pod ko restart required hota hai updates lene ke liye).
+2. **Volume Mounts:** Data as physical files container ke file system me mount ho jata hai. (Kubelet apne aap mounted file ko update kar deta hai bina pod restart kiye).
+
+Secrets bas Base64 encoded hote hain K8s me by default, ye encrypted nahi hote hain. Pura cluster ka `etcd` encryption at rest on karna padta hai true security ke liye.
+
+# Installation
+K8s me ConfigMaps aur Secrets built-in (naturally) available hote hain. Inka koi alag se "installation" nahi hota. 
+
+Par modern DevOps me advanced tools use hote hain jinke installation required hai:
+- **Sealed Secrets (Bitnami):** Helm chart ke through cluster me controller dalkar and `kubeseal` CLI use karke install karte hain.
+- **External Secrets Operator (ESO):** Helm chart se cluster me install hota hai aur AWS/GCP/Vault se API ke through connect karke fetch karta hai.
+
+# Practical Lab
+Step-by-step implementation of ConfigMaps & Secrets.
+
+Bajaaye CLI me manually commands type karne ke, aap vault ke `examples/` folder se ready-made declarative YAML use kar sakte hain:
+- Template: [examples/04-Kubernetes/configmap-secret.yaml](file:///C:/Users/SPTL/Documents/devops/devops/examples/04-Kubernetes/configmap-secret.yaml)
+
+### Step 1: Navigate and Deploy
 ```bash
-# Get the secret in YAML format
-kubectl get secret db-credentials -o yaml
-
-# You will see: password: U3VwZXJTZWNyZXQxMjMh
-# Decode it manually using base64:
-echo "U3VwZXJTZWNyZXQxMjMh" | base64 --decode
-
-# Expected output: SuperSecret123!
+cd ../../examples/04-Kubernetes/
+kubectl apply -f configmap-secret.yaml
 ```
 
-### Step 3: Injecting Env Vars into a Pod
-```yaml
-# Create pod-env.yaml
-cat << 'EOF' > pod-env.yaml
-apiVersion: v1
-kind: Pod
-metadata:
-  name: env-test-pod
-spec:
-  containers:
-    - name: alpine
-      image: alpine
-      command: ["sleep", "3600"]
-      envFrom:
-        - configMapRef:
-            name: app-config
-        - secretRef:
-            name: db-credentials
-EOF
-
-# Apply it and verify the env vars exist inside the running container
-kubectl apply -f pod-env.yaml
-sleep 5
+### Step 2: Verify Injection
+```bash
+# Check if the environment variables are injected into the Pod
 kubectl exec env-test-pod -- env | grep -E "APP_COLOR|password"
-
-# Expected output:
-# APP_COLOR=blue
-# password=SuperSecret123!
 ```
 
-### Step 4: Mount a ConfigMap as a File (Volume)
+# Daily Engineer Tasks
+- **L1/L2 Engineer:** Basic ConfigMaps create karna, YAML me typos dhoondhna, troubleshoot karna ki mount huye ya nahi. Pod ko env var mil raha hai ya nahi `kubectl exec` karke check karna.
+- **L3/Senior Engineer:** GitOps practices setup karna. Sealed Secrets ya ESO setup karna Vault ya AWS Secrets Manager ke sath integration ke liye, production deployments rollouts verify karna.
+- **Security/DevSecOps Engineer:** Ensure karna ki RBAC se developers sirf apne namespace ke secrets access kar sakein. Check karna ki default K8s Secrets kaha plaintext ya github me push to nahi ho rahe.
+
+# Real Industry Tasks
+- **App Config Change On-the-fly:** Production logs bhari ho gaye toh application ka log level INFO se DEBUG/WARN karna ConfigMap update karke.
+- **TLS Certificate Renewal:** TLS Secrets (`kubernetes.io/tls`) ko replace/update karna jab Ingress ke SSL certificates expire ho rahe ho.
+- **GitOps Secrets Migration:** Purane plain-text Secrets ko migrate karke AWS Secrets Manager me dalna aur K8s me External Secrets implement karna security audit fail hone ke baad.
+
+# Troubleshooting
+**Problem:** Pod stuck in `CreateContainerConfigError`.
+**Symptoms:** Pod status error dikhata hai. 
+**Root Cause:** ConfigMap ya Secret jisko Pod refer kar raha hai, wo us namespace me exist hi nahi karta ya uske naam me typo hai.
+**Resolution:** `kubectl get cm` ya `kubectl get secret` karke verify karo. K8s case-sensitive hai, check spelling.
+
+**Problem:** Env var me unexpected space/newline aa rahi hai aur DB auth fail ho raha hai.
+**Root Cause:** Jab manually base64 encode kiya `echo "pass" | base64` use karke, toh `echo` ne extra newline `\n` daal di.
+**Resolution:** Hamesha `echo -n "password" | base64` use karo (`-n` prevents trailing newline).
+
+**Problem:** Naya app-config update K8s me apply kia, par application behavior change nahi hua.
+**Root Cause:** Agar configuration env variables ke through mili thi, K8s running Pods ko dynamically update nahi karta. 
+**Resolution:** Pod restart zaroori hai. `kubectl rollout restart deploy/my-app` use karke nayi value pass karo.
+
+# Interview Preparation
+**Basic:** What is the difference between ConfigMap and Secret?
+*Answer:* ConfigMap non-sensitive configs (URLs, file paths, parameters) ke liye use hota hai. Secret sensitive data (DB passwords, API keys) ke liye hota hai aur data ko Base64 me encode karke rakhta hai.
+
+**Intermediate:** Are Kubernetes Secrets fully encrypted?
+*Answer:* Nahi, by default wo encrypted at rest nahi hote, sirf Base64 encoded hote hain jo easily decode ho jate hain. Real encryption ke liye Cluster Admin ko etcd encryption enable karni padti hai ya External Secrets use karna chahiye.
+
+**Scenario Based:** You need to mount `config.json` inside `/app/settings/` without overwriting the existing files in that folder. How?
+*Answer:* Main volume mount toh use karunga but saath me `subPath: config.json` flag use karunga volumeMount definition ke andar taaki exact single file push ho, pura directory overwrite na ho.
+
+**Advanced:** Can a Pod in `Namespace-A` read a ConfigMap in `Namespace-B`?
+*Answer:* Nahi, ConfigMaps and Secrets strictly namespace-scoped hote hain. Cross-namespace reading allowed nahi hai. Alag se tools like Kyverno ya Reflector use karke unhe replicate karna padta hai.
+
+# Production Scenarios
+**Scenario:** Production deployment crash ho raha hai nayi version push ke baad "Invalid Database Credentials" dikhake.
+- **How to think:** Application DB ke pass le kaha se raha hai? ConfigMap se, Secret se ya hardcoded? 
+- **Investigation:** Check Secret value manually first: `kubectl get secret db-credentials -o yaml`, decode karke verify karo ki naya pass updated hai. Phir pod env check karo `kubectl exec my-app -- env`.
+- **Root Cause:** SRE team ne AWS me pass rotate kia, K8s ka secret update ho gaya, par pod restart nahi hone se purana pwd RAM me fas gaya hai.
+- **Resolution:** Hamesha config changes ke baad `kubectl rollout restart deploy/<app>` karein, ya `Reloader` tool deploy karein jo change detect karte hi automatic rollout kare.
+
+# Commands
+| Command | Purpose | Danger Level |
+|---------|---------|--------------|
+| `kubectl create configmap <name> --from-literal=k=v` | CM banane ke liye. | Low |
+| `kubectl get secret <name> -o yaml` | Secret base64 values nikalne ke liye. | High (Prod me leak) |
+| `echo -n "pass" \| base64` | String ko secure format me K8s yaml ke liye convert karna. | Low |
+| `echo "cGFzcw==" \| base64 -d` | Secret ki value padhne ke liye base64 decode. | Low |
+| `kubectl rollout restart deploy/<name>` | Deployment ko zero-downtime refresh karke nayi env variables inject karna. | Medium |
+
+# Cheat Sheet
+- **Injection methods:** 
+  - `envFrom:` (poora ConfigMap ya Secret utha lo).
+  - `valueFrom.configMapKeyRef:` (sirf ek key specific uthao).
+  - `volumes:` (as files inside directory mount karo).
+- **Secret types:** `Opaque` (generic data), `kubernetes.io/tls` (SSL certs), `kubernetes.io/dockerconfigjson` (Private registry image pull).
+- **GitOps Hack:** GitHub me Secrets yaml commit nahi kar sakte. Use SealedSecrets or SOPS.
+
+# SOP & Runbook & KB Article
+**KB Article: Pod stuck in ImagePullBackOff due to Private Registry Auth**
+- **Problem:** Pod AWS ECR ya private Docker hub se image pull nahi kar paa raha.
+- **Cause:** K8s worker node ke paas credentials nahi hai auth karne ke.
+- **Resolution:**
+  1. `docker-registry` type secret banayein: `kubectl create secret docker-registry my-registry --docker-server=... --docker-username=...`
+  2. Deployment spec me add karein:
+     ```yaml
+     spec:
+       imagePullSecrets:
+         - name: my-registry
+     ```
+- **Verification:** `kubectl describe pod` chalayein, event section me `Successfully pulled image` aana chahiye.
+
+# Best Practices & Beginner Mistakes
+**Best Practices:**
+- Production me configuration files ko `immutable: true` set karo YAML me. Isse accidental overrides roke jayenge, aur kubelet in files ko continuously track karna band kar dega, improving performance of API server drastically.
+- Never write credentials inside dockerfile (`ENV PASS=xyz`). 
+
+**Beginner Mistakes:**
+- `mountPath: /etc/nginx/` declare kar diya `subPath` ke bina. Impact: K8s pura `/etc/nginx/` khali kar dega aur sirf apka ek file mount karega, jisse container crash ho jayega kyuki baki jaruri config ud gaye.
+- Base64 encode karte samay newline escape karna bhul jana.
+
+# Advanced Concepts
+**External Secrets Operator (Architecture):** 
+Enterprise me ESO heavily use hota hai. Instead of K8s, developers password ko AWS Secrets Manager me dalkar ESO ka K8s custom resource `ExternalSecret` deploy karte hain. ESO K8s me ek pod ki tarah chalta hai, AWS API call karta hai, credentials lata hai aur cluster me automatically native `Secret` bana deta hai. App us secret ko normally consume karti hai. Result = 100% Secure GitOps pipeline.
+
+**Reloader Controller:** 
+Stakater Reloader ek famous utility hai. Jab ap apne Deployment annotations me `reloader.stakater.com/auto: "true"` dalte ho, aur ap CM/Secret change karte ho, toh ye controller use automatically detect karke zero-downtime Pod rollout restart trigger kar deta hai. 
+
+# Related Topics & Flashcards & Revision
+- [[04-Orchestration/K8S-02 Pods Deployments Services|Pods and Deployments]]
+- [[09-Security-DevSecOps/SEC-03 Secrets Management|Secrets Management]]
+- [[00-MOC/Master-Index|Master Index]]
+
+**Flashcard:** Do you need to restart a pod if a ConfigMap mounted as a Volume is updated?
+*Answer:* No, Kubelet eventually updates the file on the mount path automatically. Par app reload support karti ho, warna pod restart karna padta hai.
+
+# Real Production Logs & Commands & Decision Tree
+```mermaid
+graph TD
+    A[Pod CrashLoopBackOff] --> B{Check Events}
+    B -->|MountVolume.SetUp failed| C[ConfigMap Not Found]
+    C --> D[kubectl get cm -n app-namespace]
+    B -->|CreateContainerConfigError| E[Secret Not Found]
+    E --> F[Check typo in secretKeyRef]
+```
+
 ```bash
-# First, create a ConfigMap from a file
-echo "server { listen 80; server_name localhost; }" > my-nginx.conf
-kubectl create configmap nginx-config --from-file=my-nginx.conf
-
-# Create pod-vol.yaml
-cat << 'EOF' > pod-vol.yaml
-apiVersion: v1
-kind: Pod
-metadata:
-  name: vol-test-pod
-spec:
-  containers:
-    - name: nginx
-      image: nginx:alpine
-      volumeMounts:
-        - name: config-volume
-          mountPath: /etc/nginx/conf.d/
-  volumes:
-    - name: config-volume
-      configMap:
-        name: nginx-config
-EOF
-
-kubectl apply -f pod-vol.yaml
+# Debugging Log Example
+$ kubectl describe pod my-web-pod
+Warning  FailedMount  4m  kubelet  MountVolume.SetUp failed for volume "nginx-conf" : configmap "my-nginx-config" not found
+# Meaning: Apne Pod ke manifest me nginx-conf volume banaya hai, but K8s cluster me my-nginx-config name ka ConfigMap apke namespace me hai hi nahi. Make sure aapne use pehle deploy kiya ho.
 ```
 
-### Step 5: Verify the Mounted File
-```bash
-# Exec into the pod and cat the file at the mount path
-sleep 5
-kubectl exec vol-test-pod -- cat /etc/nginx/conf.d/my-nginx.conf
-
-# Expected output:
-# server { listen 80; server_name localhost; }
-```
-
-> [!tip] Pro Tip
-> In production, configure your ConfigMaps and Secrets as **Immutable** (`immutable: true` in the YAML). This prevents accidental changes, drastically reduces API server load (kubelet stops polling for updates), and forces a safer rollout practice (create a new ConfigMap name and update the Deployment to use it).
-
----
-
-## Common Commands Cheat Sheet
-
-| Command | What It Does | Real Example |
-|---------|-------------|--------------|
-| `kubectl create configmap` | Creates a CM from literals or files | `kubectl create cm my-config --from-file=config.txt` |
-| `kubectl create secret` | Creates a Secret from literals or files | `kubectl create secret generic my-sec --from-literal=key=val` |
-| `kubectl get cm` | Lists ConfigMaps in the namespace | `kubectl get cm` |
-| `kubectl get secret` | Lists Secrets in the namespace | `kubectl get secret` |
-| `kubectl describe cm` | Views the contents of a ConfigMap | `kubectl describe cm app-config` |
-| `kubectl get secret -o yaml`| Dumps the Secret, revealing base64 encoded data | `kubectl get secret db-creds -o yaml` |
-| `echo "txt" \| base64` | Encodes a string to base64 for manual YAML creation | `echo -n "admin" \| base64` |
-| `echo "dG8=" \| base64 -d` | Decodes a base64 string | `echo "dG8=" \| base64 --decode` |
-
----
-
-## Troubleshooting Guide
-
-| Problem | Likely Cause | Step-by-Step Fix |
-|---------|-------------|------------------|
-| Pod stuck in `CreateContainerConfigError` | ConfigMap or Secret does not exist | Run `kubectl get cm` or `kubectl get secret`. Create the missing resource or fix the typo in your Pod YAML. |
-| Env var has an unexpected newline/whitespace | Base64 encoded with a trailing newline | When encoding manually, ALWAYS use `echo -n "pass" | base64` (the `-n` removes the trailing newline). |
-| App doesn't see updated ConfigMap values | Env vars were used instead of volumes | Env vars are static upon pod creation. You must restart the pod (`kubectl rollout restart deploy/name`) to load new values. |
-| Cannot pull image from private registry | Missing ImagePullSecret | Create a `docker-registry` secret and add `imagePullSecrets: - name: my-secret` to the Pod spec. |
-| Mounted file overwrites the entire directory | Using `mountPath: /etc/nginx` without `subPath` | If you mount to a directory, K8s hides the original contents. Use `subPath: nginx.conf` to mount a single file into an existing directory. |
-
----
-
-## Real-World Job Scenario
-
-> [!info] Scenario
-> **Situation:** "A developer hardcoded the staging database password in their source code and committed it to GitHub. The security team flagged it as a severe violation."
-
-**What Junior DevOps Does:**
-Tells the developer to remove it from the code and passes the password via an environment variable directly in the Deployment YAML file (e.g., `env: - name: DB_PASS, value: "pass123"`). The security team flags this again because the Deployment YAML is ALSO committed to GitHub.
-
-**Escalation Trigger:**
-The team cannot deploy the app until the password is removed from all version-controlled files.
-
-**Senior Engineer Resolution:**
-1. Instructs the developer to read the password from an environment variable (`process.env.DB_PASS`).
-2. Generates the password securely inside the cloud provider's secret manager (e.g., AWS Secrets Manager).
-3. Installs the **External Secrets Operator** in the K8s cluster.
-4. Creates an `ExternalSecret` K8s manifest (which contains no passwords, just a reference to AWS).
-5. ESO fetches the password from AWS and creates a native K8s Secret dynamically.
-6. The Deployment YAML references this K8s Secret using `secretKeyRef`.
-7. Now, all YAMLs in GitHub are completely free of sensitive data, satisfying the security audit.
-
-**Lesson Learned:**
-Secrets belong in Secret Managers, not in Git repositories, and definitely not in container images. Use Kubernetes Secrets to bridge the gap securely at runtime.
-
----
-
-## Interview Questions
-
-**Q1 (Conceptual):** Why is a Kubernetes Secret not truly secure by default?
-**A:** By default, Kubernetes Secrets are only Base64 encoded, not encrypted. Base64 is an encoding mechanism, not encryption; anyone can decode it instantly. True security requires enabling `etcd` encryption at rest and strictly managing RBAC rules to control who can run `kubectl get secret`.
-
-**Q2 (Practical):** You need to provide a configuration file `settings.json` to a running container, but the application expects it at a specific path `/app/config/settings.json` and it must update dynamically if the ConfigMap changes. How do you configure the Pod?
-**A:** I would store the JSON in a ConfigMap using `--from-file`. Then, in the Pod spec, I would define a `volume` referencing the ConfigMap. Under the container spec, I would define a `volumeMount` with `mountPath: /app/config`. Since it's mounted as a volume, K8s will automatically update the file inside the container when the ConfigMap changes.
-
-**Q3 (Scenario-based):** You updated a ConfigMap that is injected into a Deployment via environment variables, but the application is still using the old configuration. Why, and how do you fix it?
-**A:** Environment variables are injected only when the container starts. Updating the ConfigMap does not automatically restart the Pods. To fix it, I must trigger a restart of the Pods, usually by running `kubectl rollout restart deployment/<name>`.
-
-**Q4 (Deep dive):** What is the `subPath` property used for in Volume Mounts?
-**A:** Normally, when you mount a ConfigMap or Secret as a volume to a directory (e.g., `/etc/nginx/conf.d`), K8s hides any existing files in that target directory, replacing it entirely with the volume contents. If you only want to inject a single file into a directory without hiding the other files already there, you use `subPath` to mount precisely that one file.
-
-**Q5 (Trick/Gotcha):** Can a Pod in `Namespace-A` reference a ConfigMap in `Namespace-B`?
-**A:** No. ConfigMaps and Secrets are namespace-scoped. A Pod can only reference ConfigMaps and Secrets that exist in its own exact namespace. If multiple namespaces need the same config, you must create a copy of the ConfigMap in each namespace, or use a third-party tool like Kyverno or Reflector to replicate them automatically.
-
----
-
-## Related Notes
-
-[[00-MOC/Master-Index|Master Index]]
-[[04-Orchestration/K8S-02 Pods Deployments Services|Pods and Deployments]]
-[[09-Security-DevSecOps/SEC-03 Secrets Management|Secrets Management]]
+# AI Enhancement
+*Automatically injected production knowledge:*
+- **RBAC Strict Controls:** Developers should only have `get`, `list` for ConfigMaps. For Secrets, they shouldn't even have `get` permissions in production namespaces to avoid base64 leakage. Secrets should be handled fully via CI/CD.
+- **Encryption at rest:** Hamesha check karein KubeAPI server configurations, `--encryption-provider-config` flag on hona chahiye etcd db secure karne ke liye.

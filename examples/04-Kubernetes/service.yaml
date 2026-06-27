@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-svc
+  labels:
+    app: frontend
+spec:
+  # Type NodePort exposes the service on a static port on each worker node
+  type: NodePort
+  selector:
+    # CRITICAL: This must exactly match the labels in the Deployment pod template
+    app: frontend
+  ports:
+    - name: http
+      port: 80         # Port exposed internally within the cluster
+      targetPort: 80   # Port the container is listening on
+      nodePort: 30080  # External port mapped on the host VM (range: 30000-32767)

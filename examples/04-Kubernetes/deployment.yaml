@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend-deploy
+  labels:
+    app: frontend
+    tier: web
+spec:
+  replicas: 3
+  # Strategy ensures Zero-Downtime rollouts
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1       # How many pods we can add at a time
+      maxUnavailable: 0 # Ensure we never drop below 3 ready pods during update
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+        tier: web
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.24
+        ports:
+        - containerPort: 80
+        # Resource limits to prevent OOM and node starvation
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+            cpu: "100m"
+        # Readiness: Is the app ready to receive traffic?
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 5
+        # Liveness: Is the app dead and needs a restart?
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 15
+          periodSeconds: 15

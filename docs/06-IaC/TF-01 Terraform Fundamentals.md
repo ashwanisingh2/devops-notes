@@ -1,6 +1,6 @@
 ---
-tags: [devops, iac, terraform, aws]
-aliases: [Terraform Basics]
+tags: [devops, iac, terraform, aws, production-grade]
+aliases: [Terraform Basics, TF Fundamentals, IaC Introduction]
 created: 2025-06-27
 status: #complete
 difficulty: #beginner
@@ -9,216 +9,225 @@ cert-relevant: #terraform-associate
 
 # TF-01 Terraform Fundamentals
 
-> [!abstract] Overview
-> Clicking through the AWS Console to create servers and databases is fine for a weekend project, but it is a disaster for an enterprise. You cannot track who changed what, you cannot easily duplicate environments, and manual clicks lead to security misconfigurations. Infrastructure as Code (IaC) solves this. Terraform is the undisputed industry standard for IaC, allowing you to define your entire cloud infrastructure as version-controlled code, making it reproducible, reviewable, and reliable.
+## Overview
+**Ye kya hai?** Terraform ek open-source Infrastructure as Code (IaC) tool hai by HashiCorp. Yeh HCL (HashiCorp Configuration Language) use karke cloud infrastructure (AWS, Azure, GCP) ko code ke format me define karta hai.
 
----
+**Kyu use hota hai?** Enterprise me manual console clicking ek disaster hai. Agar aap manually servers banate ho, toh environment ko duplicate karna (e.g. Prod jaisa same QA env) almost impossible hai, aur errors aane ke chances 100% hain. Terraform se sab kuch version-controlled, repeatable, aur reliable hota hai.
 
-## Concept Overview
+**Real life example:** Ghar banwane ke liye aap mistri ko manually ek-ek eent rakhne ka instruction nahi dete. Aap ek naksha (blueprint) dete ho. Terraform wahi naksha hai aapke cloud infra ka. Aap isko blueprint dete ho aur ye khud jaake poora infra khada kar deta hai. Agar naksha update karoge, ghar bina tode modify ho jayega.
 
-- **What it is** — An open-source Infrastructure as Code tool created by HashiCorp. It uses a declarative configuration language (HCL - HashiCorp Configuration Language) to define and provision data center infrastructure across multiple cloud providers.
-- **Why DevOps engineers use it** — To automate cloud provisioning. You write what you want (e.g., "I need 1 VPC and 3 EC2 instances"), and Terraform figures out the API calls required to make it happen. It is cloud-agnostic, meaning you use the same tool/workflow for AWS, Azure, GCP, and even Kubernetes.
-- **Where you encounter this in a real job** — Setting up a brand new staging environment that is an exact replica of production, or adding a new S3 bucket with strict encryption policies via a GitHub Pull Request.
-- **Responsibility Split:**
-  - **Junior DevOps**: Runs `terraform plan` and `terraform apply` to deploy changes written by others, or adds simple resources like a DNS record.
-  - **Mid DevOps**: Writes HCL for complex resources (VPCs, EKS clusters), manages input variables, and sets up the provider configurations.
-  - **Senior/SRE**: Designs reusable Terraform Modules, sets up remote state locking using S3/DynamoDB, and integrates Terraform into CI/CD pipelines (GitOps for IaC).
+**Industry use-case:** FAANG aur large enterprises saara infrastructure Terraform se provision karte hain. EKS clusters, VPCs, RDS instances—sab Terraform modules ke through automated hota hai via CI/CD pipelines (GitOps).
 
-*Seedha simple mein: Pehle hum mistri ko bolte the "Yahan eent rakho, wahan cement lagao" (Manual AWS Console clicks). Terraform ek blueprint (naksha) hai. Aap Terraform ko naksha dete ho, aur wo khud jaake poora ghar (infrastructure) khada kar deta hai. Agar naksha change karoge, toh wo ghar bhi update kar dega bina tode.*
+### Architecture Mermaid Diagram
+```mermaid
+flowchart TD
+    A[DevOps Engineer] -->|Writes HCL Code| B[main.tf]
+    B --> C[Terraform CLI]
+    C -->|Downloads Plugin| D[AWS/Azure/GCP Provider]
+    D -->|API Calls| E[(Cloud Infrastructure)]
+    C <-->|Reads/Writes| F[terraform.tfstate]
+    style F fill:#f9f,stroke:#333,stroke-width:2px
+```
 
----
+## Working
+**Internal working:** Terraform *declarative* hai. Iska matlab aap isko ye nahi batate ki "kaise" karna hai (imperative), balki "kya" chahiye wo batate ho. Aapne code me bola "Mujhe 2 EC2 chahiye". Terraform current state file read karega, real AWS check karega, aur dekhega ki kya difference hai. Us difference (delta) ko resolve karne ke liye wo Cloud APIs call karega.
 
-## Technical Deep Dive
+**Data Flow:**
+1. Code `.tf` likha gaya.
+2. `terraform init` -> Plugin download hote hain `.terraform/` folder me.
+3. `terraform plan` -> Read `terraform.tfstate` -> Compare with real AWS -> Show execution plan (dry run).
+4. `terraform apply` -> Make REST API calls via Provider -> Update infra -> Update `terraform.tfstate`.
 
-### 1. The Declarative Workflow
-Terraform is *declarative*, not imperative. You don't write scripts saying "Create server A, then create server B." You declare "Server A and Server B must exist." Terraform reads your current AWS state, compares it to your code, and generates an execution plan to bridge the gap.
-The Core Workflow:
-1. `terraform init`: Downloads the required provider plugins (like AWS/Azure).
-2. `terraform plan`: Shows you exactly what it *will* do without actually doing it. (Crucial for safety).
-3. `terraform apply`: Executes the plan against the cloud APIs.
-4. `terraform destroy`: Tears down everything defined in the code.
+**Authentication Flow:** Terraform ko aapke AWS credentials chahiye hote hain, usually environment variables (`AWS_ACCESS_KEY_ID`) ya `~/.aws/credentials` (via `aws configure`) ke through.
 
-### 2. Architecture: Core, Providers, and State
-- **Core**: The Terraform binary on your laptop. It reads HCL and compares state.
-- **Providers**: Plugins that understand specific cloud APIs (AWS Provider, Azure Provider).
-- **State File (`terraform.tfstate`)**: The most critical component. It is a JSON file where Terraform maps your HCL code to the real-world Cloud IDs. If you define `aws_instance.web`, the state file remembers that this equals `i-0abcd1234efgh` in AWS. Never lose or manually edit this file.
+**Communication & Protocols:** Provider plugins cloud provider se REST/HTTPS APIs (port 443) ke through communicate karte hain. Dependencies resolve karne ke liye Terraform ek internal dependency graph (DAG) banata hai.
 
-### 3. HCL Syntax Blocks
-- `provider`: Configures the cloud you are talking to (AWS region, credentials).
-- `resource`: Creates something NEW (e.g., an EC2 instance).
-- `data`: Fetches information about something that ALREADY EXISTS (e.g., finding the latest Ubuntu AMI ID).
-- `variable`: Input parameters (like passing arguments to a function).
-- `output`: Values returned after creation (e.g., printing the new server's IP address).
+## Installation
+**Prerequisites:** AWS Account, IAM User with AdministratorAccess (or required permissions), AWS CLI installed & configured.
 
----
+**Installation (CLI Method):**
+*Windows (PowerShell):*
+```powershell
+choco install terraform -y
+```
+*Linux (Bash):*
+```bash
+wget -O- https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
+echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
+sudo apt update && sudo apt install terraform
+```
 
-## Step-by-Step Lab
+**Verification:**
+```bash
+terraform -version
+```
 
-> [!warning] Pre-requisites
-> - Terraform CLI installed
-> - AWS Account (Free Tier)
-> - AWS CLI installed and configured (`aws configure` with Access Keys)
+## Practical Lab
+**Objective:** Deploy a basic EC2 Web Server in AWS.
 
-### Step 1: Write the Provider and Resource Config
-```hcl
-# Create a file named main.tf
-terraform {
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 5.0"
+**Step-by-step implementation (CLI Method):**
+
+Production me kabhi ek single `main.tf` file nahi banate. Hum code ko decouple karte hain. 
+Aap vault ke `examples/` folder se ready-made, modular Terraform structure dekh sakte hain:
+- Provider Config (Backend & Tags): [providers.tf](file:///C:/Users/SPTL/Documents/devops/devops/examples/06-IaC/terraform-aws-web/providers.tf)
+- Input Variables: [variables.tf](file:///C:/Users/SPTL/Documents/devops/devops/examples/06-IaC/terraform-aws-web/variables.tf)
+- Core Infrastructure (EC2 & SG): [main.tf](file:///C:/Users/SPTL/Documents/devops/devops/examples/06-IaC/terraform-aws-web/main.tf)
+- Outputs: [outputs.tf](file:///C:/Users/SPTL/Documents/devops/devops/examples/06-IaC/terraform-aws-web/outputs.tf)
+
+1. Apne terminal mein example directory open karo:
+```bash
+cd ../../examples/06-IaC/terraform-aws-web/
+```
+
+2. **Initialize:** `terraform init` (Provider plugins download karega).
+3. **Format & Validate:** `terraform fmt` (Code neatly format karega) aur `terraform validate` (Syntax check karega).
+4. **Plan:** `terraform plan` (Dekho kya create hone wala hai).
+5. **Apply:** `terraform apply -auto-approve` (Provisioning start karega).
+6. **Verification:** AWS Console pe EC2 dashboard me jao, "GodMode-Vault-Server" chal raha hoga. `public_ip` terminal pe print hoga.
+7. **Rollback/Cleanup:** `terraform destroy -auto-approve` (Kyunki lab khatam, bill na aaye).
+
+## Daily Engineer Tasks
+- **L1 Engineer:** Chhote changes (e.g. S3 bucket me tag add karna, DNS record update karna), aur pipelines run karna.
+- **L2 Engineer:** Naye services ke liye basic Terraform resources likhna (e.g. RDS instance, SQS queue). `terraform apply` fails troubleshoot karna.
+- **L3 / Senior Engineer:** Reusable Terraform Modules likhna, S3 remote state aur DynamoDB locking setup karna, GitLab CI / GitHub Actions CI/CD pipeline me Terraform integrate karna.
+- **Production Engineer/SRE:** Handle Terraform configuration drift at scale, migrate manual infra to TF using `terraform import`, refactor monolithic state files into smaller, decoupled state files.
+
+## Real Industry Tasks
+- **Real Tickets:** 
+  - "Clone Staging environment for Load Testing". (Terraform se bas workspace switch karke apply marna hota hai).
+  - "Import manually created ALB (Application Load Balancer) to Terraform state".
+- **Maintenance Work:** Upgrade Terraform Provider version from v4 to v5 safely using HashiCorp change logs. Zero-downtime replacements planning.
+
+## Troubleshooting
+**Common Issues & Symptoms:**
+1. **Symptom:** `Error: No valid credential sources found.`
+   - **Root Cause:** Terraform cannot authenticate to AWS.
+   - **Resolution:** Run `aws configure` in terminal and verify `aws sts get-caller-identity`.
+
+2. **Symptom:** `Error acquiring the state lock.`
+   - **Root Cause:** Do log ek saath `apply` kar rahe hain, ya pichla pipeline crash/kill ho gaya tha locking chhod ke.
+   - **Resolution:** Check who is holding the lock. Agar safe hai, toh run `terraform force-unlock <LOCK_ID>`.
+
+3. **Symptom:** Plan shows a resource is going to be `replaced` (destroyed and created) unexpectedly.
+   - **Root Cause:** Immutable field change. For example, changing the `ami` of an EC2 instance forces recreation.
+   - **Resolution:** If recreation is bad (e.g., Database), DO NOT APPLY. Revert the HCL code or use `lifecycle { prevent_destroy = true }`.
+
+## Interview Preparation
+**Basic:** 
+- **Q:** Terraform vs Ansible kya hai? 
+- **A:** Terraform is primarily for Provisioning (creating infrastructure), Ansible is primarily for Configuration Management (installing software on created servers). (Ansible procedural, Terraform declarative).
+
+**Intermediate:** 
+- **Q:** `.tfstate` file kya hoti hai? Kya use source control (Git) me dalna chahiye?
+- **A:** State file HCL code aur actual cloud infra ki mapping store karti hai. Ise Git me **kabhi nahi** dalna chahiye kyunki isme sensitive passwords, DB credentials plain text me store hote hain. Hamesha Remote State Backend (like AWS S3) use karna chahiye.
+
+**Advanced / Production:** 
+- **Q:** Agar kisi ne directly AWS Console se ek S3 bucket delete kar di jo Terraform manage kar raha tha, toh next `terraform plan` me kya hoga?
+- **A:** `terraform plan` refresh phase run karta hai. Wo AWS se pucha "bucket hai?", AWS bolega "nahi". State file update hogi. Fir Terraform compare karega apne HCL (jisme bucket likhi hai) aur bolega: "I will CREATE 1 new S3 bucket to match your desired state."
+
+**Scenario Based:** 
+- **Q:** Tumhare HCL code me VPC hardcoded hai. Isko multi-environment (Dev, QA, Prod) kaise banaoge?
+- **A:** Hardcoded values ko `variables.tf` me daalunga. Phir `.tfvars` files banaunga (`dev.tfvars`, `prod.tfvars`). Pipeline run karte waqt pass karunga: `terraform apply -var-file="prod.tfvars"`.
+
+**Trick / HR Round:**
+- **Q:** Can Terraform manage infrastructure that was created manually before Terraform was used?
+- **A:** Yes, hume usko manually `terraform import` command chala ke state file me lana padega, and HCL code uske barabar likhna padega.
+
+## Production Scenarios
+**Scenario:** "Website down. QA complains staging server configuration was mysteriously changed."
+- **How to think:** Ye 'Configuration Drift' (code vs reality mismatch) ka classic case hai. Kisi junior dev ne console me manually changes kiye honge (e.g., Security group change kar diya).
+- **Where to check & Commands:**
+  Run `terraform plan`. 
+- **Logs:** 
+  Plan dikhayega: `~ ingress { cidr_blocks = ["10.0.0.0/8"] -> ["0.0.0.0/0"] }` (Yaani actual aws par open to world ho gaya hai).
+- **Resolution:** Run `terraform apply`. Ye wapas AWS state ko HCL jaisa bana dega aur manual changes revert ho jayenge.
+- **Prevention:** AWS IAM me developers ka Console Write access hata do. Sirf read-only do. Sab kuch Terraform PR se via CI/CD jana chahiye.
+
+## Commands
+
+| Command | Purpose | Syntax | Example | Danger Level |
+|---------|---------|--------|---------|--------------|
+| `init` | Initializes directory, downloads plugins | `terraform init` | `terraform init` | Low |
+| `fmt` | Formats code to canonical style | `terraform fmt` | `terraform fmt --recursive` | Low |
+| `validate` | Validates syntax and arguments | `terraform validate` | `terraform validate` | Low |
+| `plan` | Shows execution plan (dry-run) | `terraform plan` | `terraform plan -out=tfplan` | Low |
+| `apply` | Builds/alters infrastructure | `terraform apply` | `terraform apply tfplan` | **High** |
+| `destroy` | Tears down infra | `terraform destroy` | `terraform destroy -auto-approve`| **Critical** |
+| `import` | Imports existing infra into state | `terraform import <resource> <ID>` | `terraform import aws_instance.web i-12345` | Medium |
+| `state list`| Lists resources in state file | `terraform state list` | `terraform state list` | Low |
+
+## Cheat Sheet
+- **Important Files:** `main.tf` (code), `variables.tf` (inputs), `outputs.tf` (outputs), `terraform.tfstate` (state file, KEEP SECRET), `.terraform.lock.hcl` (provider versions lock file, COMMIT TO GIT).
+- **Environment Vars:** `TF_VAR_name` (used to pass variables via OS env). `TF_LOG=DEBUG` (troubleshooting output).
+- **Lifecycle rules:** `create_before_destroy`, `prevent_destroy`, `ignore_changes`.
+
+## SOP & Runbook & KB Article
+**SOP: Initializing a New Terraform Project**
+- **Purpose:** Standardize directory structure.
+- **Procedure:** Create `main.tf`, `variables.tf`, `outputs.tf`. Create `providers.tf` with remote backend block (S3). Run `terraform init`. Commit to git (ignoring `.terraform/` and `.tfstate` via `.gitignore`).
+
+**Runbook: Unlocking Terraform State**
+- **Detection:** Jenkins pipeline fails with `Error acquiring the state lock`.
+- **Investigation:** Check if any other pipeline is running. Ask in team chat.
+- **Resolution:** If safe, run `terraform force-unlock <Lock_ID>`.
+- **Validation:** Run `terraform plan`. It should execute normally.
+
+**KB Article: Terraform Drift Management**
+- **Problem:** Manual changes in cloud causing Terraform to overwrite or fail.
+- **Cause:** Lack of strict IAM policies allowing console changes.
+- **Resolution:** Periodic drift detection pipelines running `terraform plan -detailed-exitcode`. Alerts sent to Slack if drift detected.
+
+## Best Practices & Beginner Mistakes
+**Best Practices:**
+1. **Remote State:** Hamesha S3/Blob storage use karo state store karne ke liye.
+2. **State Locking:** DynamoDB table use karo lock ke liye taaki 2 log ek saath apply na kar dein (corruption prevent karne ke liye).
+3. **Modularize:** Code ko modules me break karo (DRY principle).
+4. **Secrets Management:** AWS Secrets Manager / HashiCorp Vault use karo. Passwords kabhi `.tf` file me hardcode mat karo.
+
+**Beginner Mistakes:**
+- **Mistake:** Committing `terraform.tfstate` to GitHub. -> **Impact:** Anyone can steal your DB passwords and Cloud infrastructure topology. -> **Correct Approach:** Add `*.tfstate` to `.gitignore`.
+- **Mistake:** Manually editing the `terraform.tfstate` JSON file to fix an issue. -> **Impact:** State corruption, Terraform crashes. -> **Correct Approach:** Always use `terraform state` commands (`mv`, `rm`, `replace-provider`).
+
+## Advanced Concepts
+- **Idempotency:** Aap `terraform apply` 100 baar run karo, agar infra match kar raha hai code se, toh Terraform 0 changes karega. Ye idempotent nature kehlata hai.
+- **Dependency Graph:** Terraform resources ke beech dependancy tree (Directed Acyclic Graph - DAG) khud banata hai. Agar EC2 ko Security Group chahiye, toh TF pehle SG banayega fir EC2. Jinme dependency nahi hai, unko parallel banayega to save time.
+
+## Related Topics & Flashcards & Revision
+- **Prerequisites:** AWS CLI basics, YAML/JSON basics.
+- **Next Topics:** [[06-IaC/TF-02 Terraform Modules|Terraform Modules]], [[06-IaC/TF-03 Terraform State Management|Terraform State Management]]
+- **Flashcards:**
+  - *Q: Terraform kis language mein likhte hain?* -> A: HCL (HashiCorp Configuration Language).
+  - *Q: Remote state backend ka sabse bada faayda?* -> A: Team collaboration, secure state storage, and state locking.
+
+## Real Production Logs & Commands & Decision Tree
+**Sample Log: `terraform plan` showing drift**
+```diff
+Terraform will perform the following actions:
+  # aws_security_group.web_sg will be updated in-place
+  ~ resource "aws_security_group" "web_sg" {
+      id = "sg-0123abcd"
+      ~ ingress {
+          ~ cidr_blocks = [
+              - "0.0.0.0/0",
+              + "10.0.0.0/8",
+            ]
+            # (3 unchanged attributes hidden)
+        }
     }
-  }
-}
-
-# Configure the AWS Provider
-provider "aws" {
-  region = "us-east-1"
-}
-
-# Create an EC2 Instance
-resource "aws_instance" "my_web_server" {
-  ami           = "ami-0c7217cdde317cfec" # Ubuntu 22.04 in us-east-1
-  instance_type = "t2.micro"
-
-  tags = {
-    Name        = "DevOps-Vault-Server"
-    Environment = "Dev"
-  }
-}
-
-# Output the public IP after creation
-output "server_public_ip" {
-  value = aws_instance.my_web_server.public_ip
-}
+Plan: 0 to add, 1 to change, 0 to destroy.
 ```
+*Explaination:* Ek junior ne galti se port ko `0.0.0.0/0` (internet) pe open kar diya tha. Terraform ne detect kiya ki HCL mein `10.0.0.0/8` (private network) likha hai. Terraform plan bata raha hai ki wo wapas usko secure network pe update karega.
 
-### Step 2: Initialize and Format
-```bash
-# Downloads the AWS provider plugin
-terraform init
-
-# Expected output: Terraform has been successfully initialized!
-
-# Formats the code neatly (always run this before committing)
-terraform fmt
-
-# Validates syntax errors
-terraform validate
+**Decision Tree (Troubleshooting failed apply):**
+```mermaid
+graph TD
+    A[Apply Fails] --> B{Error Type?}
+    B -->|State Lock Error| C[Check who holds the lock]
+    C --> D{Is it a zombie lock?}
+    D -->|Yes| E[terraform force-unlock]
+    D -->|No| F[Wait for their apply to finish]
+    B -->|Provider/Auth Error| G[Check AWS Credentials]
+    G --> H[Run aws sts get-caller-identity]
+    B -->|Resource Conflict| I[Resource already exists?]
+    I --> J[Use terraform import]
 ```
-
-### Step 3: Plan the Changes
-```bash
-# See what Terraform intends to do
-terraform plan
-
-# Expected output:
-# Terraform will perform the following actions:
-#   # aws_instance.my_web_server will be created
-#   + resource "aws_instance" "my_web_server" {
-#       + ami = "ami-0c7217cdde317cfec"
-#       ...
-# Plan: 1 to add, 0 to change, 0 to destroy.
-```
-
-### Step 4: Apply and Verify
-```bash
-# Execute the plan (type 'yes' when prompted)
-terraform apply
-
-# Expected output:
-# aws_instance.my_web_server: Creating...
-# aws_instance.my_web_server: Creation complete after 35s
-# Outputs:
-# server_public_ip = "3.85.x.x"
-```
-
-### Step 5: Destroy the Infrastructure
-```bash
-# Tear it all down so you don't get billed!
-terraform destroy
-
-# Expected output:
-# Plan: 0 to add, 0 to change, 1 to destroy.
-# Destroy complete! Resources: 1 destroyed.
-```
-
-> [!tip] Pro Tip
-> Never hardcode AMIs (like `ami-0c72...`) in production. AMIs are updated constantly for security patching and their IDs differ per region. Use a `data "aws_ami"` block to dynamically fetch the latest Ubuntu/Amazon Linux image ID during the `plan` phase.
-
----
-
-## Common Commands Cheat Sheet
-
-| Command | What It Does | Real Example |
-|---------|-------------|--------------|
-| `terraform init` | Initializes working directory and downloads providers | `terraform init` |
-| `terraform fmt` | Rewrites config files to standard format | `terraform fmt --recursive` |
-| `terraform validate`| Checks config validity and syntax | `terraform validate` |
-| `terraform plan` | Generates and shows an execution plan | `terraform plan -out=tfplan` |
-| `terraform apply` | Builds or changes infrastructure | `terraform apply -auto-approve` |
-| `terraform destroy` | Destroys Terraform-managed infrastructure | `terraform destroy` |
-| `terraform state list`| Lists resources tracked in the state file | `terraform state list` |
-| `terraform show` | Prints human-readable output from state or plan | `terraform show` |
-
----
-
-## Troubleshooting Guide
-
-| Problem | Likely Cause | Step-by-Step Fix |
-|---------|-------------|------------------|
-| `Error: No valid credential sources found` | AWS CLI is not configured | Run `aws configure` to set your Access Key and Secret Key, or export `AWS_ACCESS_KEY_ID` as environment variables. |
-| `Error: Reference to undeclared resource` | Typo in resource referencing | If you use `aws_instance.web.id`, ensure you actually named the resource `aws_instance "web"`. Terraform is strictly validated. |
-| Apply takes 10 minutes then fails with timeout | Security Group or VPC routing issue | If provisioning a Database or EKS cluster fails on a timeout, it's usually because it cannot reach the internet to signal completion. Check subnet routing. |
-| `Provider configuration not present` on destroy | You deleted the provider block from code | To destroy resources, Terraform still needs to know how to authenticate. Put the `provider "aws"` block back in the file, then run destroy. |
-| Plan shows a resource being recreated instead of updated | Changing an immutable property | Some properties (like EC2 `ami`) cannot be changed on a running server. Changing it forces Terraform to destroy the old one and build a new one. |
-
----
-
-## Real-World Job Scenario
-
-> [!info] Scenario
-> **Situation:** "A Junior developer manually logged into the AWS Console and changed the Security Group of the production database to allow `0.0.0.0/0` (open to the world) to debug an issue."
-
-**What Junior DevOps Does:**
-Logs into the console, searches for the Security Group, and manually deletes the bad rule. Hopes nobody else messes with it.
-
-**Escalation Trigger:**
-The security team demands an audit of how the rule was changed and requires a guarantee that unauthorized manual changes are reverted immediately.
-
-**Senior Engineer Resolution:**
-1. Since the infrastructure was originally provisioned with Terraform, the state file tracks the correct configuration.
-2. The Senior runs `terraform plan`.
-3. Terraform detects the "drift". The output shows: `~ ingress { cidr_blocks = ["0.0.0.0/0"] -> ["10.0.0.0/8"] }`. It knows the real AWS state no longer matches the code.
-4. The Senior runs `terraform apply`. Terraform automatically reaches into AWS and deletes the dangerous manual rule, enforcing the coded state.
-5. Next, the Senior removes console access for developers. All AWS changes must now be done via Pull Requests to the Terraform GitHub repository.
-
-**Lesson Learned:**
-Terraform is not just a provisioning script; it is a state enforcer. It catches and corrects manual tampering (configuration drift).
-
----
-
-## Interview Questions
-
-**Q1 (Conceptual):** What is the difference between a declarative tool like Terraform and an imperative tool like a Bash script?
-**A:** In a Bash script (imperative), you write the exact steps to achieve a goal (e.g., 1. Run AWS CLI to check if server exists. 2. If no, create it. 3. If yes, update it). In Terraform (declarative), you simply define the final desired state ("I want one server"). Terraform calculates the necessary steps, handles idempotency, and executes the changes automatically.
-
-**Q2 (Practical):** Your `main.tf` has hardcoded AWS regions and instance types. How do you make this code reusable for different environments?
-**A:** I would replace the hardcoded values with variables. I'd define a `variable "region" {}` and `variable "instance_type" {}` in a `variables.tf` file. Then, I can pass different values at runtime using a `.tfvars` file (e.g., `dev.tfvars` vs `prod.tfvars`) or via the command line with `-var="region=us-west-2"`.
-
-**Q3 (Scenario-based):** You ran `terraform apply` and created an S3 bucket. Later, a coworker deleted the bucket directly from the AWS Console. What happens when you run `terraform plan` next?
-**A:** During the `plan` phase, Terraform performs a "refresh" by checking the actual AWS cloud against its local `terraform.tfstate` file. It will notice the bucket exists in the state but is missing in AWS. The plan will output that it intends to recreate the missing bucket to match your `.tf` code.
-
-**Q4 (Deep dive):** Explain what the `.terraform.lock.hcl` file does and why it should be committed to version control.
-**A:** The lock file ensures dependency consistency for providers. When you run `terraform init`, Terraform downloads provider plugins (like the AWS provider) and records their exact cryptographic hashes in the lock file. Committing this file to Git guarantees that when your CI/CD pipeline or a coworker runs `terraform init`, they get the exact same provider versions, preventing unexpected behavior from upstream provider updates.
-
-**Q5 (Trick/Gotcha):** Can Terraform manage infrastructure that was created manually *before* Terraform was used?
-**A:** Yes, but not automatically. You cannot just write the HCL code and run apply, because Terraform will try to create a *new* resource and fail due to naming conflicts. You must use the `terraform import` command to pull the existing AWS resource's ID into the Terraform state file, and then write the matching HCL code.
-
----
-
-## Related Notes
-
-[[00-MOC/Master-Index|Master Index]]
-[[06-IaC/TF-02 Terraform Modules|Terraform Modules]]
-[[06-IaC/TF-03 Terraform State Management|Terraform State Management]]

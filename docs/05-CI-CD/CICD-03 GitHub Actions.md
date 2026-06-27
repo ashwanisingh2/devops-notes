@@ -1,223 +1,172 @@
 ---
-tags: [devops, cicd, github, pipeline]
-aliases: [GitHub Actions]
+tags: [devops, cicd, github, pipeline, automation]
+aliases: [GitHub Actions, GHA]
 created: 2025-06-27
 status: #complete
 difficulty: #intermediate
-cert-relevant: #none
 ---
 
 # CICD-03 GitHub Actions
 
-> [!abstract] Overview
-> GitHub Actions brings CI/CD directly to where your code lives. Instead of hosting and maintaining a bulky Jenkins server, GitHub provides the compute runners and the automation engine natively within the repository. For modern, cloud-native DevOps teams, GitHub Actions has become the go-to tool due to its YAML simplicity, massive open-source Actions Marketplace, and seamless integration with pull requests.
+# Overview
+Ye kya hai? GitHub Actions (GHA) GitHub ka apna native CI/CD aur automation platform hai.
+Kyu use hota hai? Pehle hum code GitHub mein rakhte the aur Jenkins ko bolte the "jaake le aa". Ab GitHub ke paas apna hi internal automation engine hai. Aap bas ek YAML file mein bata do kya karna hai, aur GitHub PR (Pull Request) aate hi sab apne aap test, build aur deploy kar dega.
+Real life example: Jaise ek restaurant mein waiter (GHA) automatically kitchen (build) se khana leke table (production) pe serve kar deta hai bina chef (developer) ko baar baar bole.
+Industry kaha use karti hai? Automating NPM package publishing, linting Python code on every PR, building Docker images aur unhe GHCR (GitHub Container Registry) mein push karne mein.
+Architecture: GitHub repo mein `.github/workflows/` directory hoti hai jahan YAML files rehti hain. GitHub in YAML ko padhta hai, Ubuntu/Windows/Mac VMs (Runners) spin up karta hai, jobs execute karta hai, aur VM ko destroy kar deta hai.
 
----
-
-## Concept Overview
-
-- **What it is** — A CI/CD and automation platform native to GitHub. Workflows are defined in YAML files stored in the `.github/workflows/` directory of a repository.
-- **Why DevOps engineers use it** — Zero infrastructure management. You don't need to patch servers or manage plugins. You just write YAML, and GitHub spins up an Ubuntu VM, runs your code, and destroys the VM.
-- **Where you encounter this in a real job** — Automating NPM package publishing, linting Python code on every PR, building Docker images and pushing them to GHCR (GitHub Container Registry), or automating stale issue closures.
-- **Responsibility Split:**
-  - **Junior DevOps**: Uses marketplace actions to setup Node/Python environments and runs test scripts.
-  - **Mid DevOps**: Configures secrets, handles matrix builds across multiple OS versions, and implements caching to speed up workflows.
-  - **Senior/SRE**: Manages self-hosted runners for enterprise security, writes custom Reusable Workflows to standardize company CI, and integrates OIDC (OpenID Connect) for secretless cloud authentication.
-
-*Seedha simple mein: Pehle hum code GitHub mein rakhte the aur Jenkins ko bolte the "jaake le aa". Ab GitHub ke paas apna hi internal Jenkins hai (Actions). Aap bas ek YAML file mein bata do kya karna hai, aur GitHub PR aate hi sab apne aap test aur deploy kar dega.*
-
----
-
-## Technical Deep Dive
-
-### 1. Workflow YAML Anatomy
-A workflow is defined by triggers, jobs, and steps:
-- **`on` (Triggers)**: Defines *when* the workflow runs. (e.g., `push` to main, `pull_request`, or a cron `schedule`).
-- **`jobs`**: A workflow contains one or more jobs. By default, multiple jobs run *in parallel*. You can force sequential execution using `needs: [job_name]`.
-- **`runs-on`**: Defines the runner environment (e.g., `ubuntu-latest`, `windows-latest`, or custom self-hosted labels).
-- **`steps`**: The sequential tasks within a job. A step can either run a shell command (`run: echo hello`) or use a pre-built Action from the marketplace (`uses: actions/checkout@v3`).
-
-### 2. The Marketplace and `uses`
-The biggest advantage of GHA is the open-source community. Instead of writing bash scripts to install Node.js, authenticate to AWS, or setup Docker Buildx, you just use pre-built Actions. 
-For example, `uses: aws-actions/configure-aws-credentials@v2` handles all AWS auth securely in two lines of YAML.
-
-### 3. Caching and Artifacts
-Runners are ephemeral (deleted after every run). If your app needs 500MB of `node_modules`, downloading them every time wastes minutes.
-- **Caching**: Use `actions/cache` to save `node_modules` across pipeline runs. If the `package-lock.json` hasn't changed, GHA pulls the cache instantly.
-- **Artifacts**: If Job A builds a `.jar` file and Job B deploys it, you must use `actions/upload-artifact` in Job A and `actions/download-artifact` in Job B to pass the file between the two isolated runner VMs.
-
-### 4. Secrets and OIDC
-Never hardcode tokens. Add them to GitHub Repository Secrets (Settings -> Secrets) and reference them via `${{ secrets.MY_TOKEN }}`.
-For cloud providers (AWS/GCP/Azure), the modern standard is **OIDC (OpenID Connect)**. Instead of storing long-lived AWS IAM Access Keys in GitHub, GitHub exchanges a temporary, cryptographically signed token with AWS for a short-lived session, eliminating the risk of stolen static keys.
-
----
-
-## Step-by-Step Lab
-
-> [!warning] Pre-requisites
-> - A GitHub account and a repository
-
-### Step 1: Create the Workflow File
-In your repository, create the directory structure `.github/workflows/` and add a file named `ci.yml`.
-
-```yaml
-name: Node.js CI/CD Pipeline
-
-# Trigger on push to main, or on pull requests to main
-on:
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
-
-jobs:
-  build-and-test:
-    runs-on: ubuntu-latest
-    
-    steps:
-    # 1. Pull the code from the repo
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      
-    # 2. Setup Node.js environment
-    - name: Use Node.js 18
-      uses: actions/setup-node@v4
-      with:
-        node-version: '18'
-        cache: 'npm' # Automatically handles caching!
-        
-    # 3. Run shell commands
-    - name: Install dependencies
-      run: npm ci
-      
-    - name: Run tests
-      run: npm run test
-
-  docker-build-push:
-    # This job waits for the test job to succeed before starting
-    needs: build-and-test
-    # Only run this job if code was pushed to main (skip on PRs)
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    
-    # Required permission to push to GHCR
-    permissions:
-      contents: read
-      packages: write
-      
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Log in to GitHub Container Registry
-      uses: docker/login-action@v3
-      with:
-        registry: ghcr.io
-        username: ${{ github.actor }}
-        password: ${{ secrets.GITHUB_TOKEN }} # Auto-provided by GitHub!
-        
-    - name: Build and push Docker image
-      uses: docker/build-push-action@v5
-      with:
-        context: .
-        push: true
-        tags: ghcr.io/${{ github.repository }}/my-app:latest
+```mermaid
+graph LR
+    Developer((Developer)) -->|Push Code| Repo[GitHub Repo]
+    Repo -->|Trigger| GHA[GitHub Actions]
+    GHA -->|Provision| Runner[Ubuntu/Windows Runner]
+    Runner -->|Execute Job 1| Build[Build Code]
+    Runner -->|Execute Job 2| Test[Run Tests]
+    Runner -->|Execute Job 3| Deploy[Deploy to AWS/Azure]
 ```
 
-### Step 2: Push and Observe
-1. Commit and push this file to your repository.
-2. Go to the **Actions** tab in your GitHub repository.
-3. Watch the pipeline run live. It will checkout code, install node, run tests, and (if on main branch) build and push a Docker image to your GitHub Packages tab!
+# Working
+Internal working: GitHub Actions event-driven hai. Ek event (e.g., code push) workflow trigger karta hai. Workflow ke andar ek ya ek se zyada `jobs` hoti hain jo parallel ya sequentially `runners` (VMs) par chalti hain. Har job ke andar multiple `steps` hote hain jo ya toh shell scripts run karte hain ya pre-built `actions` (Marketplace se).
+Data flow: Push -> Webhook trigger internal to GitHub -> Workflow YAML read -> Runner allocate -> Checkout code -> Run steps -> Output artifacts/logs.
+Authentication flow: External cloud providers (AWS/GCP/Azure) se connect karne ke liye OIDC (OpenID Connect) ka use hota hai. GitHub dynamically temporary tokens exchange karta hai, no need to store long-lived credentials.
 
-> [!tip] Pro Tip
-> Treat `${{ secrets.GITHUB_TOKEN }}` like magic. GitHub automatically generates this token at the start of every workflow and destroys it at the end. You can use it to authenticate to the GitHub API, checkout private submodules, or push to GHCR without ever configuring a manual secret.
+# Installation
+Prerequisites: GitHub account aur ek repository.
+Installation: Isko install nahi karna padta, ye GitHub mein inbuilt hai. Agar aapko apne on-prem servers use karne hain, toh aapko **Self-hosted Runners** install karne padte hain.
+Configuration: Bas repo ki root mein `.github/workflows/main.yml` file banani hoti hai.
+Verification: Repo ke "Actions" tab mein jake pipeline execution dekh sakte hain.
 
----
+# Practical Lab
+Step-by-step implementation to build a Node.js App.
 
-## Common Commands Cheat Sheet
+Bajaaye ek basic YAML likhne ke, aap vault ke `examples/` folder se FAANG-level, production-ready workflow dekh sakte hain: 
+[examples/05-CICD/github-actions-ci.yml](file:///C:/Users/SPTL/Documents/devops/devops/examples/05-CICD/github-actions-ci.yml)
 
-| GitHub Actions Syntax | What It Does | Example |
-|-----------------------|-------------|---------|
-| `on: workflow_dispatch` | Adds a button to trigger the workflow manually | `on: workflow_dispatch` |
-| `on: schedule` | Runs workflow on a cron schedule | `cron: '0 0 * * *'` (Nightly) |
-| `${{ github.sha }}` | Retrieves the Git commit hash of the run | `tags: myapp:${{ github.sha }}` |
-| `needs: jobA` | Makes the current job dependent on jobA | `needs: lint-code` |
-| `if: always()` | Runs the step even if previous steps failed | `if: always()` (Great for cleanup) |
-| `matrix:` | Runs a job multiple times with different variables | `node-version: [14, 16, 18]` |
-| `env:` | Sets environment variables for a job or step | `env: PORT: 8080` |
+1. Apne repo mein `.github/workflows/` folder create karo.
+2. Us folder mein `ci.yml` file create karo aur example YAML paste karo.
+   *Note: Ye production YAML OIDC, Matrix Strategy, Caching, aur Multi-job (`needs`) architecture cover karti hai.*
+3. Commit and push.
+4. Expected Output: GitHub repo ke "Actions" tab mein ek workflow trigger hoga jisme pehle `test-and-build` chalega multiple Node versions par (matrix), aur pass hone ke baad `deploy` job trigger hogi.
 
----
+# Daily Engineer Tasks
+L1 Engineer: Existing YAML mein chhote changes karna, marketplace actions search karke add karna.
+L2 Engineer: Secrets configure karna, failed pipelines ko troubleshoot karna, build matrix setup karna.
+L3/Senior Engineer: Reusable workflows banana for multiple repos, OIDC integration with AWS/Azure, self-hosted runners setup karna aur unki maintenance.
 
-## Troubleshooting Guide
+# Real Industry Tasks
+Real tickets: "Implement CI/CD for our new Go microservice".
+Real change requests: "Update Node.js version from 16 to 20 in all GitHub Action workflows".
+Migration: Jenkins se GitHub Actions migrate karna.
+Optimization: Caching implement karke pipeline time ko 15 mins se 3 mins pe lana.
 
-| Problem | Likely Cause | Step-by-Step Fix |
-|---------|-------------|------------------|
-| "Resource not accessible by integration" during `git push` | Token lacks permissions | By default, GITHUB_TOKEN has read-only access. Add `permissions: contents: write` at the top of the workflow or job. |
-| Workflow is not triggering | Branch mismatch or wrong path | Ensure the YAML file is exactly in `.github/workflows/`. Check the `on: push: branches` block matches your branch name (`main` vs `master`). |
-| "Secret not found" or variable is empty | Secret is tied to a different environment | Ensure you created a *Repository* Secret, not an *Environment* Secret (unless your job specifies `environment: prod`). |
-| Job B cannot find files created in Job A | Jobs run on different runner VMs | Use `actions/upload-artifact` in Job A to save the files, and `actions/download-artifact` in Job B to retrieve them. |
-| Docker build fails with "context not found" | Missing checkout | The runner starts completely empty. You MUST run `uses: actions/checkout@v4` as the very first step in *every* job that needs your code. |
+# Troubleshooting
+Common issues:
+- **Pipeline trigger nahi ho rahi**: Branch name YAML ke `on:` section se match nahi kar raha.
+- **Resource not accessible by integration**: `GITHUB_TOKEN` ke paas permissions nahi hain. `permissions:` block YAML mein add karna padega.
+- **Secrets not found**: Secret ko Environment level pe add kiya hai par workflow mein environment specify nahi kiya, ya typo in variable name.
+Investigation steps:
+1. Actions tab mein jao, failed job pe click karo.
+2. Logs expand karke red error dekho.
+3. Agar authentication error hai, verify secrets in repo settings.
+Resolution: Update YAML or add missing secrets and click "Re-run all jobs".
 
----
+# Interview Preparation
 
-## Real-World Job Scenario
+### Top 20 Interview Questions (Basic to FAANG Level)
 
-> [!info] Scenario
-> **Situation:** "We have a Python library that needs to be tested on Windows, Mac, and Linux, across Python versions 3.8, 3.9, 3.10, and 3.11."
+**Basic (L1):**
+1. **GitHub Actions mein `Runner` kya hota hai?**
+   *Expected Answer:* Runner ek virtual machine ya server hai jo aapke workflow ko execute karta hai. GitHub apne hosted runners (Ubuntu/Windows/Mac) deta hai, ya aap apne khud ke "Self-hosted" runners bhi laga sakte ho.
+2. **`workflow_dispatch` ka kya kaam hai?**
+   *Expected Answer:* Ye trigger event aapko permission deta hai ki aap workflow ko manually GitHub UI (Actions tab) se button click karke run kar sako.
 
-**What Junior DevOps Does:**
-Copies and pastes the job 12 times in the YAML file. Hardcodes the OS and Python version in each one. The file becomes 500 lines long and impossible to maintain.
+**Intermediate (L2/L3):**
+3. **Job aur Step mein kya difference hai?**
+   *Expected Answer:* Ek workflow mein multiple Jobs ho sakti hain. Har Job ek alag naye Runner (VM) par parallel mein chalti hai (unless `needs` use kiya ho). Ek Job ke andar multiple Steps hote hain jo ek hi VM par sequentially (ek ke baad ek) chalte hain.
+4. **Agar do Jobs alag VM par chal rahi hain, toh unke beech file/data kaise share karoge?**
+   *Expected Answer:* Jobs strongly isolated hoti hain. Data share karne ke liye main `actions/upload-artifact` use karke first job se data save karunga, aur second job mein `actions/download-artifact` se usko pull karunga.
+5. **Caching kaise implement karte hain CI pipeline mein?**
+   *Expected Answer:* `actions/cache` use karke. Agar Node.js hai toh directly `setup-node` action mein `cache: 'npm'` specify karne se automatically `~/.npm` cache ho jata hai, jis-se pipeline bohot fast ho jati hai.
 
-**Escalation Trigger:**
-A new Python version (3.12) is released, and the team dreads adding 3 more copy-pasted blocks to the massive file.
+**Advanced / FAANG Scenario:**
+6. **10 microservices ke liye same deployment logic likhna hai, kya har repo mein 500 line ka YAML copy paste karoge?**
+   *Expected Answer:* Nahi. Main ek "Reusable Workflow" (template) banaunga ek centralized repo mein using `on: workflow_call`. Baaki saari 10 repos us template ko call karengi `uses: org/repo/.github/workflows/deploy-template.yml@main`. Isse maintainability aasan ho jayegi.
+7. **Production environment mein GitHub Actions se AWS deploy karna hai par Security team ne mana kiya hai ki AWS Access Keys GitHub Secrets mein save nahi hongi. Kaise karoge?**
+   *Expected Answer:* Main **OIDC (OpenID Connect)** use karunga. GHA provider ban jayega AWS IAM mein. Workflow runtime par AWS se ek temporary short-lived token request karega. Koi static keys store karne ki zarurat nahi padegi.
+8. **Ek script hai jo Mac, Windows aur Linux teeno par test karni hai. Kya 3 alag workflows likhne padenge?**
+   *Expected Answer:* Nahi, main **Matrix Strategy** use karunga. `strategy: matrix: os: [ubuntu-latest, windows-latest, macos-latest]` define karke ek hi job likhunga. GitHub automatically 3 alag VMs trigger kar dega backend par.
 
-**Senior Engineer Resolution:**
-1. Deletes the 500 lines of YAML.
-2. Uses a **Build Matrix** in GitHub Actions.
-3. Writes a single 20-line job:
-```yaml
-jobs:
-  test:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
-        python-version: ['3.8', '3.9', '3.10', '3.11']
-    steps:
-    - uses: actions/checkout@v4
-    - uses: actions/setup-python@v4
-      with:
-        python-version: ${{ matrix.python-version }}
-    - run: pytest
+**Top Production Issues (SRE Level):**
+- **Action Rate Limits:** Docker Hub `Too Many Requests` error deraha hai kyuki har GHA run anonymously docker pull kar rahi hai. Solution: Authenticate to GHCR or use internal proxy.
+- **Dangling Secrets:** Log injection ya `echo ${{ secrets.AWS_KEY }}` se secret expose na ho jaye, uske liye masking (***) zaroori hai, but advanced hackers base64 encode karke print kar dete hain. Ensure least-privilege IAM roles via OIDC.
+- **Runner Starvation:** Self-hosted runners queue mein wait kar rahe hain kyuki multiple teams heavily build kar rahi hain. Solution: Action Runner Controller (ARC) in K8s for auto-scaling ephemeral pods based on webhook queues.
+
+# Production Scenarios
+Scenario "Workflow taking too long to build":
+How to think: Har PR pe saari dependencies download ho rahi hain, jo slow hai.
+Resolution: `actions/cache` use karo ya `setup-node` / `setup-python` mein caching enable karo.
+Scenario "Need to test on Mac, Windows, Linux simultaneously":
+Resolution: Use **Matrix Strategy**. Ek hi job likho, `strategy: matrix: os: [ubuntu-latest, macos-latest, windows-latest]` do aur runner `runs-on: ${{ matrix.os }}` rakho. GitHub apne aap 3 VMs spin karega.
+
+# Commands
+Yahan YAML syntax hi main command hoti hai:
+- `on: push` - Trigger on push.
+- `needs: jobA` - Makes current job wait for jobA to finish.
+- `if: always()` - Runs even if previous steps fail. (Great for notifications/cleanup).
+- `${{ secrets.MY_TOKEN }}` - Access repository secret.
+
+# Cheat Sheet
+Quick revision:
+- Directory: `.github/workflows/`
+- Triggers: `push`, `pull_request`, `schedule`, `workflow_dispatch` (Manual button).
+- Contexts: `${{ github.sha }}` for commit hash, `${{ github.actor }}` for user.
+- Caching: `actions/cache`
+- Check out code: `actions/checkout@v4`
+
+# SOP & Runbook & KB Article
+SOP for adding a Secret:
+1. Go to Repo Settings -> Secrets and variables -> Actions.
+2. Click "New repository secret".
+3. Enter Name (e.g., `AWS_ACCESS_KEY_ID`) and Value.
+4. Reference in YAML as `${{ secrets.AWS_ACCESS_KEY_ID }}`.
+
+KB Article: Secret not found error
+Problem: Pipeline fails with unauthorized error.
+Cause: Secret is missing or named incorrectly.
+Resolution: Check Repo settings, ensure it's a Repository secret (not Environment, unless using environments). Re-run workflow.
+
+# Best Practices & Beginner Mistakes
+Best Practices:
+- OIDC use karo for cloud auth. Long lived static keys mat rakho.
+- Action versions ko pin karo (e.g., `@v4`). `@master` mat use karo kyunki breaking changes pipeline tod sakte hain.
+- `workflow_dispatch` humesha add karke rakho for manual testing.
+Beginner Mistakes:
+- Har step ko alag alag copy paste karna bajaye Matrix ya Reusable workflows use karne ke.
+- Code repo pull karna bhool jana. Agar `uses: actions/checkout@v4` nahi likha, toh runner ke paas source code hi nahi aayega!
+
+# Advanced Concepts
+Internal architecture: Self-hosted runners use karte time aapko dhyan rakhna padta hai ki VM scale kaise kare. Enterprises ARC (Actions Runner Controller) on Kubernetes use karte hain for auto-scaling ephemeral runners.
+Security: Dependency Review actions use karke secure kar sakte hain ki koi compromised NPM package PR mein merge na ho jaye.
+
+# Related Topics & Flashcards & Revision
+Related: [[05-CI-CD/CICD-01 CI-CD Concepts]], [[05-CI-CD/CICD-02 Jenkins]], [[Docker]], [[Kubernetes]]
+Flashcard:
+Q: What allows a job to run on multiple OS simultaneously in GHA?
+A: Matrix Strategy.
+Revision: 5 min, 15 min, 30 min, Interview revision.
+
+# Real Production Logs & Commands & Decision Tree
+Log Sample:
 ```
-4. GitHub automatically expands this matrix and dynamically spins up 12 different runners in parallel, testing every possible combination.
-5. When Python 3.12 comes out, the update requires typing 8 characters: ` , '3.12' `.
-
-**Lesson Learned:**
-Leverage platform-native features like Matrix strategies to keep CI configurations DRY (Don't Repeat Yourself).
-
----
-
-## Interview Questions
-
-**Q1 (Conceptual):** What is the difference between a GitHub Actions *Job* and a *Step*?
-**A:** A *Job* is a collection of steps that run on the same runner VM. Multiple jobs run in parallel by default on entirely separate runner VMs. A *Step* is a single sequential action (like a bash command or a marketplace action) executed inside the Job's runner. Steps share the same filesystem, Jobs do not.
-
-**Q2 (Practical):** How do you pass data (like a compiled binary) from a Build job to a Deploy job?
-**A:** Since jobs run on isolated virtual machines, I must use the `actions/upload-artifact` action in the Build job to push the binary to GitHub's storage. Then, in the Deploy job, I use `actions/download-artifact` to pull the binary into the new runner's filesystem before deploying.
-
-**Q3 (Scenario-based):** You want to reuse the exact same deployment logic across 10 different microservice repositories without copy-pasting YAML. How do you achieve this in GitHub Actions?
-**A:** I would create a **Reusable Workflow**. I define a workflow in a central repository using the `on: workflow_call` trigger. The 10 microservice repositories can then invoke this central workflow in their own YAML files using `uses: my-org/central-repo/.github/workflows/deploy.yml@main`, passing in specific inputs and secrets.
-
-**Q4 (Deep dive):** Why is configuring OIDC (OpenID Connect) with AWS considered superior to storing AWS Access Keys in GitHub Secrets?
-**A:** Storing static IAM Access Keys is a severe security risk. If a key is leaked or an ex-employee retains it, it is valid forever until manually revoked. OIDC establishes a trust relationship between GitHub and AWS. When a workflow runs, it requests a temporary, short-lived STS token from AWS valid only for that specific run. There are no static credentials to store, rotate, or leak.
-
-**Q5 (Trick/Gotcha):** If a step in your job fails (e.g., tests fail), what happens to the subsequent steps in that job?
-**A:** By default, if a step fails, the entire job immediately aborts and subsequent steps are skipped. However, you can force a step to run regardless by adding `if: always()` or `if: failure()` to the step definition. This is highly useful for uploading error logs or sending failure notifications to Slack.
-
----
-
-## Related Notes
-
-[[00-MOC/Master-Index|Master Index]]
-[[05-CI-CD/CICD-01 CI-CD Concepts|CI/CD Concepts]]
-[[05-CI-CD/CICD-02 Jenkins|Jenkins (Alternative Tool)]]
+Run actions/checkout@v4
+Syncing repository: my-org/my-repo
+Getting Git version info
+Initializing the repository
+...
+Error: Input required and not supplied: token
+```
+Explanation: Checkout action ko token nahi mila (maybe private submodule pull kar raha tha bina token pass kiye).
+Decision Tree for Failure:
+Did job fail at Checkout? -> Fix GITHUB_TOKEN or SSH keys.
+Did job fail at Build? -> Check dependency cache or typos.
+Did job fail at Deploy? -> Check OIDC, IAM Roles or cloud credentials.

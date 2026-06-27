@@ -1,6 +1,6 @@
 ---
-tags: [devops, terraform, ansible, testing]
-aliases: [Infrastructure Testing]
+tags: [devops, terraform, ansible, testing, iac]
+aliases: [Infrastructure Testing, IaC Testing]
 created: 2025-06-27
 status: #complete
 difficulty: #intermediate
@@ -9,50 +9,49 @@ cert-relevant: #none
 
 # MISC-03 Infrastructure Testing
 
-> [!abstract] Overview
-> Just like application code, Infrastructure as Code (IaC) needs to be tested before it is deployed to production. A single typo in Terraform or Ansible can bring down an entire data center. Infrastructure testing spans multiple layers: static analysis (linting, security scanning), dry runs (plans), and actual integration testing (spinning up real resources, asserting they work, and tearing them down). This note covers testing strategies for Terraform and Ansible.
+# Overview
+Ye kya hai? Just like software application code, Infrastructure as Code (IaC) ko production mein deploy karne se pehle test karna zaroori hai. Ek choti si typo in Terraform ya Ansible puri production environment ko down kar sakti hai. Isliye hum linting, security scanning (SAST), dry runs, aur actual integration testing karte hain.
+Kyu use hota hai? Taaki infrastructure deployments predictable, secure, aur bug-free ho. 
+Real life example: Ghar (Infrastructure) banane se pehle architect blueprint check karta hai (validate), safety inspector security dekhta hai (Checkov scan), aur ek 3D model dikhata hai ki banne ke baad kaisa dikhega (plan). Uske baad ek chota sample room bana kar check kiya jata hai ki paint kaisa lag raha hai, aur phir use tod diya jata hai (Terratest).
+Industry kaha use karti hai? Har modern company Terraform ya Ansible code ko CI/CD (e.g., GitHub Actions, GitLab CI) ke through test karti hai before merging.
 
-## Concept Overview
-Testing infrastructure is harder than testing software because "mocking" a cloud provider is difficult. We rely on a pipeline of checks, starting from fast, offline tests (formatting, static analysis) to slower, online tests (creating actual resources).
+```mermaid
+graph TD
+    A[Developer writes IaC] --> B{Pre-commit Hooks}
+    B -->|fmt, validate| C[Push to Git]
+    C --> D[CI Pipeline Triggered]
+    D --> E[Linting / Formatting]
+    E --> F[Security Scanning - Checkov/Trivy]
+    F --> G[Dry Run - TF Plan / Molecule Syntax]
+    G --> H{Integration Test - Terratest / Molecule Test}
+    H -->|Success| I[Merge to Main]
+    H -->|Failure| J[Reject PR]
+```
 
-*Hindi Explanation: Jaise code ko production mein daalne se pehle test karna zaroori hai, waise hi infrastructure code ko bhi check karna padta hai. Ek choti si galti se pura server delete ho sakta hai. Isliye hum pehle code ki spelling check karte hain (linting), phir dekhte hain ki banne ke baad kaisa dikhega (plan), aur last mein asli mein bana kar test karte hain (integration testing).*
+# Working
+Internal working kaise hota hai? 
+1. **Static Analysis (SAST for IaC):** Tools like Checkov and Trivy source code parse karte hain offline, bina API ko hit kiye. Ye tools ruleset (policies) ke against match karte hain (e.g., "Is S3 encryption disabled?").
+2. **Dry Run:** `terraform plan` cloud provider ki API se baat karke current state check karta hai aur execution plan banata hai ki kya change hoga.
+3. **Integration Testing:** Terratest aur Molecule dynamically resources banate hain. Molecule Docker ya VM spin up karta hai, Ansible role run karta hai (converge), verification karta hai (pytest-testinfra), aur cleanup karta hai (destroy). Terratest cloud resources banata hai (AWS/Azure) aur test karta hai.
 
-**Key Concepts:**
-- **Static Analysis (SAST for IaC):** Scanning Terraform/CloudFormation code for security misconfigurations without actually running it. (e.g., Checkov, tfsec).
-- **Terratest:** A Go library developed by Gruntwork that makes it easier to write automated tests for your IaC. It creates real resources, runs assertions, and destroys them.
-- **Molecule:** A testing framework for Ansible roles. It spins up a container or VM, runs your Ansible role against it, and verifies the end state using a verifier (like Testinfra).
+# Installation
+Prerequisites: Python, Go, Terraform, Ansible, Docker.
+Installation:
+```bash
+# Checkov for Terraform Security Scanning
+pip install checkov
 
-**Desi Analogy:**
-Imagine you are building a new house (Infrastructure).
-- `terraform validate`: The architect checking if the blueprint grammar makes sense (walls connect to walls).
-- `checkov`: The safety inspector looking at the blueprint and saying, "This window is too big, thieves can enter" (Security scan).
-- `terraform plan`: Showing the 3D model to the owner before buying bricks.
-- `terratest`: Actually building a small sample room, checking if it holds weight, and then destroying it before building the main house.
+# Molecule for Ansible Testing
+pip install "molecule[docker]" ansible-lint pytest-testinfra
 
-## Technical Deep Dive
+# Terratest dependencies (Go)
+go mod init test
+go get github.com/gruntwork-io/terratest/modules/terraform
+```
 
-### 1. The Terraform Testing Pyramid
-1. **Formatting & Validation (Fastest):** `terraform fmt` ensures consistent styling. `terraform validate` checks syntax and internal consistency (e.g., referencing a variable that exists).
-2. **Security & Compliance Scanning:** Tools like **Checkov** or **Trivy** parse the HCL code offline. They look for known bad practices, such as S3 buckets without encryption, or security groups open to `0.0.0.0/0`.
-3. **Plan / Dry Run:** `terraform plan` talks to the cloud provider's API, checks the current state, and shows exactly what *will* change. In CI/CD, this plan is often output as a file (`plan.out`) and reviewed.
-4. **Integration Testing (Terratest):** The slowest but most reliable. You write Go code that runs `terraform apply` in a sandbox account, makes an HTTP request to the created Load Balancer to check for a 200 OK, and then runs `terraform destroy` (`defer` in Go ensures it cleans up even on failure).
-
-### 2. Ansible Testing with Molecule
-Ansible roles can become complex. **Molecule** provides support for testing with multiple instances, operating systems and distributions, virtualization providers, test frameworks, and testing scenarios.
-A typical Molecule test flow:
-- **Dependency:** Pulls dependencies (like other roles from Ansible Galaxy).
-- **Create:** Spins up a test instance (usually a Docker container).
-- **Converge:** Runs your Ansible role against the test instance.
-- **Idempotence:** Runs the role *again* to ensure no changes are made on the second run (a key principle of Ansible).
-- **Verify:** Runs a testing tool (like pytest-testinfra) to assert things (e.g., "Is port 80 open?", "Is nginx installed?").
-- **Destroy:** Cleans up the test instance.
-
-## Step-by-Step Lab
-**Scenario 1: Add Checkov to a GitHub Actions workflow for Terraform.**
-**Scenario 2: Initialize Molecule for an existing Ansible role.**
-
-**Lab 1: Checkov in GitHub Actions**
-**Step 1: Create a basic vulnerable Terraform file**
+# Practical Lab
+**Lab 1: Checkov in GitHub Actions (Security Scanning for Terraform)**
+1. Ek insecure Terraform file banao:
 ```bash
 mkdir tf-test && cd tf-test
 cat <<EOF > main.tf
@@ -61,16 +60,12 @@ resource "aws_s3_bucket" "my_bucket" {
 }
 EOF
 ```
-
-**Step 2: Run Checkov locally**
+2. Locally run karke check karo:
 ```bash
-pip install checkov
 checkov -d .
 ```
-*Expected output: Checkov will flag the bucket for missing encryption, logging, and versioning. (FAILED).*
-
-**Step 3: Create GitHub Actions Workflow**
-Create `.github/workflows/checkov.yml`:
+Expected Output: FAILED for missing encryption, missing versioning, etc.
+3. GitHub Actions CI/CD mein integrate karo (`.github/workflows/checkov.yml`):
 ```yaml
 name: Checkov Scan
 on: [push, pull_request]
@@ -85,86 +80,108 @@ jobs:
           directory: .
           framework: terraform
 ```
-*Expected output: When pushed to GitHub, the pipeline will fail, preventing the insecure code from merging.*
 
----
-
-**Lab 2: Ansible Molecule**
-**Step 1: Install Molecule and Docker**
-```bash
-pip install "molecule[docker]" ansible-lint pytest-testinfra
-```
-*Expected output: Python packages installed.*
-
-**Step 2: Initialize a new role with Molecule**
+**Lab 2: Ansible Molecule Testing**
+1. Naya role initialize karo:
 ```bash
 molecule init role my_nginx_role --driver-name docker
 cd my_nginx_role
 ```
-*Expected output: Creates a role directory structure including a `molecule/default` folder.*
-
-**Step 3: Run the Molecule test suite**
-*(Assuming Docker is running on your machine)*
+2. Molecule test suite run karo:
 ```bash
 molecule test
 ```
-*Expected output: Molecule will download a default container image (usually CentOS/Ubuntu), run the empty role, check for idempotence, and destroy the container. The output will show the full lifecycle.*
+Expected Output: Docker container spin up hoga, playbook chalega, idempotence check hoga, aur finally container destroy ho jayega.
 
-## Common Commands Cheat Sheet
+# Daily Engineer Tasks
+- **L1 Engineer:** Terraform validate and fmt run karna. Basic CI pipeline failures ko report karna.
+- **L2 Engineer:** Checkov warnings resolve karna. Molecule tests run karke idempotence fix karna.
+- **L3/Senior Engineer:** Terratest test-cases likhna. Custom Checkov policies banana (using Python or YAML). OPA (Open Policy Agent) integrate karna.
 
-| Command | What It Does | Real Example |
-| :--- | :--- | :--- |
-| `terraform validate` | Checks syntax and internal logic | `terraform validate` |
-| `checkov -d .` | Scans current directory for security issues | `checkov -d ./terraform-code` |
-| `trivy config .` | Alternative to checkov for IaC scanning | `trivy config ./infra` |
-| `go test -v` | Runs Terratest files | `go test -v -timeout 30m` |
-| `molecule init role <name>` | Creates a new role with molecule template | `molecule init role webserver` |
-| `molecule converge` | Spins up test instance and runs role | `molecule converge` |
-| `molecule verify` | Runs tests against the converged instance | `molecule verify` |
-| `molecule test` | Runs the full lifecycle (create->converge->verify->destroy)| `molecule test` |
+# Real Industry Tasks
+- **Real Change Request:** S3 buckets public nahi hone chahiye. DevOps engineer OPA ya Checkov CI/CD pipeline mein lagata hai taaki koi dev galti se bhi public bucket approve na kar sake.
+- **Migration Work:** Ansible roles ko naye OS (e.g., Ubuntu 20.04 to 22.04) pe move karna. Molecule multiple OS containers spin up karke same role test karta hai automatically.
 
-## Troubleshooting Guide
+# Troubleshooting
+- **Symptom:** CI Pipeline fails on Checkov scan intentionally, but the risk is accepted.
+  - **Possible Cause:** Strict policy execution.
+  - **Resolution:** Add skip comment in code: `# checkov:skip=CKV_AWS_20: "Need public access for website hosting"`.
+- **Symptom:** Molecule tests fail during `create` phase.
+  - **Possible Cause:** Docker desktop/daemon is not running.
+  - **Resolution:** Start Docker and ensure `docker ps` works. Check `pip install docker`.
+- **Symptom:** Molecule fails on idempotence check.
+  - **Possible Cause:** Ansible task har baar state change kar raha hai (e.g., using `command` module instead of a standard declarative module).
+  - **Resolution:** Use `creates:` flag ya `changed_when: false` in Ansible task.
+- **Symptom:** Terratest leaves orphaned resources behind.
+  - **Possible Cause:** Go test crashed/panicked before `defer terraform.Destroy()` executed.
+  - **Resolution:** Clear resources manually or run `aws-nuke` script nightly in the test account. Write robust error handling.
 
-| Problem | Likely Cause | Step-by-Step Fix |
-| :--- | :--- | :--- |
-| Checkov fails the CI pipeline intentionally, but I want to accept the risk. | The rule violation is known and accepted (e.g., intentional public bucket). | 1. Add a skip comment in your TF code: `# checkov:skip=CKV_AWS_20: "This bucket must be public for website hosting"`. |
-| Molecule test fails during `create` phase. | Docker daemon is not running or molecule cannot connect to it. | 1. Start Docker Desktop / daemon. 2. Verify with `docker ps`. 3. Ensure python docker module is installed (`pip install docker`). |
-| Molecule fails on 'idempotence' check. | Your Ansible task makes a change every time it runs (e.g., using `command` instead of a proper module). | 1. Review the output of the idempotence run to see which task reported `changed`. 2. Add `creates:` or `changed_when: false` to the task, or use a declarative module. |
-| Terratest leaves orphaned resources behind if a test crashes. | Go test panicked before reaching the `defer terraform.Destroy` call. | 1. Implement robust error handling. 2. Use a dedicated AWS account for testing and run tools like `aws-nuke` nightly to clean up orphaned resources. |
-| `terraform validate` passes but `terraform plan` fails. | Validation only checks syntax. Plan checks against the live cloud API (e.g., a requested instance type doesn't exist). | Review the API error from the cloud provider returned during the plan phase and adjust parameters. |
+# Interview Preparation
+- **Basic:** What is the difference between `terraform validate` and `terraform plan`? (Validate checks syntax offline, Plan checks API and shows execution plan).
+- **Intermediate:** Why is testing for idempotence important in Ansible? (Ansible desired state manage karta hai. Agar playbook har baar service restart karegi toh production outage ho sakta hai. Molecule runs it twice and expects 0 changes second time).
+- **Advanced / Scenario Based:** How do you enforce that all EC2 instances must have a specific tag (e.g., 'CostCenter') before they are deployed? (Use Checkov, tfsec, or HashiCorp Sentinel in CI/CD pipeline to parse the IaC and block PRs without specific tags).
+- **Production FAANG Level:** Describe a full IaC testing pyramid pipeline. (Pre-commit hooks for fmt/validate -> SAST via Checkov -> Dry run/Plan generation -> Policy as Code validation via OPA -> Ephemeral sandbox integration test via Terratest -> Destroy sandbox -> Apply to Dev -> Promote to Prod).
 
-## Real-World Job Scenario
-**The Situation:** A developer submits a Pull Request adding a new Terraform module to create an RDS database. The company policy strictly requires all databases to be encrypted at rest and not publicly accessible.
+# Production Scenarios
+- **Scenario:** Developer created an RDS with `publicly_accessible = true` in a PR.
+  - **How to think:** How can we block this automatically without human intervention?
+  - **Resolution:** CI pipeline runs Checkov -> checkov detects `CKV_AWS_17` -> Fails the build -> Developer must fix it to get a green tick. Human reviewer saves time and security breach is prevented automatically.
 
-**Junior DevOps Action:**
-- Manually reviews the 500 lines of HCL code.
-- Misses a nested variable configuration that accidentally sets `publicly_accessible = true`.
-- Approves the PR. The database is created publicly. The security team finds it weeks later via an external audit.
+# Commands
+| Command | Purpose | Syntax | Danger Level |
+|---|---|---|---|
+| `terraform fmt` | Formats code recursively | `terraform fmt -recursive` | Safe |
+| `terraform validate` | Validates syntax and internal references | `terraform validate` | Safe |
+| `checkov -d .` | Runs security scan in current directory | `checkov -d ./infra` | Safe |
+| `molecule test` | Full lifecycle test for Ansible role | `molecule test` | Safe (sandbox) |
+| `go test -v` | Runs Terratest files | `go test -v -timeout 30m` | Medium (Creates Infra) |
 
-**Senior DevOps Action:**
-- Has already integrated `checkov` into the GitHub Actions PR workflow.
-- The pipeline automatically runs against the developer's PR.
-- Checkov immediately flags the `publicly_accessible = true` violation and fails the PR build.
-- The developer is forced to fix the code to get a green tick before the Senior DevOps even has to look at it.
+# Cheat Sheet
+- **IaC Testing Pyramid:** Format -> Lint -> SAST -> Plan -> Integration Test.
+- **Checkov:** Python-based, SAST for IaC, scans Terraform, K8s, ARM, CloudFormation.
+- **Molecule Lifecycle:** dependency -> lint -> cleanup -> destroy -> syntax -> create -> prepare -> converge -> idempotence -> side_effect -> verify -> cleanup -> destroy.
+- **Terratest:** Go-based integration testing framework. Uses `defer` to ensure resource cleanup upon test completion.
 
-## Interview Questions
+# SOP & Runbook & KB Article
+**SOP for IaC Pull Requests:**
+- Purpose: Ensure zero broken or insecure infra code reaches production.
+- Procedure:
+  1. Developer pushes code.
+  2. GitHub Actions runs formatting, linting (tflint), and SAST (Checkov).
+  3. If passed, runs `terraform plan` and attaches output to PR comment.
+  4. Mandatory code review by Senior Engineer.
+  5. Merge to main -> triggers `terraform apply`.
+- Rollback: Revert the PR and pipeline runs plan/apply automatically.
 
-**Q1: What is the purpose of `terraform plan` in a CI/CD pipeline?**
-**A:** `terraform plan` provides a dry run of the changes Terraform intends to make. In a CI/CD pipeline, it is crucial for generating an execution plan (often saved to a file) that can be reviewed by humans or automated tools (like OPA/Conftest) before running `terraform apply`, ensuring no unexpected resources are created, modified, or destroyed.
+# Best Practices & Beginner Mistakes
+- **Best Practice:** Run fast tests early (shift-left). Enable Pre-commit hooks for `fmt` and `validate`.
+- **Beginner Mistake:** Writing custom bash scripts to test infrastructure instead of using standard frameworks like Terratest or Molecule.
+- **Beginner Mistake:** Forgetting to add `defer terraform.Destroy(t, terraformOptions)` in Terratest, leading to massive AWS bills from uncleaned testing resources.
 
-**Q2: How does Checkov differ from Terratest?**
-**A:** Checkov is a static analysis (SAST) tool. It reads the IaC source code without executing it or connecting to a cloud provider, looking for security misconfigurations based on predefined policies. Terratest is an integration testing framework written in Go. It actually deploys the infrastructure to a real cloud environment, runs tests against the live resources (e.g., HTTP requests, SSH connections), and then destroys them.
+# Advanced Concepts
+- **Policy as Code (PaC):** Open Policy Agent (OPA) with Rego language. It evaluates JSON plans against strict compliance rules (e.g., "Cannot deploy RDS outside us-east-1").
+- **Terratest Wait Strategies:** Implementing custom retry loops with exponential backoff because cloud resources (like EKS or RDS) take 10-15 minutes to become fully available before you can test against their endpoints.
 
-**Q3: Why is testing for 'idempotence' important in Ansible?**
-**A:** Idempotence means that running a playbook multiple times has the same effect as running it once; it only makes changes if the system is not in the desired state. Testing for this (as Molecule does by default) ensures that your automation is reliable and won't unnecessarily restart services or overwrite configurations if the server is already correctly configured.
+# Related Topics & Flashcards & Revision
+- [[MISC-02 Terraform Best Practices]]
+- [[MISC-04 CI-CD Pipelines]]
+- [[K8S-10 OPA and Gatekeeper]]
+- **Flashcards:** 
+  - Q: What does Checkov do? A: Scans IaC for security misconfigurations.
+  - Q: What tool is used to test Ansible roles? A: Molecule.
+- **Revision:** Revise Molecule lifecycle (5 min). Practice Checkov skip comments (15 min). Write a basic Terratest script (30 min).
 
-**Q4: If you want to enforce that all EC2 instances must have a specific tag (e.g., 'CostCenter') before they are deployed, how would you test this?**
-**A:** You can use a static analysis tool like Checkov (writing a custom policy) or HashiCorp's Sentinel / Open Policy Agent (OPA) integrated into the CI/CD pipeline. These tools will parse the Terraform code or the generated `plan.json` and fail the build if the required tag is missing.
+# Real Production Logs & Commands & Decision Tree
+**Checkov Output Log:**
+```
+Check: CKV_AWS_20: "S3 Bucket has an ACL defined which allows public READ access."
+        FAILED for resource: aws_s3_bucket.data_bucket
+        File: /main.tf:10-15
+        Guide: https://docs.bridgecrew.io/docs/s3_1-acl-read-access
+```
+- **Explanation:** Checkov tells you exactly the rule violated (CKV_AWS_20), the resource name (`data_bucket`), the file/line number, and gives a direct link on how to fix the issue.
 
-**Q5: What are the main phases of a standard Ansible Molecule test lifecycle?**
-**A:** The standard lifecycle is: Dependency (fetch roles), Lint (check syntax), Cleanup (pre-test), Destroy (ensure clean slate), Syntax, Create (spin up docker/VM), Prepare, Converge (run the role), Idempotence (run role again, expect 0 changes), Side_effect, Verify (run testinfra to check final state), Cleanup, and finally Destroy (teardown test instance).
-
-## Related Notes
-- [[Master Index]]
-- [[MISC-01 GitOps Flux vs ArgoCD]]
-- [[K8S-01 Architecture and Components]]
+**Decision Tree for Terraform Testing Failure:**
+- TF Apply fails -> Is it a syntax error? -> Run `terraform validate`.
+- If syntax is OK -> Is it a security policy violation? -> Check Checkov/OPA pipeline logs.
+- If security is OK -> Is it an API limit/permission issue? -> Check Cloud Provider IAM/Quotas and re-run `terraform plan`.

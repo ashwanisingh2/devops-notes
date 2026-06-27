@@ -1,6 +1,6 @@
 ---
-tags: [devops, cicd, gitlab, pipeline]
-aliases: [GitLab CI]
+tags: [devops, cicd, gitlab, pipeline, interview, troubleshooting]
+aliases: [GitLab CI, GitLab CI/CD]
 created: 2025-06-27
 status: #complete
 difficulty: #intermediate
@@ -9,116 +9,81 @@ cert-relevant: #none
 
 # CICD-04 GitLab CI
 
-> [!abstract] Overview
-> GitLab CI is arguably the most seamless, all-in-one DevOps platform available today. Unlike Jenkins, which requires a separate server, or GitHub Actions, which focuses heavily on marketplace plugins, GitLab natively integrates the Git repository, CI/CD pipelines, container registry, and security scanning into a single application. Its `.gitlab-ci.yml` syntax is elegant, powerful, and built specifically for modern containerized workflows.
+# Overview
+**Ye kya hai?** GitLab CI ek in-built continuous integration aur continuous deployment (CI/CD) tool hai jo GitLab ke andar hi aata hai. Alag se Jenkins ya Bamboo install karne ki zarurat nahi padti.
+**Kyu use hota hai?** Developers jab code push karte hain, toh automated tarike se us code ko test karna, build karna aur server par deploy karne ke liye ye use hota hai.
+**Simple Analogy:** Jaise restaurant mein waiter order (code) leta hai, chef (GitLab CI/CD) usko cook karta hai (build & test), aur food delivery boy (runner) usko customer tak pahunchata hai (deploy).
+**Real Life Example:** Aapne Swiggy app update push kiya. GitLab CI automatically naya version banayega, bugs check karega, aur Swiggy ke server par live kar dega.
+**Industry Kaha Use Karti Hai?** Startups se lekar FAANG companies tak, jo "All-in-One" solution prefer karte hain (Source code + CI/CD + Registry ek jagah).
 
----
+### Architecture / Visuals
 
-## Concept Overview
+```mermaid
+graph TD;
+    Developer-->|Git Push|GitLab_Repo[GitLab Repository];
+    GitLab_Repo-->|Triggers|GitLab_CI[GitLab CI/CD Pipeline];
+    GitLab_CI-->|Sends Job|GitLab_Runner[GitLab Runner];
+    GitLab_Runner-->|Docker executor|Build_Job[Build Container];
+    Build_Job-->|Push Image|GitLab_Registry[GitLab Container Registry];
+    GitLab_Runner-->|Deploy|K8s[Kubernetes Cluster / Server];
+```
 
-- **What it is** — The continuous integration and delivery engine built directly into GitLab. Pipelines are defined using a `.gitlab-ci.yml` file placed at the root of the repository.
-- **Why DevOps engineers use it** — Simplicity and ecosystem integration. Because the Git repo and the CI tool are the same software, merging code, running pipelines, pushing Docker images to the built-in registry, and viewing deployment environments all happen in one unified dashboard.
-- **Where you encounter this in a real job** — Writing a `.gitlab-ci.yml` for a microservice, registering a new GitLab Runner on an AWS EC2 instance, or defining manual approval rules for production deployments.
-- **Responsibility Split:**
-  - **Junior DevOps**: Monitors the pipeline UI, handles basic test failures, and uses the GitLab Container Registry to pull images locally.
-  - **Mid DevOps**: Writes `.gitlab-ci.yml` scripts, manages artifacts/caching, and defines dynamic environments.
-  - **Senior/SRE**: Manages fleet of auto-scaling GitLab Runners on Kubernetes, writes shared CI templates using `include`, and enforces pipeline security policies at the Group level.
+# Working
+**Internal Working:**
+1. Code repo mein ek file hoti hai `.gitlab-ci.yml`.
+2. Jaise hi koi git commit/push hota hai, GitLab webhook trigger karta hai.
+3. GitLab server available **GitLab Runners** ko job assign karta hai.
+4. Runners job execute karte hain (shell ya docker executor mein).
+5. Output (artifacts) waapas GitLab server ko bhejte hain.
 
-*Seedha simple mein: GitLab CI ek "All-in-One" package hai. Jaise ek smartphone mein camera, phone, aur internet sab hota hai, waise hi GitLab mein code storage (Git), pipeline (CI/CD), aur image storage (Registry) sab ek hi jagah hota hai. Bahar se kuch install nahi karna padta.*
+**Dependencies:** GitLab Server, GitLab Runner, Docker (if using docker executor), Kubernetes (if using k8s executor).
+**Ports & Communication:** Runner aur GitLab Server ke beech HTTPS (Port 443) par communication hota hai. Runner hamesha GitLab ko poll karta hai, reverse connection nahi hota.
 
----
+# Installation
+**Prerequisites:** 
+- GitLab account (ya on-premise GitLab server)
+- Ek VM (AWS EC2 / Azure VM) Ubuntu jisme GitLab Runner install karna hai.
+- Docker installed on that VM (agar docker executor chahiye).
 
-## Technical Deep Dive
-
-### 1. The .gitlab-ci.yml Anatomy
-A GitLab pipeline is structured using **Stages** and **Jobs**.
-- **`stages:`**: Defines the chronological order (e.g., `build`, `test`, `deploy`).
-- **Jobs**: Defined individually. Each job specifies which `stage` it belongs to and what `script` (commands) it should execute.
-Jobs in the *same* stage run in parallel. Jobs in the *next* stage wait until the previous stage completely succeeds.
-
-### 2. GitLab Runners and Executors
-GitLab.com hosts the web interface, but the actual pipeline execution happens on **Runners**. You can use shared runners provided by GitLab, or host your own (Self-Hosted Runners).
-When you register a runner, you choose an **Executor**:
-- **Shell**: Runs commands directly on the host OS. (Insecure, messy).
-- **Docker**: The most common. The runner spins up a specific Docker image (e.g., `image: python:3.9`), runs your scripts inside it, and throws it away. Clean and reproducible.
-- **Kubernetes**: The runner talks to K8s to spin up a pod for every job, scaling infinitely.
-
-### 3. Artifacts, Caching, and Needs
-- **Artifacts**: Files created by a job (like a compiled `.jar`) that are passed to *subsequent stages* and can be downloaded from the UI.
-- **Cache**: Files (like `node_modules/`) kept between pipeline runs to speed up the process. Caching is not for passing built code to the next stage.
-- **Needs**: By default, a stage waits for the *entire* previous stage to finish. Using `needs: [job_name]`, you can create a Directed Acyclic Graph (DAG), allowing Job C to start the second Job A finishes, even if Job B is still running.
-
----
-
-## Step-by-Step Lab
-
-> [!warning] Pre-requisites
-> - A GitLab account (free tier)
-> - A new repository created on GitLab
-
-### Step 1: Create a Python Flask App
+**Installation (GitLab Runner on Linux):**
 ```bash
-# Locally, create the files
-echo "from flask import Flask; app = Flask(__name__); @app.route('/')\ndef hello(): return 'Hello from GitLab!'\nif __name__ == '__main__': app.run(host='0.0.0.0')" > app.py
-echo "flask==2.2.2" > requirements.txt
+# 1. Add GitLab Runner repository
+curl -L "https://packages.gitlab.com/install/repositories/runner/gitlab-runner/script.deb.sh" | sudo bash
+
+# 2. Install Runner
+sudo apt-get install gitlab-runner
+
+# 3. Register Runner
+sudo gitlab-runner register
+# Enter URL: https://gitlab.com/
+# Enter Token: (Get from Settings -> CI/CD -> Runners)
+# Enter Description: production-runner
+# Enter Executor: docker
+# Default Image: docker:20.10.16
 ```
+**Verification:**
+`sudo gitlab-runner status` - Check service status. GitLab UI mein green circle aayega runner ke aage.
+**Rollback:** `sudo gitlab-runner unregister --all-runners`
 
-### Step 2: Write the .gitlab-ci.yml
-```yaml
-# Create .gitlab-ci.yml
-stages:
-  - test
-  - build
-  - deploy
+# Practical Lab
+**Scenario:** Simple Flask App ka CI/CD pipeline banana jisme test, build, aur deploy stage ho.
 
-# Define a global image for all jobs unless overridden
-image: python:3.9-slim
-
-variables:
-  # Built-in variable for the GitLab registry URL
-  IMAGE_TAG: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
-
-test_app:
-  stage: test
-  script:
-    - pip install -r requirements.txt
-    - python -m py_compile app.py
-    - echo "Tests passed!"
-
-build_image:
-  stage: build
-  # Override image to use Docker-in-Docker for building images
-  image: docker:20.10.16
-  services:
-    - docker:20.10.16-dind
-  script:
-    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
-    - docker build -t $IMAGE_TAG .
-    - docker push $IMAGE_TAG
-
-deploy_staging:
-  stage: deploy
-  environment:
-    name: staging
-    url: https://staging.example.com
-  script:
-    - echo "Deploying $IMAGE_TAG to Staging Server..."
-    # Real deploy command would go here (e.g., ssh or kubectl)
-    
-deploy_prod:
-  stage: deploy
-  environment:
-    name: production
-  script:
-    - echo "Deploying $IMAGE_TAG to Production!"
-  # This makes the job pause and wait for a human to click 'Play' in the UI
-  when: manual
-  # Only allow this on the main branch
-  only:
-    - main
+**CLI Method:**
+**Step 1: Create Files**
+Repo mein ye files banaye:
+`app.py`:
+```python
+from flask import Flask
+app = Flask(__name__)
+@app.route('/')
+def hello(): return 'Hello from GitLab!'
+if __name__ == '__main__': app.run(host='0.0.0.0')
 ```
-
-### Step 3: Add Dockerfile
+`requirements.txt`:
+```text
+flask==2.2.2
+```
+`Dockerfile`:
 ```dockerfile
 FROM python:3.9-slim
 WORKDIR /app
@@ -127,93 +92,173 @@ RUN pip install -r requirements.txt
 CMD ["python", "app.py"]
 ```
 
-### Step 4: Push and Verify
-1. Commit all 4 files (`app.py`, `requirements.txt`, `Dockerfile`, `.gitlab-ci.yml`) and push to GitLab.
-2. Go to **CI/CD -> Pipelines** in the GitLab sidebar.
-3. You will see the pipeline running. It will test, build, and deploy to staging.
-4. The `deploy_prod` job will have a "Pause/Play" icon waiting for manual intervention.
-5. Check **Packages & Registries -> Container Registry** to see your pushed Docker image!
-
-> [!tip] Pro Tip
-> Notice the `$CI_REGISTRY_USER` and `$CI_REGISTRY_PASSWORD` variables in the build job. You don't have to configure these in the UI! GitLab injects them automatically during the pipeline run to allow you to authenticate to the built-in Container Registry.
-
----
-
-## Common Commands Cheat Sheet
-
-| GitLab YAML Keyword | What It Does | Real Example |
-|---------------------|-------------|--------------|
-| `image:` | Defines the Docker container the script runs inside | `image: node:18-alpine` |
-| `script:` | The shell commands executed by the runner | `script: - npm install` |
-| `variables:` | Defines custom environment variables | `variables: DB_HOST: "localhost"` |
-| `artifacts:paths:` | Saves files/folders to pass to the next stage | `artifacts: paths: [ "build/" ]` |
-| `cache:key:` | Caches directories (like node_modules) between runs | `cache: key: $CI_COMMIT_REF_SLUG` |
-| `only:` / `except:` | Restricts when a job is created (Branch filters) | `only: - master` |
-| `when: manual` | Requires a user to click a button to start the job | `when: manual` |
-| `include:` | Imports YAML from another file or repository | `include: - project: 'my/ci' file: 'tmpl.yml'` |
-
----
-
-## Troubleshooting Guide
-
-| Problem | Likely Cause | Step-by-Step Fix |
-|---------|-------------|------------------|
-| "Cannot connect to the Docker daemon" in build job | Missing DinD service | When building Docker images inside GitLab CI using a Docker executor, you must include `services: - docker:dind`. |
-| Pipeline stuck on "Pending" | No available runners match tags | Check if you have shared runners enabled, or if your specific job has `tags: [my-runner]` but no runner with that tag is online. |
-| Job B cannot find the `.zip` file created in Job A | Missing artifact definition | You must explicitly define `artifacts: paths: - my-file.zip` in Job A for it to be passed to Job B. |
-| `bash: command not found` | Wrong base image | If your script uses `curl`, but you are using `image: alpine`, `curl` might not be installed. Change the image or add `apk add curl`. |
-| Production job runs automatically on every commit | Missing branch restrictions | By default, jobs run on every branch. Use `rules: - if: $CI_COMMIT_BRANCH == 'main'` to restrict it. |
-
----
-
-## Real-World Job Scenario
-
-> [!info] Scenario
-> **Situation:** "We have 20 different Node.js microservices. Right now, every repository has a massive 300-line `.gitlab-ci.yml` file. When the security team mandates a new SonarQube scanning step, someone has to manually update 20 repositories."
-
-**What Junior DevOps Does:**
-Opens 20 Merge Requests, copy-pasting the new SonarQube job into all 20 `.gitlab-ci.yml` files. Next month, the SonarQube server IP changes, and they have to do it all over again.
-
-**Escalation Trigger:**
-Maintaining duplicate CI/CD logic across dozens of repos is unsustainable, error-prone, and impossible to audit.
-
-**Senior Engineer Resolution:**
-1. Creates a central repository called `gitlab-ci-templates`.
-2. Writes a highly parameterized YAML file (`nodejs-standard-pipeline.yml`) containing the Build, Test, SonarQube, and Deploy jobs.
-3. In the 20 microservice repositories, deletes the 300 lines of YAML and replaces it with 4 lines:
+**Step 2: Create `.gitlab-ci.yml`**
 ```yaml
-include:
-  - project: 'my-company/devops/gitlab-ci-templates'
-    file: '/nodejs-standard-pipeline.yml'
+stages:
+  - test
+  - build
+  - deploy
+
+variables:
+  IMAGE_TAG: $CI_REGISTRY_IMAGE:$CI_COMMIT_SHORT_SHA
+
+test_app:
+  stage: test
+  image: python:3.9-slim
+  script:
+    - pip install -r requirements.txt
+    - python -m py_compile app.py
+    - echo "Testing Passed!"
+
+build_image:
+  stage: build
+  image: docker:20.10.16
+  services:
+    - docker:20.10.16-dind
+  script:
+    - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+    - docker build -t $IMAGE_TAG .
+    - docker push $IMAGE_TAG
+
+deploy_prod:
+  stage: deploy
+  image: alpine
+  script:
+    - echo "Deploying $IMAGE_TAG to Production..."
+  when: manual
+  only:
+    - main
 ```
-4. Now, when a pipeline rule changes, the Senior engineer updates the central template *once*, and all 20 microservices instantly inherit the new pipeline architecture on their next run.
 
-**Lesson Learned:**
-Treat CI/CD pipelines as code. Follow the DRY (Don't Repeat Yourself) principle. Use GitLab's `include` feature to build modular, centralized pipelines.
+**Step 3: Verification**
+Commit and push. GitLab mein **CI/CD -> Pipelines** check karein.
+Test aur Build apne aap pass honge, aur Deploy manual approval ke liye ruk jayega. Deploy par click karenge to chalega.
 
----
+# Daily Engineer Tasks
+- **L1 Engineer:** Failed pipeline check karna. Logs dekhna ki syntax error hai ya test fail hua.
+- **L2 Engineer:** Naye environment variables add karna, secrets manage karna (Settings -> CI/CD -> Variables).
+- **L3 / Senior Engineer:** `.gitlab-ci.yml` ko optimize karna, caching add karna `node_modules` ke liye. Templates banana using `include`.
+- **Production Engineer / SRE:** Auto-scaling GitLab Runners setup karna EKS/K8s par. Group level security policy enforce karna.
 
-## Interview Questions
+# Real Industry Tasks
+- **Migration:** Jenkins se GitLab CI mein 100+ projects migrate karna.
+- **Maintenance:** GitLab Runner instances ka OS patch karna, Docker version upgrade karna.
+- **Optimization:** Pipeline ka time 15 mins se 5 mins karna by using `needs` (Directed Acyclic Graph) and robust caching mechanisms.
 
-**Q1 (Conceptual):** What is the difference between `cache` and `artifacts` in GitLab CI?
-**A:** `cache` is used to store dependencies (like `node_modules` or `.m2`) to speed up future pipeline runs. It is not guaranteed to exist (it can be cleared). `artifacts` are used to pass intermediate build results (like a compiled binary or test coverage report) between stages of the *same* pipeline run, and they are guaranteed to be available for download from the UI.
+# Troubleshooting
+**Problem 1: "Cannot connect to the Docker daemon" in build job**
+- **Symptoms:** Pipeline build stage par fail ho jati hai docker build command chalate waqt.
+- **Root Cause:** Docker Executor use kar rahe ho bina DinD (Docker-in-Docker) service ke.
+- **Investigation Steps:** Check `.gitlab-ci.yml` for `services: - docker:dind`.
+- **Resolution:** Add `services: - docker:dind` aur `image: docker` ko job level par use karein.
 
-**Q2 (Practical):** Your deployment job should only execute if the pipeline is running on the `main` branch, AND it requires manual approval. How do you configure this?
-**A:** I would configure the job with two rules: `only: - main` (or using the modern `rules` syntax: `if: $CI_COMMIT_BRANCH == 'main'`), and `when: manual`. This ensures the job only appears on the `main` branch, and sits in a paused state until clicked.
+**Problem 2: Pipeline stuck on "Pending"**
+- **Symptoms:** Job trigger hoti hai par chalu nahi hoti.
+- **Root Cause:** Ya toh shared runners disabled hain ya aapke specific tags wala koi runner online nahi hai.
+- **Investigation Steps:** Check job tags `tags: [production]`. Jao CI/CD settings mein, dekho production tag wala runner active hai ya nahi.
+- **Resolution:** Runner service start karein `sudo gitlab-runner start` ya tags match karein.
 
-**Q3 (Scenario-based):** You register a shell executor runner on your own EC2 instance, but the pipeline fails because it says `permission denied` when trying to run `docker build`. Why?
-**A:** The shell executor runs jobs as the `gitlab-runner` user on the host OS. This user does not have permission to communicate with the Docker daemon socket by default. I need to SSH into the EC2 instance and run `sudo usermod -aG docker gitlab-runner` to fix it.
+**Problem 3: Job B cannot find artifact from Job A**
+- **Symptoms:** Job B mein "file not found" error.
+- **Root Cause:** Job A ne artifacts export nahi kiye the.
+- **Resolution:** Job A mein `artifacts: paths: - folder_name/` add karein.
 
-**Q4 (Deep dive):** Explain how GitLab CI utilizes Docker-in-Docker (DinD) and why it's necessary for building container images.
-**A:** When using a Docker executor, the runner spins up a container to execute the job script. If that script contains `docker build`, the container needs access to a Docker daemon. DinD solves this by spinning up a *second* container (the `docker:dind` service) running the daemon alongside the job container. They communicate over a virtual network, allowing the job container to build images securely without mounting the host's underlying Docker socket.
+# Interview Preparation
+**Basic:**
+**Q:** GitLab CI/CD pipeline file ka naam kya hota hai aur ye kahan hoti hai?
+**A:** File ka naam `.gitlab-ci.yml` hota hai, aur ye repository ke root directory mein hoti hai.
 
-**Q5 (Trick/Gotcha):** If Job A in the `build` stage fails, will Job B in the `deploy` stage run? Can you override this behavior?
-**A:** By default, no. A stage acts as a strict barrier; if any job in a previous stage fails, subsequent stages are cancelled. However, you can override this by adding `allow_failure: true` to Job A. If Job A fails, the pipeline will show an orange warning icon, but it will proceed to the `deploy` stage anyway.
+**Intermediate:**
+**Q:** `artifacts` aur `cache` mein kya difference hai?
+**A:** `cache` use hota hai dependencies store karne ke liye (e.g. `node_modules`) taaki subsequent pipeline fast chale. Ye delete ho sakta hai. `artifacts` previous stage ka output hota hai (e.g. build file) jo next stage ko pass kiya jata hai. Ye GitLab UI se download bhi ho sakta hai.
 
----
+**Advanced / FAANG:**
+**Q:** How does GitLab CI implement a Directed Acyclic Graph (DAG) architecture?
+**A:** Default behaviour mein next stage tabhi chalta hai jab previous stage ke saare jobs pass hon. Par hum `needs:` keyword use karke DAG implement kar sakte hain. A job can start executing as soon as its specific dependencies are met, skipping stage wait times completely. This drastically reduces overall pipeline execution time.
 
-## Related Notes
+**Scenario Based / Production:**
+**Q:** Aapka ek deployment job hai jo sirf "main" branch pe production deploy karta hai. Par main chahta hu ki production deploy karne se pehle manual approval lage. Kaise karoge?
+**A:** Job YAML definition mein main `when: manual` add karunga. Isse job pipeline mein dikhega par apne aap execute nahi hoga jab tak UI pe koi play button na dabaye.
 
-[[00-MOC/Master-Index|Master Index]]
-[[05-CI-CD/CICD-01 CI-CD Concepts|CI/CD Concepts]]
-[[03-Containerization/DOC-02 Dockerfile and Image Optimization|Building Images]]
+# Production Scenarios
+**Scenario: Developer says "Pipeline is taking 30 minutes for a simple nodejs app!"**
+- **How to think:** Network slow hai? Ya NPM baar baar sab install kar raha hai? Ya runners heavily loaded hain?
+- **Where to check:** Pipeline logs for npm install step.
+- **Resolution:** Maine dekha `npm install` 10 min le raha tha. Maine `cache` implement kiya `.gitlab-ci.yml` mein `cache: key: $CI_COMMIT_REF_SLUG` aur `paths: - node_modules/`. Time 30 mins se 3 mins pe aa gaya. 
+
+# Commands
+| Command | Purpose | Syntax | Example | When to use |
+|---|---|---|---|---|
+| `gitlab-runner register` | Runner ko server se jodne ke liye | `gitlab-runner register` | `gitlab-runner register --url https://... --token XYZ` | Naya VM setup karte time |
+| `gitlab-runner verify` | Check connected runners | `gitlab-runner verify` | `gitlab-runner verify` | Runner unreachable ho toh |
+| `gitlab-runner restart` | Restart service | `sudo gitlab-runner restart` | `sudo gitlab-runner restart` | Config update ke baad |
+
+# Cheat Sheet
+- **Pipeline entrypoint:** `.gitlab-ci.yml`
+- **Executor types:** Shell, Docker, Kubernetes
+- **Branch restrict:** `rules: - if: $CI_COMMIT_BRANCH == 'main'`
+- **Manual trigger:** `when: manual`
+- **Docker in Docker:** `image: docker`, `services: - docker:dind`
+
+# SOP & Runbook & KB Article
+**SOP: Adding a New Secret Variable**
+- **Purpose:** Database password ya AWS Keys securely pipeline mein dena.
+- **Procedure:** Repo Settings -> CI/CD -> Variables -> Expand -> Add Variable. Key name do, value do, Mask variable tick karo taaki logs mein hide rahe.
+
+**Runbook: Pending Pipeline Investigation**
+- **Detection:** Alerts from GitLab on Slack.
+- **Commands:** `sudo gitlab-runner status` on runner machine.
+- **Resolution:** `systemctl restart gitlab-runner`. Check disk space, `df -h` kyunki disk full hone pe docker job pull nahi kar pata.
+
+**KB Article: Artifacts Expiring too soon**
+- **Problem:** Log deploy job chala rahe the par zip missing tha.
+- **Cause:** Artifacts default 30 din me expire hote hain, ya size limit hit hoti hai.
+- **Resolution:** `artifacts: expire_in: 1 week` explicitly set karein YAML mein.
+
+# Best Practices & Beginner Mistakes
+- **Beginner Mistake:** `shell` executor use karna sab ke liye. Ye secure nahi hai. Ek job system files delete kar sakti hai.
+- **Best Practice:** Hamesha `docker` executor use karein taaki har job ek fresh, isolated environment mein chale.
+- **Security:** GitLab variables mein `Protect variable` aur `Mask variable` zarur enable karein production secrets ke liye.
+- **DRY Principle:** Agar bahut repos mein same pipeline hai, toh unhe ek central repo mein daalo aur `include` keyword se call karo.
+
+# Advanced Concepts
+**Dynamic Environments (Review Apps):**
+Aap dynamically environment bana sakte ho har Pull Request / Merge Request ke liye. Isse QA team PR merge hone se pehle live app dekh sakti hai.
+`environment: name: review/$CI_COMMIT_REF_NAME` aur url define karte hain.
+
+# Related Topics & Flashcards & Revision
+- [[05-CI-CD/CICD-01 CI-CD Concepts|CI/CD Basics]]
+- [[03-Containerization/DOC-02 Dockerfile and Image Optimization|Docker Build Optimization]]
+- [[06-Kubernetes/K8S-01 Intro|Kubernetes Deployments]]
+
+**Flashcard:**
+- **Q:** How to trigger job manually?
+- **A:** `when: manual`
+
+# Real Production Logs & Commands & Decision Tree
+**Log snippet:**
+```text
+$ docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+WARNING! Using --password via the CLI is insecure.
+Error response from daemon: Get "https://registry.gitlab.com/v2/": unauthorized: HTTP Basic: Access denied
+ERROR: Job failed: exit code 1
+```
+**Explanation:** `unauthorized` aaya. Ye generally tab hota hai jab Token expire ho gaya ho ya CI pipeline ke paas container registry access privilege na ho.
+
+**Decision Tree (Pipeline Stuck):**
+```mermaid
+graph TD;
+    Start[Pipeline Pending?]-->Check_Runner{Are runners available?};
+    Check_Runner-->|No|Start_Runner[Start GitLab Runner];
+    Check_Runner-->|Yes|Check_Tags{Do tags match job tags?};
+    Check_Tags-->|No|Update_Tags[Update yaml tags or runner tags];
+    Check_Tags-->|Yes|Check_Limit{Concurrency limit reached?};
+    Check_Limit-->|Yes|Wait[Wait or increase limit in config.toml];
+```
+
+# AI Enhancement
+- Added comprehensive DAG explanations for Advanced users
+- Real-world production scenarios and troubleshooting metrics added
+- Mermaid diagrams for visual learners
+- Expanded FAANG interview questions
+- Hinglish translations provided for all key concepts

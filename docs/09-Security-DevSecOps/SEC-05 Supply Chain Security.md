@@ -9,145 +9,209 @@ cert-relevant: #cks
 
 # SEC-05 Supply Chain Security
 
-> [!abstract] Overview
-> Supply chain security in DevOps focuses on securing the entire software development lifecycle (SDLC) from source code to production deployment. This involves verifying the authenticity, integrity, and provenance of every dependency, library, and tool used to build your software. With high-profile incidents like SolarWinds and Log4Shell, ensuring that your application is built only from trusted components is no longer optional.
+## Overview
+**Supply Chain Security kya hai?** 
+Software development mein, supply chain security ka matlab hai aapke pure SDLC (Software Development Life Cycle) ko secure karna - source code se lekar production deployment tak. Jaise ek restaurant mein khana banane ke liye sabzi, masale alag-alag vendors se aate hain, waise hi software banate time dependencies, libraries, aur tools alag-alag jagah se aate hain. Agar "sabzi mein milawat" (malicious code in a library) ho, toh pura "khana" (software) kharab ho jayega.
 
-## Concept Overview
-What is a Software Supply Chain Attack? It's an attack where a cybercriminal infiltrates your system through an outside partner or provider with access to your systems and data. Instead of attacking you directly, they compromise a widely used component (like an open-source library or a build tool) that you rely on.
+**Kyu use hota hai?**
+Recent attacks (e.g., SolarWinds, Log4Shell) ne prove kiya hai ki directly aapke system ko hack karne ke bajaye, hackers un tools aur libraries ko hack karte hain jo aap use karte ho. Isliye, apne software ke components verify karna zaruri hai.
 
-*Hindi Explanation: Supply chain security ka matlab hai apne software ke raw materials (dependencies, libraries) aur factory (CI/CD pipeline) ko secure karna. Jaise kisi restaurant mein khana banane ke liye sabzi mandi se aati hai, agar sabzi mein milawat ho to khana kharab hoga. Waise hi agar aapki dependencies mein malicious code ho, to pura software compromise ho jayega.*
+**Real Production Use-case & Industry Adoption:**
+Banks, FAANG companies, aur healthcare sector mein har build aur deployment ke sath SBOM (Software Bill of Materials) generate hota hai, images sign hoti hain (Cosign se) aur scan hoti hain (Grype/Trivy se) Kubernetes cluster mein push hone se pehle. OPA/Kyverno policies enforce karti hain ki sirf signed images hi deploy ho sakein.
 
-**Key Concepts:**
-- **SBOM (Software Bill of Materials):** A formal record containing the details and supply chain relationships of various components used in building software. Think of it as the ingredients list on a food packet.
-- **SLSA (Supply-chain Levels for Software Artifacts):** A security framework, a check-list of standards and controls to prevent tampering, improve integrity, and secure packages and infrastructure.
-- **Sigstore (Cosign):** A set of tools for signing, verifying, and protecting software components.
+**Simple Analogy:**
+Aap ek car manufacturer ho. 
+- **Supply Chain:** Tyres, engine parts, paint suppliers.
+- **Supply Chain Attack:** Vendor ne tyre mein deliberately weak rubber use kiya jo high speed par phat jayega.
+- **SBOM:** Har ek car ki detailed list ki kaunsa part kis vendor se aaya hai.
+- **SLSA:** Factory (CI/CD) ke andar security aur hygiene protocols.
+- **Sigstore (Cosign):** Vendor se aane wale har part par ek digital seal jo batati hai ki part genuine hai.
 
-**Desi Analogy:**
-Imagine you are running a famous Biryani shop. Your "Software" is the Biryani. The "Supply Chain" is the vendor who gives you rice, the vendor who gives you meat, and the vendor who gives you spices.
-- **Supply Chain Attack:** If the spice vendor mixes poison in the spices (like SolarWinds).
-- **SBOM:** The recipe book and the receipt from every vendor listing exactly what ingredients were used.
-- **SLSA:** The health inspector's checklist verifying your kitchen's hygiene and vendor's licenses.
-- **Sigstore (Cosign):** The quality seal on the meat from a trusted butcher, which you verify before cooking.
+**Architecture / Flow:**
 
-## Technical Deep Dive
+```mermaid
+graph TD
+    A[Developer Commits Code] --> B[CI/CD Pipeline Build]
+    B --> C[Generate SBOM - Syft]
+    B --> D[Sign Image - Cosign]
+    C --> E[Vulnerability Scan - Grype]
+    D --> F[Push Image & Signature to Registry]
+    F --> G[Kubernetes Admission Controller]
+    G -->|Verify Signature & Scan Result| H{Decision}
+    H -->|Passed| I[Deploy Pod]
+    H -->|Failed| J[Block Deployment]
+```
 
-### 1. Major Supply Chain Attacks
-**SolarWinds (2020):** Attackers compromised the build system of SolarWinds' Orion IT monitoring software. They injected malicious code into the legitimate software updates. When thousands of organizations (including US government agencies) downloaded the update, they unwittingly installed a backdoor into their networks. This highlighted the danger of trusting signed software from compromised build pipelines.
-**Log4Shell (2021):** A critical vulnerability in the widely used Apache Log4j Java logging library. Since Log4j is embedded in millions of applications, it allowed remote code execution (RCE) simply by logging a specific string. This demonstrated how deeply embedded open-source dependencies can create widespread havoc if a vulnerability is discovered.
+## Working
+**Internal Working & Data Flow:**
+1. **Source Control:** Developer code push karta hai (ideally with signed commits).
+2. **Build Stage (CI):** Tool like Jenkins/GitHub Actions code compile karta hai aur container image banata hai. Is step mein SBOM generate kiya jata hai.
+3. **Artifact Repository:** Image ko OCI-compliant registry (e.g., Docker Hub, AWS ECR) par push kiya jata hai.
+4. **Signing (Cosign):** Image ka cryptographic hash sign kiya jata hai public/private keypair (ya keyless OIDC) se aur signature registry mein attach hota hai.
+5. **Deployment (CD):** Kubernetes mein Kyverno ya OPA (Open Policy Agent) admission controller check karta hai ki kya image signed hai aur approved public key se match karti hai. Agar match hoti hai, toh container run hota hai.
 
-### 2. SBOM and Generation Tools (Syft)
-An SBOM is essentially a machine-readable inventory (JSON/SPDX/CycloneDX format) of all open-source and third-party components in a software product. This visibility is crucial for vulnerability management. When a new vulnerability (like Log4Shell) is announced, you can instantly query your SBOMs to find out which of your applications are affected, rather than scanning everything from scratch.
-**Syft** is a powerful CLI tool and Go library for generating a Software Bill of Materials (SBOM) from container images and filesystems. It supports multiple output formats (CycloneDX, SPDX) and is highly integrated into modern CI/CD pipelines to ensure every built image has an accompanying SBOM.
+## Installation
+**Prerequisites:**
+- Linux/MacOS or WSL for Windows.
+- Docker installed and running.
+- Access to a container registry (e.g., Docker Hub).
 
-### 3. Securing Artifacts with SLSA and Sigstore
-**SLSA** (pronounced "salsa") provides a graded set of security guidelines (Levels 1 to 4). It covers source control (e.g., two-person review), build processes (e.g., ephemeral and isolated environments), and provenance (cryptographic proof of how an artifact was built).
-**Sigstore** simplifies cryptographic signing. Traditionally, managing GPG keys for signing container images was a nightmare. **Cosign** (part of Sigstore) allows you to sign container images and store the signatures in the OCI registry itself. It also supports keyless signing using OpenID Connect (OIDC), tying signatures to developer identities or CI/CD service accounts, completely removing the burden of key management.
-
-## Step-by-Step Lab
-**Scenario:** You need to generate an SBOM for an Nginx container image, and then sign that image to prove its authenticity before it can be deployed to your Kubernetes cluster.
-
-**Step 1: Install Syft and Cosign**
+**Installation:**
 ```bash
-# Install Syft
+# Install Syft (For generating SBOMs)
 curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
 
-# Install Cosign
+# Install Cosign (For signing images)
 curl -O -L "https://github.com/sigstore/cosign/releases/latest/download/cosign-linux-amd64"
 sudo mv cosign-linux-amd64 /usr/local/bin/cosign
 sudo chmod +x /usr/local/bin/cosign
-```
-*Expected output: Commands complete silently. You can verify with `syft version` and `cosign version`.*
 
-**Step 2: Generate an SBOM for an image**
+# Install Grype (For Vulnerability Scanning)
+curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
+```
+
+**Verification:**
+```bash
+syft version
+cosign version
+grype version
+```
+
+## Practical Lab
+**Scenario:** Ek Nginx image lo, uski ingredients list (SBOM) banao, image ko apne registry mein daalo, usko sign karo, aur phir verify karo.
+
+**Step-by-Step Implementation (CLI Method):**
+
+1. **Generate SBOM:**
 ```bash
 syft nginx:latest -o cyclonedx-json > nginx-sbom.json
 ```
-*Expected output: Generates a JSON file containing the inventory of the nginx image.*
+*Expected Output:* Ek `nginx-sbom.json` file create hogi jisme nginx image ke sare packages ki details hongi.
 
-**Step 3: Generate a Cosign Keypair**
+2. **Generate Cosign Keypair:**
 ```bash
 cosign generate-key-pair
 ```
-*Expected output: Prompts for a password. Creates `cosign.key` (private) and `cosign.pub` (public) files in your current directory.*
+*Expected Output:* Password prompt aayega. `cosign.key` (private key - never share) aur `cosign.pub` (public key) banenge.
 
-**Step 4: Tag and Push a custom image (requires a registry like Docker Hub)**
+3. **Tag and Push Image:**
 ```bash
-# Assuming you are logged into Docker Hub as 'myuser'
+# Apna Docker Hub username use karein (e.g., myusername)
 docker pull nginx:latest
-docker tag nginx:latest myuser/my-nginx:secure
-docker push myuser/my-nginx:secure
+docker tag nginx:latest myusername/nginx-secure:v1
+docker push myusername/nginx-secure:v1
 ```
-*Expected output: Standard docker push output with image digest.*
+*Expected Output:* Image registry mein push ho jayegi, sath hi image ka SHA256 digest milega.
 
-**Step 5: Sign the image with Cosign**
+4. **Sign the Image:**
 ```bash
-cosign sign --key cosign.key myuser/my-nginx:secure
+cosign sign --key cosign.key myusername/nginx-secure:v1
 ```
-*Expected output: Prompts for password. Pushes the signature to the registry alongside the image.*
+*Expected Output:* Push hone ke baad ek `.sig` artifact bhi registry mein chala jayega (colocated with the image).
 
-**Step 6: Verify the image signature**
+5. **Verify the Image Signature:**
 ```bash
-cosign verify --key cosign.pub myuser/my-nginx:secure
+cosign verify --key cosign.pub myusername/nginx-secure:v1
 ```
-*Expected output: Outputs a JSON object verifying the signature and showing the claims.*
+*Expected Output:* Ek JSON dump milega `{"critical": {"identity": {"docker-reference": "..."}}}` jo show karta hai ki signature valid hai.
 
-## Common Commands Cheat Sheet
+## Daily Engineer Tasks
+- **L1 Engineer:** Monitor security dashboards. Run `grype` on local images if alerts trigger.
+- **L2 Engineer:** Fix broken CI pipelines jab SBOM generation fail ho. Manage basic OPA policies ko update karna agar signed images block ho rahi hain wrongly.
+- **L3 / DevOps Engineer:** Write automated GitHub Actions/GitLab CI pipelines jo SBOM generate, image sign aur CVE scan karein. Setup Kyverno/OPA policies in Kubernetes.
+- **Senior / Cloud Architect:** Design the end-to-end SLSA compliance architecture. Decide on "Keyless" vs "KMS-backed" signing strategies. Automate vulnerability remediation paths.
 
-| Command | What It Does | Real Example |
-| :--- | :--- | :--- |
-| `syft <image>` | Generates a quick text-based SBOM | `syft ubuntu:22.04` |
-| `syft <image> -o <format>` | Generates SBOM in a specific format | `syft myapp:latest -o spdx-json=sbom.json` |
-| `cosign generate-key-pair` | Creates public/private keys for signing | `cosign generate-key-pair` |
-| `cosign sign --key <key> <image>` | Signs a container image in a registry | `cosign sign --key cosign.key myrepo/app:v1` |
-| `cosign verify --key <key> <img_name>`| Verifies the signature of an image | `cosign verify --key cosign.pub myrepo/app:v1` |
-| `cosign attach sbom --sbom <file> <img>`| Attaches an SBOM to an image in registry | `cosign attach sbom --sbom sbom.json myapp:v1` |
-| `grype <image>` | Scans image for vulnerabilities | `grype ubuntu:latest` |
-| `grype sbom:<file>` | Scans an existing SBOM for vulnerabilities| `grype sbom:nginx-sbom.json` |
+## Real Industry Tasks
+- **Real Ticket (Change Request):** "Implement image signing for all microservices in Prod."
+- **Task:** Jenkins pipeline update karna taaki har build ke end mein `cosign sign` chale AWS KMS key use karke. Uske baad EKS cluster mein Kyverno policy push karna enforcing the public key.
+- **Maintenance Work:** Periodic rotation of signing keys (agar KMS nahi use kar rahe) and auditing stale/old images with critical CVEs identified via Centralized SBOM DB (like DefectDojo).
 
-## Troubleshooting Guide
+## Troubleshooting
+**Issue 1: `error: no matching signatures:` during verification**
+- **Symptoms:** `cosign verify` fails with no matching signatures.
+- **Root Cause:** Ya toh image sign hi nahi hui us tag/digest par, ya aap wrong `cosign.pub` key use kar rahe ho verify karne ke liye.
+- **Investigation:** Check registry directly (e.g., Docker Hub UI) to see agar koi signature artifact tag ke sath exist karta hai. 
+- **Resolution:** Double check the public key. Re-sign the exact digest using `cosign sign --key cosign.key <image>@<digest>`.
 
-| Problem | Likely Cause | Step-by-Step Fix |
-| :--- | :--- | :--- |
-| `error: no matching signatures: ...` | Verifying an image that hasn't been signed or using wrong public key. | 1. Ensure you signed the exact tag/digest. 2. Verify you are using the correct `cosign.pub` file corresponding to the private key used for signing. |
-| `Error response from daemon: Get "https://...": unauthorized` | Cosign cannot authenticate to the container registry. | 1. Run `docker login`. 2. Ensure your registry credentials have push permissions. |
-| `syft: command not found` | Syft is not installed or not in your system's PATH. | 1. Re-run installation script. 2. `export PATH=$PATH:/usr/local/bin` (or wherever syft was installed). |
-| `error getting credentials ...` | Cosign is trying to use an OIDC provider in a non-interactive environment (CI). | Set `COSIGN_EXPERIMENTAL=1` (for older versions) or use an explicit identity token. In GitHub Actions, ensure `id-token: write` permission is set. |
-| SBOM JSON file is empty or invalid. | The image might not have standard package managers, or was built from scratch without metadata. | Check the base image. For scratch images with Go binaries, ensure binaries were built without stripping metadata. |
+**Issue 2: OPA/Kyverno blocking the pod creation in Kubernetes**
+- **Symptoms:** `kubectl apply -f pod.yaml` returns `Error from server: admission webhook "validate.kyverno.svc" denied the request: image signature verification failed.`
+- **Root Cause:** Image signed nahi thi, ya cluster ke pass correct public key configure nahi hai policy mein.
+- **Resolution:** Verify locally using `cosign verify`. Update Kyverno policy manifest with the correct public key content, and re-apply.
 
-## Real-World Job Scenario
-**The Situation:** A new zero-day vulnerability in a popular image processing library is announced on Twitter. The CISO wants to know within 1 hour if any production services are affected.
+## Interview Preparation
+**Basic:**
+- **Q:** SBOM kya hota hai?
+  - **A:** Software Bill of Materials. Ye software ke andar use hue har library, package, aur tool ki ek formal inventory hoti hai, bilkul food packet par likhi ingredients list jaisi.
 
-**Junior DevOps Action:**
-- Panics slightly.
-- Starts writing a bash script to `docker exec` into every running pod in Kubernetes and run `find` or `dpkg -l`.
-- Tries to clone all 50 application repositories to grep `package.json` or `requirements.txt`.
-- Takes hours and misses applications deployed manually.
+**Intermediate:**
+- **Q:** Log4Shell vulnerability kyun itni khatarnak thi?
+  - **A:** Log4j Java ka ek standard logging library tha, jo almost har system mein deeply embedded (nested dependency) tha. Usse RCE (Remote Code Execution) attack ho sakta tha just ek string pass karke. Agar companies ke pass SBOM nahi tha, toh unhe pata hi nahi tha ki wo Log4j kahan use kar rahe hain.
 
-**Senior DevOps Action:**
-- Opens the centralized vulnerability management dashboard (e.g., DefectDojo, or an Anchore Enterprise dashboard).
-- Alternatively, scripts a query against the centralized S3 bucket where all CI/CD pipelines automatically upload their generated SBOMs using `syft` and `grype`.
-- Run `grype sbom:/path/to/bucket/ --search <CVE-ID>` (conceptual).
-- Identifies the 3 affected microservices within 5 minutes.
-- Triggers a rebuild of those 3 services with the patched library and relies on the Kubernetes admission controller (Kyverno/OPA) to block unsigned images, ensuring the fix is deployed securely.
+**Advanced / Scenario Based:**
+- **Q:** CI/CD pipelines mein secrets (keys) maintain karna mushkil hota hai. Aap containers kaise sign karoge bina long-lived private keys store kiye?
+  - **A:** Main Cosign "Keyless" signing feature use karunga. Ye OpenID Connect (OIDC) identities (jaise GitHub Actions identity token) aur Fulcio (certificate authority) use karke short-lived certificates generate karta hai, aur Rekor transparency log mein entry banata hai. Isse CI/CD me keys manage karne ka headache khatam ho jata hai.
 
-## Interview Questions
+**HR / Manager Round:**
+- **Q:** How do you convince developers who complain that security scans and signing are slowing down their deployment process?
+  - **A:** I'll explain it from a business risk perspective. "Bugs se server down hota hai, Security breach se company band hoti hai." Sath hi, main DevOps automation (Shift-Left) approach lagaunga jahan unhe UI ya pipeline me instant feedback milega, aur scans async chalenge taaki Dev experience affect na ho.
 
-**Q1: Explain what a Software Bill of Materials (SBOM) is and why it is important.**
-**A:** An SBOM is a formal, machine-readable inventory of all components, libraries, and dependencies that make up a software application. It is important because it provides visibility. In the event of a vulnerability like Log4Shell, an SBOM allows an organization to immediately identify if and where the vulnerable component is used, rather than scanning entire environments reactively.
+## Production Scenarios
+**Scenario:** A zero-day CVE is discovered in an image processing library used widely in your organization. CISO wants a report in 1 hour on impacted services.
+- **How to think:** Don't go to servers and run commands. Rely on your central inventory.
+- **Where to check:** Check the Centralized Vulnerability Management system (like Anchore Enterprise, DefectDojo) jahan pipelines apne SBOM push karti hain.
+- **Commands (Mental model):** Query the SBOM database: `grype sbom:/s3-bucket/path --search <CVE-ID>` (conceptual).
+- **Resolution:** Find the 3 impacted microservices, bump the library version in their `package.json`/`go.mod`, trigger CI pipelines to rebuild, sign, and rollout. Admission controller will ensure only the newly signed, safe image runs.
 
-**Q2: What was the primary mechanism of the SolarWinds supply chain attack?**
-**A:** The attackers compromised the build environment of SolarWinds. They injected malicious code into the legitimate build process of the Orion software. As a result, SolarWinds unknowingly signed and distributed the compromised updates to their customers. This showed that trusting the vendor's signature isn't enough if their internal build pipeline is compromised.
+## Commands
+| Command | Purpose | Syntax | Example | Output | When to use |
+|---|---|---|---|---|---|
+| `syft` | Generate SBOM | `syft <image> -o <format>` | `syft ubuntu:22.04 -o spdx-json` | JSON output | CI pipeline mein image build ke baad. |
+| `cosign generate-key-pair` | Create Keys | `cosign generate-key-pair` | `cosign generate-key-pair` | 2 files (key, pub) | Initial setup ya key rotation ke waqt. |
+| `cosign sign` | Sign Image | `cosign sign --key <key> <image>`| `cosign sign --key cosign.key app:v1`| Pushes signature | CD pipeline mein registry push ke baad. |
+| `cosign verify` | Verify Image | `cosign verify --key <key> <img>`| `cosign verify --key cosign.pub app:v1`| JSON info | Admission controller ya manual audit. |
+| `grype` | Vulnerability Scan| `grype <image_or_sbom>` | `grype myapp:latest` | Table of CVEs | Security gate in pipeline. |
 
-**Q3: How does Cosign improve upon traditional GPG signing for container images?**
-**A:** Traditional GPG required complex key management, secure storage, and distribution of public keys. Cosign integrates directly with OCI registries, allowing signatures to be stored alongside the images. More importantly, it supports "keyless" signing using OIDC (OpenID Connect), where short-lived certificates are generated based on a developer's or CI system's identity, eliminating long-term key management.
+## Cheat Sheet
+- **SBOM:** Ingredients List of Software. Tools: Syft, Trivy. Formats: SPDX, CycloneDX.
+- **Sigstore/Cosign:** Image signature & verification. Prevent tampering.
+- **Grype:** Scanner for SBOMs and Images.
+- **SLSA Levels:** L1 (Build scripted), L2 (Source controlled), L3 (Isolated builds), L4 (Two-person review, hermetic builds).
+- **Keyless Signing:** Use OIDC (Identity) + Fulcio (CA) + Rekor (Transparency Log) to avoid managing private keys.
 
-**Q4: What is the SLSA framework?**
-**A:** SLSA (Supply-chain Levels for Software Artifacts) is a security framework introduced by Google that provides a checklist of standards and controls to ensure the integrity of software artifacts. It defines different levels (1-4), requiring increasingly strict controls like ephemeral build environments, provenance generation, and two-person code reviews.
+## SOP & Runbook & KB Article
+**SOP: Enforcing Image Signing in Production**
+- **Purpose:** Ensure only authenticated images run in Prod.
+- **Scope:** All EKS/AKS clusters.
+- **Procedure:** 
+  1. Add `cosign sign` step in centralized CI/CD templates.
+  2. Apply Kyverno cluster policy referencing the verified public key.
+  3. Set policy to "audit" mode first for 1 week.
+  4. Switch policy to "enforce" mode.
+- **Rollback:** Revert Kyverno policy mode from "enforce" to "audit" if legitimate pods are blocked.
 
-**Q5: If you sign a container image, does that mean the image is free of vulnerabilities?**
-**A:** No. Signing an image only guarantees provenance and integrity—it proves *who* built the image and that it hasn't been *tampered with* since it was signed. A developer could easily sign a container image that contains critical vulnerabilities or malicious code. Signing must be combined with vulnerability scanning (like Grype/Trivy) for comprehensive security.
+## Best Practices & Beginner Mistakes
+**Best Practices:**
+- Use Keyless signing (OIDC) in automated CI environments like GitHub Actions to avoid leaking private keys.
+- Store SBOMs in a centralized repository as build artifacts.
+- Implement Admission Controllers (OPA Gatekeeper or Kyverno) to block unsigned images in the cluster.
 
-## Related Notes
-- [[Master Index]]
-- [[SEC-01 Docker Security]]
-- [[SEC-06 Network Security for DevOps]]
+**Beginner Mistakes:**
+- **Mistake:** Trusting base images blindly (e.g., `FROM ubuntu:latest`). 
+  - **Impact:** Base image zero-day can compromise your app.
+  - **Correction:** Scan base images, use specific tags/digests (`ubuntu@sha256:...`), and use distroless/scratch images where possible.
+- **Mistake:** Storing `cosign.key` inside the container image or public git repo.
+  - **Impact:** Anyone can sign malicious images on your behalf.
+
+## Advanced Concepts
+- **Rekor (Transparency Log):** An immutable, tamper-resistant ledger of metadata generated within a software project's supply chain. Cosign uses Rekor to record signatures. Even if a key is compromised, you can audit the log to see exactly what was signed and when.
+- **Hermetic Builds (SLSA L4):** A build process that has absolutely no network access to the outside world during the build phase. All dependencies must be pre-fetched and cryptographically verified before the build starts, ensuring reproducible builds.
+
+## Related Topics & Flashcards & Revision
+- **Related Topics:** [[SEC-01 Docker Security]], [[SEC-06 Network Security for DevOps]], [[KUB-04 Kyverno & OPA]]
+- **Flashcards:**
+  - *Q: Difference between Syft and Grype?* -> A: Syft creates the SBOM (inventory), Grype scans the SBOM for vulnerabilities (CVEs).
+  - *Q: What is SLSA?* -> A: Supply-chain Levels for Software Artifacts. Security guidelines for build pipelines.
+- **Revision:** 
+  - 5 min: Cheat sheet & Mermaid diagram.
+  - 15 min: Commands and Interview Q&A.
+  - 30 min: Practical lab execution.

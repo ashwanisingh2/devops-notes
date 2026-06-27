@@ -1,69 +1,116 @@
 ---
-tags: [devops, kubernetes, service-mesh]
-aliases: [K8S Service Mesh]
+tags: [devops, kubernetes, service-mesh, istio, linkerd]
+aliases: [K8S Service Mesh, Istio, Linkerd]
 created: 2025-06-27
 status: #complete
 difficulty: #advanced
-cert-relevant: #cka
+cert-relevant: #cka, #cks
 ---
 # Kubernetes Service Mesh
 
-> [!abstract]
-> This note dives into the concept of a Service Mesh in Kubernetes, focusing on how it manages service-to-service communication. We explore the architecture of a service mesh, compare popular tools like Istio and Linkerd, and understand critical features such as mutual TLS (mTLS), traffic management (canary releases, fault injection), and deep observability without altering application code.
+> [!abstract] 
+> This note dives into the concept of a Service Mesh in Kubernetes, focusing on Istio and Linkerd. It covers everything from architecture and mTLS to traffic routing (Canary/Blue-Green), observability, and production troubleshooting.
 
-## Concept Overview
+# Overview
 
-As Kubernetes environments grow from a few monoliths to dozens of microservices, managing network traffic, security, and observability becomes incredibly complex. A Service Mesh is a dedicated infrastructure layer that handles this communication.
-- **Data Plane:** Lightweight proxies (like Envoy) deployed as "sidecars" alongside every application container in a pod. They intercept and manage all inbound and outbound network traffic.
-- **Control Plane:** The centralized management component (like Istiod in Istio) that configures the proxies, manages certificates, and gathers telemetry data.
-- **Key Capabilities:** Traffic shaping (canary, blue/green), reliability (retries, timeouts, circuit breakers), security (mTLS, authorization policies), and observability (distributed tracing, metrics).
+**Ye kya hai?**
+Service Mesh ek dedicated infrastructure layer hai jo K8s mein microservices ke beech communication (service-to-service ya pod-to-pod) ko secure, fast, aur reliable banati hai. Normal K8s mein, developer ko retry, timeout, security, aur tracing ka code app ke andar likhna padta tha. Service Mesh yeh sab network level pe handle karta hai bina app code ko modify kiye.
 
-*Hindi translation & analogy:* *Service mesh ko ek modern city ke traffic control system ki tarah socho. Normal K8s mein services ek doosre se direct baat karte hain (jaise bina traffic lights ki sadak). Service mesh har ghar (pod) ke bahar ek smart security guard (sidecar proxy) bitha deta hai. Ab koi bhi communication in guards ke through hota hai. Ye guards traffic divert kar sakte hain, ID check kar sakte hain (mTLS), aur bata sakte hain ki kaun kisse baat kar raha hai (observability), bina actual ghar walo (app code) ko disturb kiye.*
+**Kyu use hota hai?**
+Jaise-jaise microservices badhti hain (monolith to 100s of microservices), track karna mushkil ho jata hai ki kaunsi service kis-se baat kar rahi hai, kahan latency aa rahi hai, aur traffic secure hai ya nahi. Service Mesh mTLS, observability, aur complex routing (canary) out-of-the-box deta hai.
 
-## Technical Deep Dive
+**Real life example:**
+City Traffic System. Bina Service Mesh ke, services direct baat karti hain (bina traffic rules ya police ke). Service Mesh har ghar (pod) ke bahar ek smart security guard (Sidecar Proxy) bitha deta hai. Ab sab communication in guards ke through hota hai. Guards IDs check karte hain (mTLS), traffic divert kar sakte hain (Canary), aur control room (Control Plane) ko update dete hain ki traffic kaisa chal raha hai.
 
-### 1. Istio vs Linkerd
-Istio and Linkerd are the dominant players in the Kubernetes service mesh space.
-**Istio** uses Envoy as its data plane proxy. It is feature-rich, supporting complex routing, multi-cluster setups, and fine-grained authorization. However, it is resource-intensive and has a steep learning curve.
-**Linkerd** uses a purpose-built Rust micro-proxy. It focuses on simplicity, performance, and low resource overhead. It is often the preferred choice when you need fundamental mTLS and observability without the extreme complexity of Istio's advanced routing.
+**Mermaid Architecture:**
+```mermaid
+architecture-beta
+    group cluster(cloud)[Kubernetes Cluster]
+    
+    group cp(server)[Control Plane - Istiod] in cluster
+    
+    group dp(server)[Data Plane] in cluster
+    
+    service pod1(disk)[Pod A (App + Envoy)] in dp
+    service pod2(disk)[Pod B (App + Envoy)] in dp
+    service ingress(internet)[Ingress Gateway] in dp
 
-### 2. Mutual TLS (mTLS) and Zero Trust
-In a default K8s cluster, pod-to-pod traffic is unencrypted plain text. A compromised pod can sniff network traffic. A service mesh enforces mTLS. The Control Plane acts as a Certificate Authority (CA), issuing short-lived certificates to every sidecar proxy. When Pod A talks to Pod B, Proxy A encrypts the connection and authenticates to Proxy B. This establishes a Zero Trust network where identity is cryptographically verified rather than relying on network perimeter defense.
+    ingress:R --> pod1:L
+    pod1:R --> pod2:L
+    cp:B --> pod1:T
+    cp:B --> pod2:T
+```
 
-### 3. Traffic Splitting and Canary Deployments
-Traditional Kubernetes Deployments update pods incrementally but offer poor control over traffic percentage (e.g., you can't easily send exactly 5% of traffic to a new version). Istio introduces Custom Resource Definitions (CRDs) like `VirtualService` and `DestinationRule`. A `VirtualService` can intelligently route Layer 7 (HTTP) traffic, sending 90% of requests to version v1 and 10% to v2 (Canary release), or route based on HTTP headers (e.g., routing users with an "internal-tester" cookie to a beta version).
+# Working
 
-## Step-by-Step Lab
+Service Mesh do main components mein divided hota hai:
+1. **Data Plane:** Har pod ke andar ek lightweight proxy (jaise **Envoy**) inject kiya jata hai (ise Sidecar kehte hain). App ki sari inbound aur outbound traffic yeh proxy intercept karta hai.
+2. **Control Plane:** Yeh proxies ko manage aur configure karta hai (jaise Istio mein **Istiod**). Yeh certificates issue karta hai (CA), routing rules push karta hai, aur telemetry data collect karta hai.
 
-**Scenario:** Install Istio on Minikube, deploy the Bookinfo sample app, configure a 70/30 canary traffic split, and visualize it in Kiali.
+**Request Flow:**
+User -> Ingress Gateway -> Pod A (Envoy Proxy) -> [mTLS Encryption] -> Pod B (Envoy Proxy) -> [mTLS Decryption] -> Pod B (App).
 
-1. **Download and Install Istio CLI**
-   ```bash
-   curl -L https://istio.io/downloadIstio | sh -
-   cd istio-*
-   export PATH=$PWD/bin:$PATH
-   ```
-2. **Install Istio on Kubernetes**
-   ```bash
-   istioctl install --set profile=demo -y
-   # Label the default namespace for automatic sidecar injection
-   kubectl label namespace default istio-injection=enabled
-   ```
-3. **Deploy the Bookinfo Sample Application**
+# Installation
+
+**Prerequisites:** Kubernetes cluster (Minikube/EKS/AKS), `kubectl`, minimum 4GB RAM for Istio.
+
+**Istio Installation (CLI Method):**
+```bash
+# 1. Download Istio
+curl -L https://istio.io/downloadIstio | sh -
+cd istio-*
+export PATH=$PWD/bin:$PATH
+
+# 2. Install using demo profile
+istioctl install --set profile=demo -y
+
+# 3. Label namespace for automatic sidecar injection
+kubectl label namespace default istio-injection=enabled
+```
+
+**Verification:**
+```bash
+kubectl get pods -n istio-system
+```
+
+**Rollback/Uninstall:**
+```bash
+istioctl uninstall --purge -y
+kubectl delete namespace istio-system
+```
+
+# Practical Lab
+
+**Scenario:** Install Bookinfo app, setup Kiali dashboard, and configure 70/30 Canary deployment.
+
+**Step-by-Step Implementation:**
+1. **Deploy App:**
    ```bash
    kubectl apply -f samples/bookinfo/platform/kube/bookinfo.yaml
-   kubectl get pods # Notice 2/2 containers (app + istio-proxy)
+   kubectl get pods # Check if READY is 2/2 (App + Envoy)
    ```
-4. **Deploy the Istio Addons (Kiali, Prometheus, Jaeger)**
+2. **Install Addons (Kiali, Prometheus):**
    ```bash
    kubectl apply -f samples/addons
-   # Wait for pods to be ready, then open Kiali dashboard
-   istioctl dashboard kiali &
+   istioctl dashboard kiali & # Opens Kiali UI
    ```
-5. **Create a Canary Traffic Split (70/30)**
-   First, define `DestinationRules` to identify versions, then a `VirtualService` for routing:
-   Create `traffic-split.yaml`:
+3. **Configure 70/30 Canary Split for `reviews` service:**
+   Create `canary.yaml`:
    ```yaml
+   apiVersion: networking.istio.io/v1alpha3
+   kind: DestinationRule
+   metadata:
+     name: reviews
+   spec:
+     host: reviews
+     subsets:
+     - name: v1
+       labels:
+         version: v1
+     - name: v2
+       labels:
+         version: v2
+   ---
    apiVersion: networking.istio.io/v1alpha3
    kind: VirtualService
    metadata:
@@ -81,75 +128,141 @@ Traditional Kubernetes Deployments update pods incrementally but offer poor cont
            host: reviews
            subset: v2
          weight: 30
-   ---
-   apiVersion: networking.istio.io/v1alpha3
-   kind: DestinationRule
-   metadata:
-     name: reviews
-   spec:
-     host: reviews
-     subsets:
-     - name: v1
-       labels:
-         version: v1
-     - name: v2
-       labels:
-         version: v2
    ```
    ```bash
-   kubectl apply -f traffic-split.yaml
+   kubectl apply -f canary.yaml
    ```
-6. **Generate Traffic and Verify**
-   Run a loop making curl requests to the ingress gateway and check the Kiali dashboard graph to visually verify the 70/30 split.
+4. **Verification:** Generate traffic and check Kiali to see exactly 70% traffic going to v1 and 30% to v2.
 
-## Common Commands Cheat Sheet
+# Daily Engineer Tasks
 
-| Command | What It Does | Real Example |
-| :--- | :--- | :--- |
-| `istioctl install` | Installs Istio into the cluster | `istioctl install --set profile=default -y` |
-| `istioctl analyze` | Analyzes namespace for Istio issues | `istioctl analyze -n default` |
-| `istioctl proxy-status` | Shows sync status of all sidecar proxies | `istioctl proxy-status` |
-| `kubectl label namespace` | Enables auto sidecar injection | `kubectl label namespace my-app istio-injection=enabled` |
-| `istioctl dashboard kiali` | Opens Kiali observability UI | `istioctl dashboard kiali` |
-| `linkerd check` | Validates Linkerd installation | `linkerd check --pre` |
-| `linkerd install` | Generates Linkerd installation manifests | `linkerd install \| kubectl apply -f -` |
-| `kubectl get virtualservices` | Lists Istio routing rules | `kubectl get virtualservices -n my-app` |
+- **L1 Engineer:** Checking Kiali dashboard for red lines (failed requests). Verifying if pods have 2/2 containers running. Running basic `istioctl analyze`.
+- **L2 Engineer:** Creating VirtualServices and DestinationRules for basic routing. Restarting pods to inject sidecars. Checking Envoy logs for 503 errors.
+- **L3 Engineer:** Configuring strict mTLS policies. Debugging cross-cluster mesh communication. Tuning Envoy resources (CPU/Memory limits).
+- **Senior/DevOps Engineer:** Architecting multi-cluster mesh. Writing custom WebAssembly (WASM) plugins for Envoy. Managing gateway upgrades with zero downtime.
 
-## Troubleshooting Guide
+# Real Industry Tasks
 
-| Problem | Likely Cause | Step-by-Step Fix |
-| :--- | :--- | :--- |
-| **Pods have 1/1 containers (no proxy)** | Namespace missing `istio-injection=enabled` label. | 1. `kubectl label namespace default istio-injection=enabled`. 2. Restart the pods: `kubectl rollout restart deploy <name>`. |
-| **503 Service Unavailable between pods** | mTLS policy mismatch or network policy blocking proxy ports. | 1. Check `PeerAuthentication` objects in the namespace. 2. Verify `istioctl analyze` reports no misconfigurations. |
-| **Traffic splitting is not working** | Missing `DestinationRule` or incorrect label selectors. | 1. Ensure `DestinationRule` subsets match the actual pod labels (`version: v1`). 2. Verify `VirtualService` references the exact host and subset names. |
-| **High CPU/Memory on Worker Nodes** | Envoy proxies consuming too many resources due to large mesh size. | 1. Optimize configuration by applying `Sidecar` CRDs to limit the scope of services each proxy knows about. 2. Increase node sizes. |
-| **Kiali graph is empty** | No traffic flowing or Prometheus addon not deployed. | 1. Ensure `samples/addons/prometheus.yaml` is deployed. 2. Use a load generator (like Hey or curl loop) to send continuous requests. |
+- **Real Tickets:** "Service A is getting 504 Gateway Timeout while calling Service B."
+- **Change Requests:** "Enable Strict mTLS for all namespaces starting next weekend."
+- **Migration:** Moving from Nginx Ingress to Istio Ingress Gateway.
+- **Maintenance:** Upgrading Istio control plane using canary upgrade method (`istioctl install --set revision=1-X`).
 
-## Real-World Job Scenario
+# Troubleshooting
 
-**Scenario:** The security team mandates that all internal microservice communication must be encrypted, and the product team wants to test a risky new checkout service with only 5% of users.
+| Problem | Symptoms | Possible Root Causes | Resolution |
+| :--- | :--- | :--- | :--- |
+| **No Sidecar Inject** | Pods show `1/1` READY instead of `2/2` | Namespace lacks `istio-injection=enabled` label. | `kubectl label ns default istio-injection=enabled` and `kubectl rollout restart deploy <name>` |
+| **503 Service Unavailable** | `upstream_reset_before_response_started` in Envoy logs | Destination rule missing, or mTLS policy mismatch (Strict vs Permissive). | Check `PeerAuthentication`. Use `istioctl analyze`. |
+| **Canary split not working** | 100% traffic goes to v1 | DestinationRule subsets don't match pod labels. | Verify `labels` in `DestinationRule` match K8s deployment labels exactly. |
+| **High Memory Usage** | Worker nodes crashing | Envoy caching all cluster endpoints. | Implement `Sidecar` CRD to restrict egress visibility (e.g., `*/*` to specific namespaces). |
 
-**Junior DevOps Action:** Starts modifying the application code of every single microservice to implement TLS certificates manually, and tries to use standard K8s deployments for the rollout, failing to achieve exactly 5%.
-**Senior DevOps Action:** Introduces Istio. Enables STRICT mTLS cluster-wide via a `PeerAuthentication` policy, securing all traffic instantly without code changes. Creates a `VirtualService` to route exactly 5% of traffic to the `checkout-v2` deployment, monitoring the error rates in Kiali before gradually increasing the weight to 100%.
+**Logs Command:** `kubectl logs <pod-name> -c istio-proxy`
 
-## Interview Questions
+# Interview Preparation
 
-**Q1: What is a sidecar proxy in the context of a service mesh?**
-A1: A sidecar proxy (like Envoy) is a lightweight container deployed in the same Pod as the application container. It intercepts all inbound and outbound network traffic for that application, allowing the service mesh to manage routing, security, and observability transparently.
+**Basic:**
+Q: What is a sidecar proxy?
+A: A proxy container (like Envoy) deployed alongside the app container in the same pod to handle all network traffic.
 
-**Q2: How does Istio achieve mutual TLS (mTLS)?**
-A2: The Istio control plane (Istiod) acts as a Certificate Authority. It generates and distributes cryptographic certificates to the Envoy proxies. When two services communicate, their proxies establish a TLS connection, authenticating each other's certificates, ensuring traffic is encrypted and identities are verified.
+**Intermediate:**
+Q: Difference between VirtualService and DestinationRule?
+A: VirtualService decides *HOW* to route traffic (e.g., URL path `/v2` or weight `70%`). DestinationRule decides *WHAT* happens after routing (e.g., defining subsets, circuit breaking, TLS settings).
 
-**Q3: Contrast Istio and Linkerd.**
-A3: Istio uses Envoy (C++), has a comprehensive feature set (advanced Layer 7 routing, API gateway capabilities), but has a steeper learning curve and higher resource footprint. Linkerd uses a custom Rust micro-proxy, prioritizes extreme simplicity, zero-config mTLS, and low overhead, but lacks some of the complex routing capabilities of Istio.
+**Advanced (Scenario Based):**
+Q: Devs enabled a new service, but it can't talk to the DB outside the cluster. Why?
+A: By default, Istio might block external egress traffic depending on `outboundTrafficPolicy`. Need to create a `ServiceEntry` to allow and track external traffic.
 
-**Q4: What is the purpose of an Istio `VirtualService` vs a `DestinationRule`?**
-A4: A `VirtualService` defines *how* traffic is routed to a service (e.g., match HTTP path `/api`, route 80% to version A). A `DestinationRule` defines *what* happens to traffic after it is routed (e.g., define the subsets/versions based on labels, configure circuit breakers, or set TLS settings).
+**Production:**
+Q: How do you upgrade Istio in a production cluster with zero downtime?
+A: Using Canary Upgrades. Install the new control plane with a new revision label alongside the old one. Label namespaces with the new revision, restart pods slowly to point them to the new control plane, and monitor before removing the old one.
 
-**Q5: How does a Service Mesh improve observability?**
-A5: Because all traffic flows through the proxies, the mesh automatically generates metrics (request rates, error rates, latencies) and distributed tracing spans for every hop. This provides deep visibility into microservice performance and dependencies via tools like Jaeger and Kiali, without requiring developers to instrument their code.
+# Production Scenarios
 
-## Related Notes
-- [[Master Index]]
+**Scenario:** Checkout service is down (502 Bad Gateway) only for 10% of users.
+- **How to think:** Partial failure points to a specific pod or a canary release issue.
+- **Where to check:** Open Kiali. Check the graph for the checkout service. See which specific version (subset) is returning 500s.
+- **Commands:** `istioctl proxy-status`, `kubectl logs -l app=checkout -c istio-proxy`
+- **Resolution:** Found that `checkout-v2` is crashing. Immediately update `VirtualService` to route 100% traffic back to `v1`. Rollback successful.
+
+# Commands
+
+| Command | Purpose | Syntax/Example | Danger Level |
+| :--- | :--- | :--- | :--- |
+| `istioctl analyze` | Find mesh misconfigurations | `istioctl analyze -n default` | Low |
+| `istioctl proxy-status` | Check sidecar sync status with Istiod | `istioctl proxy-status` | Low |
+| `kubectl rollout restart` | Force pods to pick up sidecar | `kubectl rollout restart deploy/api` | Medium (Causes pod restart) |
+| `istioctl pc routes` | Dump Envoy routing configs for a pod | `istioctl pc routes <pod-name>` | Low |
+
+# Cheat Sheet
+
+- **Inject Label:** `istio-injection=enabled`
+- **Revision Label:** `istio.io/rev=1-18`
+- **CRDs:**
+  - `VirtualService`: Routing logic (weights, match paths).
+  - `DestinationRule`: Subsets, Circuit Breakers, TLS.
+  - `Gateway`: Ingress/Egress configurations.
+  - `ServiceEntry`: External services (APIs, DBs outside mesh).
+  - `PeerAuthentication`: mTLS settings (Strict/Permissive).
+
+# SOP & Runbook & KB Article
+
+**SOP: Enabling mTLS in Production**
+- **Purpose:** Secure cluster traffic.
+- **Procedure:** 1. Set `PeerAuthentication` to `PERMISSIVE` first. 2. Monitor Kiali/Grafana for plaintext traffic. 3. Upgrade clients to use mesh. 4. Switch to `STRICT`.
+- **Rollback:** Revert `PeerAuthentication` to `PERMISSIVE` or `DISABLE`.
+
+**Runbook: Debugging 503 Upstream Reset**
+- **Detection:** Alerts firing for 503 errors between App A and App B.
+- **Investigation:** Run `kubectl logs <app-a-pod> -c istio-proxy | grep 503`. Look for `UF,URX` flags. Run `istioctl analyze`.
+- **Resolution:** Usually caused by a missing DestinationRule or an app crashing before responding. Fix CRDs.
+
+# Best Practices & Beginner Mistakes
+
+**Best Practices:**
+- Always use `Sidecar` CRD in production to limit Envoy memory usage.
+- Start with `PERMISSIVE` mTLS before enforcing `STRICT`.
+- Use a dedicated Gateway namespace, separate from `istio-system`.
+
+**Beginner Mistakes:**
+- Forgetting to label K8s Services with `app` and `version` labels. Istio relies heavily on these for telemetry and routing.
+- Mixing up K8s Ingress and Istio Gateway. Prefer Istio Gateway for advanced features.
+
+# Advanced Concepts
+
+- **xDS APIs:** Envoy dynamically discovers resources via APIs (LDS for Listeners, RDS for Routes, CDS for Clusters, EDS for Endpoints) from Istiod without restarting.
+- **WASM (WebAssembly):** Write custom plugins (in Rust/Go) to extend Envoy's capabilities (e.g., custom auth headers) directly in the data plane.
+- **Ambient Mesh:** Istio's newer sidecar-less architecture using node-level `ztunnel` for L4 and Waypoint proxies for L7, reducing resource overhead.
+
+# Related Topics & Flashcards & Revision
+
+**Wiki Links:**
 - [[04-Orchestration/K8S-01 Kubernetes Architecture]]
-- [[04-Orchestration/K8S-09 Kubernetes Operators and CRDs]]
+- [[04-Orchestration/K8S-12 Ingress Controllers]]
+- [[Master Index]]
+
+**Flashcards:**
+- Q: Which Istio CRD defines traffic subsets? -> A: DestinationRule.
+- Q: Default proxy used by Istio? -> A: Envoy.
+
+**Revision:** 5 min (Cheat sheet) -> 15 min (Working & Troubleshooting) -> Interview Revision (Interview Prep section).
+
+# Real Production Logs & Commands & Decision Tree
+
+**Sample Envoy Access Log:**
+```
+[2025-06-27T10:00:00.000Z] "GET /api/v1/users HTTP/1.1" 200 - via_upstream - "-" 0 120 15 14 "-" "curl/7.68.0" "b3: 12345" "10.0.1.5:8080"
+```
+*Explanation:* `200` is status code. `via_upstream` means request reached the app. `15` is response time in ms. `10.0.1.5:8080` is the upstream pod IP.
+
+**Decision Tree (Pod Communication Failure):**
+```mermaid
+graph TD
+    A[Pod A cannot reach Pod B] --> B{Is proxy injected in both?}
+    B -- No --> C[Label namespace & restart pods]
+    B -- Yes --> D{Are both running Strict mTLS?}
+    D -- Mismatch --> E[Fix PeerAuthentication]
+    D -- Yes --> F{Is VirtualService/DestinationRule correct?}
+    F -- No --> G[Fix CRDs subsets & routes]
+    F -- Yes --> H[Check App B logs for internal crash]
+```

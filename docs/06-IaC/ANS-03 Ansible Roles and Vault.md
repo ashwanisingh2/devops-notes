@@ -1,76 +1,102 @@
 ---
-tags: [devops, iac, ansible, security]
-aliases: [Ansible Roles & Vault]
-created: 2025-06-27
+tags: [devops, iac, ansible, security, roles, vault]
+aliases: [Ansible Roles & Vault, Ansible Roles, Ansible Vault]
+created: 2026-06-27
 status: #complete
 difficulty: #advanced
-cert-relevant: #none
 ---
 
 # ANS-03 Ansible Roles and Vault
 
-> [!abstract] Overview
-> A massive 1,000-line playbook is an anti-pattern. Just as software developers organize code into functions and classes, DevOps engineers organize Ansible code into Roles. Roles provide a standardized directory structure to bundle tasks, variables, files, and templates into reusable, shareable components. Combined with Ansible Vault—a native encryption tool for securing passwords and API keys—Roles enable enterprise-grade, secure, and modular configuration management.
+## Overview
+**Ansible Roles kya hai?** 
+Agar aap apna sara Ansible code ek hi massive 1,000-line `playbook.yml` mein likh doge, toh usko manage karna impossible ho jayega. Jaise developers apne code ko functions aur classes mein divide karte hain, DevOps engineers Ansible code ko **Roles** mein organize karte hain. Role ek standardized directory structure hai jo tasks, variables, files, aur templates ko ek reusable package (LEGO block) mein bundle kar deta hai.
 
----
+**Ansible Vault kya hai?** 
+Vault Ansible ka native CLI tool hai jo sensitive data (jaise database passwords, API keys, SSL certificates) ko AES-256 encryption se secure karta hai, taaki aap apna code safely GitHub par push kar sako bina credentials leak kiye.
 
-## Concept Overview
+**Simple Analogy:**
+Role ek 'LEGO block' hai (e.g., 'web-server' block). Aap is block ko kisi bhi project mein fit kar sakte ho bina code copy-paste kiye. 
+Vault us block ke andar chupa hua ek tijori (locker) hai, taaki agar koi GitHub pe apka code dekhe, toh usko actual password ki jagah kachra (garbage encrypted text) dikhe.
 
-- **What it is** — **Roles** break down a complex playbook into modular directories (tasks, handlers, vars). **Vault** is a CLI tool integrated into Ansible that encrypts sensitive data files using AES-256.
-- **Why DevOps engineers use it** — Reusability and Security. You write an `nginx` role once, and share it across 10 different projects using Ansible Galaxy. Ansible Vault ensures that database passwords used in those roles can be safely committed to GitHub without leaking.
-- **Where you encounter this in a real job** — Downloading a community role from Ansible Galaxy to install PostgreSQL, encrypting an SSL private key using Vault before committing, or refactoring a legacy startup playbook into modular roles.
-- **Responsibility Split:**
-  - **Junior DevOps**: Decrypts Vault files to view passwords and applies playbooks that use existing roles.
-  - **Mid DevOps**: Creates new roles using `ansible-galaxy init`, structures `defaults` vs `vars`, and manages `requirements.yml`.
-  - **Senior/SRE**: Automates Vault password injection in Jenkins/GitHub Actions pipelines, writes strict Role metadata/dependencies, and authors open-source community Roles.
+**Industry kaha use karti hai?**
+Har enterprise level infrastructure as code (IaC) setup mein. Community roles (Ansible Galaxy se) download karke PostgreSQL install karna, ya custom roles banakar alag alag environments (Dev, QA, Prod) mein deploy karna.
 
-*Seedha simple mein: Role ek LEGO block hai. Aap ek 'web-server' block banate ho, aur usko kisi bhi project mein fit kar dete ho bina code copy kiye. Vault us block ke andar chupa hua locker hai, taaki agar koi GitHub pe code padh le, toh usko actual password ki jagah garbage encrypted text dikhe.*
+### Architecture & Data Flow (Mermaid Diagram)
 
----
-
-## Technical Deep Dive
-
-### 1. The Role Directory Structure
-When you create a role, Ansible expects a strict directory structure:
-- `tasks/main.yml`: The actual steps to execute.
-- `handlers/main.yml`: Handlers triggered by tasks.
-- `templates/`: Jinja2 `.j2` files.
-- `files/`: Static files to be copied.
-- `vars/main.yml`: High-priority variables that should *not* be easily overridden.
-- `defaults/main.yml`: Low-priority default variables (Users *should* override these).
-- `meta/main.yml`: Author info and Role dependencies (e.g., "This web role requires the firewall role to run first").
-
-### 2. Ansible Galaxy
-Ansible Galaxy is the public repository for Ansible Roles (similar to Docker Hub for images or NPM for Node). Instead of writing a role to install MySQL, you can download an officially maintained one. You define external roles in a `requirements.yml` file and install them via `ansible-galaxy install -r requirements.yml`.
-
-### 3. Ansible Vault Security
-Vault encrypts files or individual variables. If you have a file `db_pass.yml` containing `password: supersecret`, you run `ansible-vault encrypt db_pass.yml`. It prompts for a Vault password and replaces the file contents with an AES256 encrypted string.
-You can safely commit this to Git. When you run a playbook that needs this file, you must pass `--ask-vault-pass` or point to a local text file containing the password `--vault-password-file ~/.vault_pass.txt`.
-
----
-
-## Step-by-Step Lab
-
-> [!warning] Pre-requisites
-> - Ansible installed
-
-### Step 1: Initialize a Role
-```bash
-# Create a roles directory and initialize a new role called 'webserver'
-mkdir roles && cd roles
-ansible-galaxy init webserver
-
-# Expected output: - Role webserver was created successfully
-# Run 'tree webserver' to see the folder structure generated
+```mermaid
+graph TD
+    A[Master Playbook: site.yml] --> B[Role: Nginx]
+    A --> C[Role: MySQL]
+    A --> D[Role: Application]
+    
+    subgraph Role Structure [Ansible Role: Nginx]
+        T[tasks/main.yml]
+        V[vars/main.yml]
+        D1[defaults/main.yml]
+        H[handlers/main.yml]
+        F[files/]
+        TM[templates/nginx.conf.j2]
+    end
+    
+    B -. includes .-> T
+    B -. uses .-> V
+    B -. uses .-> D1
+    
+    subgraph Ansible Vault
+        E[secrets.yml - Encrypted]
+        K[Vault Password]
+    end
+    
+    K -->|Decrypts| E
+    E -. Injects Secure Vars .-> D
 ```
 
-### Step 2: Populate the Role
+## Working
+**Internal Working:**
+- **Roles:** Jab ek playbook role ko call karti hai, Ansible automatically us role ke `tasks/main.yml` ko execute karta hai. Agar usme templates use hue hain, toh Ansible automatically `templates/` folder mein dekhta hai. Ye convention over configuration approach follow karta hai.
+- **Vault:** Ansible playbook chalanne se pehle memory mein files ko decrypt karta hai. Disk par files humesha encrypted rehti hain. Encryption ke liye AES256 use hota hai.
+
+**Role Directory Structure:**
+- `tasks/main.yml`: Actual automation steps (commands/modules to run).
+- `handlers/main.yml`: Handlers triggered by tasks (e.g., Restart Nginx).
+- `templates/`: Jinja2 `.j2` files (e.g., config files jisme variables render hote hain).
+- `files/`: Static files to be copied directly.
+- `vars/main.yml`: High-priority variables jo easily override nahi hone chahiye.
+- `defaults/main.yml`: Low-priority variables (Users ko inko override karna expected hai).
+- `meta/main.yml`: Author info aur Role dependencies (e.g., "Web role chalane se pehle Firewall role chalao").
+
+## Installation
+Ansible Roles and Vault ke liye alag se kuch install nahi karna padta, ye Ansible core (ansible-core) ka hi part hain.
+**Prerequisites:**
+- Ansible control node par installed hona chahiye.
+- Ansible Galaxy access (internet) required hai community roles download karne ke liye.
+
+## Practical Lab
+### Step-by-Step Implementation: Creating a Role and using Vault
+
+**Step 1: Role Initialize karna (CLI Method)**
+```bash
+# Workspace setup
+mkdir -p ~/ansible-lab/roles
+cd ~/ansible-lab/roles
+
+# Create 'webserver' role skeleton
+ansible-galaxy init webserver
+
+# Verify the structure
+tree webserver
+```
+
+**Step 2: Role ke Tasks aur Defaults likhna**
+File: `~/ansible-lab/roles/webserver/defaults/main.yml`
 ```yaml
-# 1. Edit roles/webserver/defaults/main.yml
 ---
 http_port: 80
+```
 
-# 2. Edit roles/webserver/tasks/main.yml
+File: `~/ansible-lab/roles/webserver/tasks/main.yml`
+```yaml
 ---
 - name: Install Nginx
   apt:
@@ -78,139 +104,179 @@ http_port: 80
     state: present
   become: yes
 
-- name: Create index file
+- name: Create custom index file
   template:
     src: index.html.j2
     dest: /var/www/html/index.html
   become: yes
-
-# 3. Create roles/webserver/templates/index.html.j2
-<h1>Listening on port {{ http_port }}</h1>
-<h2>DB Password is: {{ db_password }}</h2>
+  notify: Restart Nginx
 ```
 
-### Step 3: Create and Encrypt Secrets with Vault
-```bash
-# Go back to the root directory
-cd ..
-
-# Create a secrets file
-echo "db_password: SuperSecret123!" > secrets.yml
-
-# Encrypt it using Vault (You will be prompted to create a password)
-ansible-vault encrypt secrets.yml
-
-# Expected output: Encryption successful
-# If you 'cat secrets.yml' now, you will see $ANSIBLE_VAULT;1.1;AES256...
-```
-
-### Step 4: Write the Master Playbook
+File: `~/ansible-lab/roles/webserver/handlers/main.yml`
 ```yaml
-# Create site.yml
+---
+- name: Restart Nginx
+  service:
+    name: nginx
+    state: restarted
+  become: yes
+```
+
+File: `~/ansible-lab/roles/webserver/templates/index.html.j2`
+```html
+<h1>Server running on port {{ http_port }}</h1>
+<h2>DB Password from Vault is: {{ db_password }}</h2>
+```
+
+**Step 3: Secrets ko Vault se Encrypt karna**
+```bash
+cd ~/ansible-lab
+# Create a secrets file
+echo "db_password: SuperSecretProdPass!" > secrets.yml
+
+# Encrypt it
+ansible-vault encrypt secrets.yml
+# Expected Output: New vault password prompt -> Enter a password
+# Agar abhi `cat secrets.yml` karoge toh sirf $ANSIBLE_VAULT dikhega.
+```
+
+**Step 4: Master Playbook likhna**
+File: `~/ansible-lab/site.yml`
+```yaml
 ---
 - name: Configure Webservers
   hosts: all
-  
-  # Load the encrypted variables file
   vars_files:
     - secrets.yml
-
-  # Call the role, overriding the default port
   roles:
     - role: webserver
       vars:
-        http_port: 8080
+        http_port: 8080 # Overriding the default port
 ```
 
-### Step 5: Execute with Vault Password
+**Step 5: Playbook execute karna (with Vault Password)**
 ```bash
-# Run the playbook. It will fail if you don't provide the vault password!
-ansible-playbook site.yml -i hosts --ask-vault-pass
-
-# Expected output:
-# Vault password: (enter the password you created)
-# PLAY [Configure Webservers] ...
-# TASK [webserver : Install Nginx] ...
-# TASK [webserver : Create index file] ...
+ansible-playbook -i localhost, -c local site.yml --ask-vault-pass
+# Prompt aayega: Vault password:
 ```
 
-> [!tip] Pro Tip
-> Do not use `--ask-vault-pass` in a CI/CD pipeline (like Jenkins), because there is no human to type the password. Instead, store the vault password in Jenkins Credentials, inject it as an environment variable, echo it into a temporary file (`.vault_pass`), and use `ansible-playbook --vault-password-file .vault_pass`.
+## Daily Engineer Tasks
+- **L1 Engineer:** Ansible Galaxy se existing roles download karna. Execute karte time Vault password prompt mein dalna.
+- **L2 Engineer:** Existing roles mein chote mothe task updates karna. `defaults/main.yml` mein naye variables add karna.
+- **L3 / Senior DevOps:** Monolithic playbooks ko roles mein refactor karna. `meta/main.yml` mein dependencies handle karna. CI/CD pipelines (Jenkins) mein Vault password securely inject karna (`--vault-password-file` use karke).
 
----
+## Real Industry Tasks
+- **Migration:** Purane shell scripts ko Ansible Roles mein convert karna taaki cross-team sharing possible ho.
+- **Patch Management:** Ek centralized 'security-patch' role banana aur use 50 alag projects ke Ansible playbooks mein include karwana.
+- **Secret Rotation:** Jab production DB ka password change ho, toh `ansible-vault rekey` command se secrets.yml ka encryption password badalna bina plain text mein store kiye.
 
-## Common Commands Cheat Sheet
+## Troubleshooting
+| Symptoms | Possible Root Causes | Investigation Steps & Commands | Resolution |
+|----------|----------------------|--------------------------------|------------|
+| `ERROR! Decryption failed (no vault secrets were found)` | Vault password provide nahi kiya playbook run mein. | Check CI/CD logs if `--ask-vault-pass` or `--vault-password-file` is missing. | Add `--vault-password-file .vault_pass` parameter when running `ansible-playbook`. |
+| Role task fail ho gaya kyu ki module nahi mila | Wrong folder structure for tasks | Check ki tasks kahan likhe hain. | Ansible strictly `tasks/main.yml` dhoondhta hai. Agar file ka naam alag hai, toh usko include karo. |
+| `ERROR! the role 'mysql' was not found` | Role path issue | Check `ansible.cfg` for `roles_path`. Default `roles/` folder is missing. | Fix `ansible.cfg` ya roles ko playbook wali directory ke `roles/` folder mein rakho. |
+| Variable pass kiya (`-e`) par value change nahi hui | `vars/main.yml` use kar liya defaults ke jagah | Check karo role mein variable kaha define kiya gaya hai. | `vars/main.yml` ki precedence high hoti hai. Users se override karwane wale variables `defaults/main.yml` mein daalo. |
+| Pipeline stuck (hang) ho gayi | Vault password prompt par ruka hua hai | Pipeline wait kar rahi hai input ka. | Automated environments mein `--ask-vault-pass` matt use karo. Use `--vault-password-file`. |
 
-| Command | What It Does | Real Example |
-|---------|-------------|--------------|
-| `ansible-galaxy init` | Creates the directory skeleton for a new role | `ansible-galaxy init nginx-role` |
-| `ansible-galaxy install`| Downloads roles from requirements file | `ansible-galaxy install -r reqs.yml` |
-| `ansible-vault create` | Creates a new encrypted YAML file in an editor | `ansible-vault create secrets.yml` |
-| `ansible-vault encrypt` | Encrypts an existing plain-text file | `ansible-vault encrypt db_vars.yml` |
-| `ansible-vault decrypt` | Permanently decrypts a file | `ansible-vault decrypt db_vars.yml` |
-| `ansible-vault edit` | Opens an encrypted file in Vim/Nano to edit safely | `ansible-vault edit secrets.yml` |
-| `ansible-vault rekey` | Changes the vault password of an encrypted file | `ansible-vault rekey secrets.yml` |
+## Interview Preparation
+**Basic:**
+**Q:** Ansible Role kya hota hai aur kyu use karte hain?
+**A:** Role ek structure hai jo Ansible tasks, variables, files aur templates ko ek bundle mein organize karta hai. Isse code reusability badhti hai. Ek role likh kar use multiple playbooks mein include kar sakte hain.
 
----
+**Intermediate:**
+**Q:** `defaults/main.yml` aur `vars/main.yml` mein kya difference hai?
+**A:** `defaults/` mein wo variables hote hain jinhe override karna aasan hota hai (lowest precedence). `vars/` mein wo variables hote hain jo role ki internal logic ka hissa hain aur aasaani se override nahi hone chahiye (very high precedence).
 
-## Troubleshooting Guide
+**Advanced / Production Scenario:**
+**Q:** Tumhare paas ek bahut badi `secrets.yml` file hai, aur tum sirf ek specific variable (e.g. `db_password`) ko encrypt karna chahte ho, puri file ko nahi. Kaise karoge?
+**A:** Main "Vault String Encryption" use karunga. `ansible-vault encrypt_string 'MySecretPass' --name 'db_password'` run karunga. Ye mujhe ek encrypted block dega jise main seedha apni normal YAML file mein paste kar sakta hu. Isse PR review mein git diff dekhna bhi aasan ho jata hai (sirf ek variable change hota hai).
 
-| Problem | Likely Cause | Step-by-Step Fix |
-|---------|-------------|------------------|
-| `ERROR! Decryption failed (no vault secrets were found)` | Forgot to pass vault password | You ran `ansible-playbook` without `--ask-vault-pass` or `--vault-password-file`. |
-| Role tasks are not executing | Wrong folder structure | Ansible strictly looks for `tasks/main.yml`. If you named it `install.yml`, Ansible will ignore it unless you explicitly use `import_tasks` inside `main.yml`. |
-| `ERROR! the role 'mysql' was not found` | Role path issue | Ansible looks for roles in a `roles/` directory relative to the playbook, or in `/etc/ansible/roles`. Check your folder paths or `roles_path` in `ansible.cfg`. |
-| Variable in role isn't updating when I pass `-e` | Using `vars/` instead of `defaults/` | Variables in a role's `vars/main.yml` have very high precedence and are hard to override. If a variable is meant to be overridden by the user, put it in `defaults/main.yml`. |
-| CI Pipeline hangs forever | Prompting for Vault password | The pipeline is waiting for terminal input. You must use `--vault-password-file` in automated environments. |
+**Q:** Jenkins pipeline (CI/CD) mein Vault password kaise pass karoge bina kisi interactive prompt ke?
+**A:** Main Jenkins Credentials Manager mein Vault password ko as a secret text save karunga. Pipeline script (Jenkinsfile) mein use as environment variable load karunga, ek temporary file `.vault_pass` mein echo karunga, playbook ko `--vault-password-file .vault_pass` ke sath run karunga, aur run khatam hone ke baad `rm -f .vault_pass` kar dunga secure rahne ke liye.
 
----
+## Production Scenarios
+**Scenario:** "Developer bol raha hai ki usne webserver role ko playbook mein add kiya par configuration change nahi ho rahi aur Nginx restart nahi ho raha."
+**How to think:** Agar configuration apply nahi hui, matlab templates properly override nahi hue, ya handler trigger nahi hua.
+**Where to check:**
+1. Check if the task that copies the template has `notify: Restart Nginx`.
+2. Check `handlers/main.yml` if the name exactly matches the `notify` string.
+3. Check variables precedence. Shayad developer ne wrong level pe variable define kiya hai (e.g. `vars` inside role overriding playbook vars).
+**Resolution:** Fix handler name mismatch. Ensure role defaults are used instead of hardcoding values in `vars/main.yml`.
 
-## Real-World Job Scenario
+## Commands
+| Command | Purpose | Syntax | Danger Level | When to use |
+|---------|---------|--------|--------------|-------------|
+| `ansible-galaxy init` | Naya role structure banata hai | `ansible-galaxy init <role_name>` | Low | Naya role banana ho. |
+| `ansible-galaxy install` | Galaxy se roles download karta hai | `ansible-galaxy install -r requirements.yml` | Low | Third-party roles setup karte time. |
+| `ansible-vault create` | Nayi encrypted YAML file banata hai aur editor kholta hai | `ansible-vault create secrets.yml` | Low | Naye secrets banane par. |
+| `ansible-vault encrypt` | Plain-text file ko encrypt karta hai | `ansible-vault encrypt file.yml` | High | Agar credentials ko Git me push karne se pehle secure karna ho. |
+| `ansible-vault decrypt` | File se encryption hata kar plain text karta hai | `ansible-vault decrypt file.yml` | High (Data exposed) | Agar temporary clear-text check karna ho (Do not push this!). |
+| `ansible-vault edit` | Encrypted file ko safely Vim/Nano mein kholta hai | `ansible-vault edit secrets.yml` | Medium | Secrets update karne ho bina file ko permanently decrypt kiye. |
+| `ansible-vault rekey` | File ka vault password badalta hai | `ansible-vault rekey secrets.yml` | Medium | Security compliance (password rotation) ke time. |
+| `ansible-vault encrypt_string`| Ek specific text string ko encrypt karta hai | `ansible-vault encrypt_string 'pass123' --name 'db_pass'` | Low | File ke ek single variable ko encrypt karne ke liye. |
 
-> [!info] Scenario
-> **Situation:** "A team has a monolithic 800-line playbook `deploy.yml` that configures Docker, sets up the firewall, creates users, and deploys a Node.js app. The Security team wants to use the exact same Docker setup on their Bastion host."
+## Cheat Sheet
+- **Command:** `ansible-vault edit secrets.yml` (Safest way to modify existing secrets).
+- **Automation Execution:** `ansible-playbook deploy.yml --vault-password-file ~/.secret_pass`
+- **Role Folder Structure (Important):** `tasks/`, `handlers/`, `defaults/`, `vars/`, `files/`, `templates/`, `meta/`
+- **Tip:** Agar ek task likhne par lage ki ise dusre server mein bhi use karenge, stop! Use ek role mein convert kar do.
 
-**What Junior DevOps Does:**
-Copies the 200 lines related to Docker from `deploy.yml` and pastes it into a new `bastion.yml` playbook. Next month, a Docker vulnerability is found, and they forget to update the copy-pasted code in `bastion.yml`.
+## SOP & Runbook & KB Article
+**SOP: Upgrading an Ansible Role from Galaxy**
+- **Purpose:** Update a community role used in infrastructure.
+- **Scope:** All playbooks using the role.
+- **Procedure:**
+  1. Update version tag in `requirements.yml`.
+  2. Run `ansible-galaxy install -r requirements.yml --force`.
+  3. Run playbook in dry-run mode (`--check`).
+  4. If green, apply to staging, then production.
+- **Validation:** Check the application health endpoint.
+- **Rollback:** Revert `requirements.yml` to the old version and re-run installation and playbook.
 
-**Escalation Trigger:**
-Code duplication leads to configuration drift and unpatched vulnerabilities across different server types.
+## Best Practices & Beginner Mistakes
+**Best Practices:**
+- **Variable Precedence:** Hamesha user se lene wale variables `defaults/main.yml` me rakho, `vars/main.yml` me nahi.
+- **Use String Encryption:** Pure file ko encrypt karne se accha hai sirf secret values ko `encrypt_string` se encrypt karo. Git merge conflicts kam aayenge.
+- **Readme.md:** Har custom role ke andar `README.md` likho jisme explain karo ki konsi variables zaroori hain.
+- **Ansible Lint:** Apne roles par hamesha `ansible-lint` chalao code quality check ke liye.
 
-**Senior Engineer Resolution:**
-1. Rips out the Docker logic and runs `ansible-galaxy init roles/docker-setup`.
-2. Moves the tasks, files, and variables into the Role.
-3. In `deploy.yml`, replaces 200 lines with:
-   `roles: - role: docker-setup`
-4. In `bastion.yml`, uses the exact same:
-   `roles: - role: docker-setup`
-5. Fast forward: When the vulnerability is announced, the Senior updates the `docker-setup` role *once*, and both playbooks automatically inherit the security patch.
+**Beginner Mistakes:**
+- **Mistake:** Playbook ke andar hundreds of lines likh dena. (Monolith antipattern) -> **Correct Approach:** Use Roles.
+- **Mistake:** Vault password ko GitHub repository mein commit kar dena. -> **Correct Approach:** Use secret managers (AWS Secrets Manager, Azure Key Vault) ya Jenkins credentials.
+- **Mistake:** Hardcoding IP addresses in role files. -> **Correct Approach:** Hamesha dynamic inventory aur variables (`{{ ansible_default_ipv4.address }}`) ka use karo.
 
-**Lesson Learned:**
-Roles enforce modularity. If you find yourself copying and pasting tasks between playbooks, stop immediately and abstract it into a Role.
+## Advanced Concepts
+- **Role Dependencies:** `meta/main.yml` ke through. Agar apka `php-app` role hai, toh wo require kar sakta hai ki `nginx` aur `mysql` role uske pehle chalne chahiye. Ansible dependency chaining khud handle kar leta hai.
+- **Ansible Vault IDs:** Aap multiple vault passwords use kar sakte ho. E.g., Dev vault, Prod vault. Inko IDs dete hain (e.g., `--vault-id dev@prompt --vault-id prod@~/.prod_pass`).
 
----
+## Related Topics & Flashcards & Revision
+**Related Topics:**
+- [[06-IaC/ANS-02 Ansible Playbooks|Ansible Playbooks - Basics]]
+- [[05-CI-CD/CICD-02 Jenkins|Jenkins - Vault Pipeline Integration]]
+- [[07-Cloud/AWS-05 AWS Secrets Manager|AWS Secrets Manager vs Ansible Vault]]
 
-## Interview Questions
+**Flashcards:**
+- **Q:** How to run playbook with vault without prompt? **A:** `--vault-password-file <file_path>`
+- **Q:** What folder has lowest variable precedence in a Role? **A:** `defaults/main.yml`
 
-**Q1 (Conceptual):** What is the difference between `defaults` and `vars` inside an Ansible Role?
-**A:** Both store variables, but they have opposite precedence levels. `defaults/main.yml` has the absolute lowest precedence; it is designed for fallback values that users of the role are expected to override. `vars/main.yml` has very high precedence; it is used for internal role logic that users should almost never override.
+**Revision:**
+- 5 Min: Revise Role structure and Vault commands cheat sheet.
+- Interview: Focus on string encryption, variable precedence (defaults vs vars), and CI/CD vault integration.
 
-**Q2 (Practical):** You have a large `secrets.yml` file, but you only want to encrypt one specific variable (`db_password`) instead of the whole file. How do you do this?
-**A:** I would use Ansible Vault's string encryption. I run `ansible-vault encrypt_string 'SuperSecret123!' --name 'db_password'`. It generates an encrypted block of text. I can copy and paste that block directly into my normal, unencrypted YAML file.
+## Real Production Logs & Commands & Decision Tree
+**Vault Decryption Error Log:**
+```
+ERROR! Attempting to decrypt but no vault secrets found
+```
+**Explanation:** Ansible ne playbook par run kiya but file vault encrypted nikli aur tumne password nahi diya. Command mein `--ask-vault-pass` add karo ya `ansible.cfg` mein vault password file ka path set karo.
 
-**Q3 (Scenario-based):** You downloaded a role from Ansible Galaxy to install Redis. It works, but you need it to also create a specific custom log directory after Redis installs. You cannot edit the downloaded role directly. How do you achieve this?
-**A:** In my master playbook, I would use `pre_tasks` or `post_tasks`. I would call the Redis role in the `roles:` section, and define my custom directory creation task in the `post_tasks:` section, guaranteeing it runs immediately after the role finishes.
-
-**Q4 (Deep dive):** Explain how role dependencies work in `meta/main.yml`.
-**A:** If Role A relies on Role B (e.g., a PHP role relies on a WebServer role), you can define this in Role A's `meta/main.yml` under the `dependencies:` block. When you apply a playbook containing Role A, Ansible will automatically detect the dependency and execute Role B *before* executing Role A.
-
-**Q5 (Trick/Gotcha):** Can a Handler in Role A be notified by a Task in Role B?
-**A:** Yes. By default, all handlers across all roles included in a play are loaded into a global namespace. A task in Role B can `notify: Restart Nginx`, and it will trigger the handler defined in Role A, provided the handler names exactly match. (This can also cause naming collisions, which is why handler names should be highly specific).
-
----
-
-## Related Notes
-
-[[00-MOC/Master-Index|Master Index]]
-[[06-IaC/ANS-02 Ansible Playbooks|Ansible Playbooks]]
-[[05-CI-CD/CICD-02 Jenkins|Jenkins (For Vault CI Integration)]]
+**Decision Tree (Task Fail in Role):**
+```mermaid
+graph TD
+    A[Role Task Fail] --> B{Module error ya Variable Error?}
+    B -->|Variable Not Found| C[Check defaults/main.yml]
+    B -->|Permission Denied| D[Check become: yes is present in task]
+    B -->|Handler not running| E[Check if notify name matches handler name]
+    E --> F[Run playbook with -v or -vvv for verbosity]
+```

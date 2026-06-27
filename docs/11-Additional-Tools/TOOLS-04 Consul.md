@@ -1,6 +1,6 @@
 ---
-tags: [devops, service-discovery, consul, networking]
-aliases: [Consul]
+tags: [devops, service-discovery, consul, networking, hashicorp]
+aliases: [Consul, HashiCorp Consul]
 created: 2025-06-27
 status: #complete
 difficulty: #intermediate
@@ -9,62 +9,81 @@ cert-relevant: #none
 
 # Consul
 
-> [!abstract] Overview
-> Consul, by HashiCorp, is a multi-cloud service networking platform. It provides a distributed, highly available Key-Value store, robust Service Discovery, and Health Checking. In dynamic microservices environments where IP addresses constantly change, Consul acts as the central directory, allowing services to find each other by name rather than hardcoded IPs, forming the backbone of service mesh architectures.
+# Overview
+**Ye kya hai?**
+Consul, by HashiCorp, ek multi-cloud service networking platform hai. Iske 3 main kaam hain: Service Discovery, Health Checking, aur Key-Value (KV) store.
+Aajkal ke dynamic microservices environment mein jahan containers ka IP address hamesha change hota rehta hai, Consul ek central "Telephone Directory" ki tarah kaam karta hai. Services ek dusre ko IP se nahi, balki unke "Naam" se find karti hain.
 
-## Concept Overview (What/Why/Where/Responsibility Split)
+**Kyu use hota hai?**
+Jab 100+ microservices chal rahi ho, toh har kisi ka IP manually track karna impossible hai. Consul automatically track karta hai ki kaunsi service kahan chal rahi hai aur kya wo healthy hai.
 
-**What is it?**
-Imagine a dynamic environment where an API container gets recreated and its IP changes. How does the frontend know the new IP? Consul solves this. Services register themselves with Consul when they start. Consul constantly health-checks them. Other services query Consul (via API or DNS) to find healthy instances.
+**Real life example / Simple analogy:**
+Socho Consul ek 'Phonebook' ya 'JustDial' hai. Agar `Web` server ko `Database` se baat karni hai, toh use DB ka IP yaad rakhne ki zaroorat nahi. Wo Consul se puchega, "Bhai DB ka address kya hai?". Consul check karega kaunsa DB server zinda (healthy) hai aur uska address de dega. Naya server aayega toh wo apna naam Consul me likhwa dega (Register).
 
-*Hindi Explanation:*
-*Consul ek 'Telephone Directory' (Phonebook) ki tarah kaam karta hai. Agar Web server ko Database se baat karni hai, toh use IP yaad rakhne ki zaroorat nahi. Wo Consul se puchega, "Bhai DB ka address kya hai?". Consul check karega kaunsa DB server zinda (healthy) hai aur uska address de dega. Jab bhi koi naya server aata hai, wo apna naam Consul me likhwa deta hai (Register).*
+**Real production use-case:**
+Production mein jab AWS Auto Scaling naye EC2 instances ya EKS naye pods banata hai, toh unka IP dynamic hota hai. Consul ensure karta hai ki traffic hamesha naye aur healthy IPs par hi jaye.
 
-**Why use it?**
-*   **Service Discovery:** Decouple services from static IP configurations.
-*   **Health Checking:** Prevent traffic from being sent to failed instances automatically.
-*   **KV Store:** Store dynamic configuration, feature flags, or leader election data safely.
-*   **Service Mesh:** Consul Connect secures service-to-service communication with mTLS.
-
-**Where is it used?**
-In microservices architectures running on bare metal, VMs, or mixed environments (e.g., hybrid cloud where some apps are in K8s, some in EC2) to provide a unified service registry and routing.
-
-**Responsibility Split**
-*   **Platform/DevOps Engineer:** Sets up the Consul cluster (Servers), configures gossip protocols, and ensures high availability.
-*   **Application Developer:** Adds Consul agents/SDKs to their code to register the service and read configs from the KV store.
-
-## Technical Deep Dive
-
-### 1. Consul Architecture (Client-Server)
-Consul operates a cluster consisting of **Servers** and **Clients**.
-*   **Consul Servers:** Maintain the cluster state, store the KV data, handle replication using the Raft consensus algorithm, and respond to queries. You typically need 3 or 5 servers for HA.
-*   **Consul Clients (Agents):** Run on every node (VM/container) where applications run. They are lightweight. They register services, perform local health checks, and forward queries to the Servers. They communicate via a LAN Gossip protocol.
-
-### 2. Service Discovery vs DNS
-Consul provides two primary ways to discover services:
-*   **HTTP API:** Applications can query `http://localhost:8500/v1/catalog/service/web` to get a JSON list of IPs for the 'web' service.
-*   **DNS Interface:** Consul runs a DNS server (default port 8600). You can ping `web.service.consul`, and Consul will resolve it to the IP of a healthy web server. This requires zero code changes in legacy apps.
-
-### 3. Consul vs etcd vs ZooKeeper
-All three are distributed KV stores, but their focus differs:
-*   **etcd:** Primarily the backbone of Kubernetes. Fast, simple KV store. Lacks built-in service discovery DNS or health checks out-of-the-box.
-*   **ZooKeeper:** Older, Java-based, used heavily in Hadoop/Kafka ecosystems. Complex to operate.
-*   **Consul:** First-class support for Service Discovery, rich health checking, multiple datacenters support, and a built-in UI.
-
-## Step-by-Step Lab
-
-**Scenario:** Spin up a single-node Consul server using Docker, register a dummy web service, and test DNS discovery.
-
-**Step 1: Start Consul in Development Mode**
-*Dev mode runs a single server in-memory, do not use in prod.*
-```bash
-docker run -d --name consul-dev -p 8500:8500 -p 8600:8600/udp hashicorp/consul agent -dev -client=0.0.0.0
-# Consul UI is now available at http://localhost:8500
+**Architecture (Mermaid Diagram)**
+```mermaid
+graph TD
+    Client1[Web App - Consul Agent] -->|Queries DNS/HTTP| Server1(Consul Server - Leader)
+    Client2[DB - Consul Agent] -->|Registers & Health Checks| Server2(Consul Server - Follower)
+    Client3[Cache - Consul Agent] -->|Gossip Protocol| Server3(Consul Server - Follower)
+    
+    Server1 --- Server2
+    Server2 --- Server3
+    Server3 --- Server1
+    
+    subgraph Consul Cluster
+    Server1
+    Server2
+    Server3
+    end
 ```
 
-**Step 2: Create a Service Definition File**
+# Working
+**Internal working:**
+Consul ek Server-Client architecture par chalta hai. 
+- **Consul Servers:** Cluster ka state, KV data, aur Raft consensus (leader election) handle karte hain. HA ke liye 3 ya 5 servers hote hain.
+- **Consul Clients (Agents):** Har EC2 instance/Node par chalte hain. Ye lightweight hote hain. Inka kaam hai apni node ki services ko register karna, unka health check karna, aur DNS/HTTP queries ko server tak bhejna.
+
+**Data flow & Protocols:**
+- **LAN Gossip (Port 8301 UDP/TCP):** Agents aapas mein baat karke dead nodes detect karte hain (Serf protocol).
+- **Raft (Port 8300 TCP):** Servers aapas mein state replicate karte hain.
+- **DNS (Port 8600 TCP/UDP):** Apps dusri services ko resolve karti hain (`app.service.consul`).
+- **HTTP/HTTPS (Port 8500/8501 TCP):** API queries aur UI ke liye.
+
+# Installation
+**Prerequisites:** 
+Linux server, basic networking knowledge. Docker for local lab.
+
+**Installation (Ubuntu):**
+```bash
+# Add HashiCorp GPG key and repo
+wget -O- https://apt.releases.hashicorp.com/gpg | sudo gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg
+echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/hashicorp.list
+
+# Install Consul
+sudo apt update && sudo apt install consul
+```
+
+**Verification:**
+```bash
+consul version
+```
+
+# Practical Lab
+**Scenario:** Single-node Consul server Docker me chalana, ek dummy service register karna, aur DNS se resolve karna.
+
+**Step 1: Start Consul in Development Mode**
+*(Note: Dev mode RAM me chalta hai, prod me mat use karna!)*
+```bash
+docker run -d --name consul-dev -p 8500:8500 -p 8600:8600/udp hashicorp/consul agent -dev -client=0.0.0.0
+```
+*UI URL: http://localhost:8500*
+
+**Step 2: Create a Service Definition File (`web-service.json`)**
 ```json
-// Create web-service.json
 {
   "ID": "web1",
   "Name": "web",
@@ -77,77 +96,138 @@ docker run -d --name consul-dev -p 8500:8500 -p 8600:8600/udp hashicorp/consul a
   }
 }
 ```
-*(In reality, the Address would be your actual container/VM IP, and the check would hit an actual /health endpoint).*
 
-**Step 3: Register the Service via HTTP API**
+**Step 3: Register the Service (API ke through)**
 ```bash
 curl -X PUT --data-binary @web-service.json http://localhost:8500/v1/agent/service/register
 ```
 
-**Step 4: Verify Service in Consul**
-Open your browser to `http://localhost:8500`. Click "Services". You should see `web` passing its health check.
-
-**Step 5: Query via Consul DNS**
-We mapped Consul's DNS port 8600 to localhost. Let's query it using `dig`.
+**Step 4: Query via Consul DNS**
+Consul automatically DNS banata hai `.consul` TLD ke sath.
 ```bash
-dig @127.0.0.1 -p 8600 web.service.consul
-# Look at the ANSWER SECTION:
-# web.service.consul.     0       IN      A       192.168.1.50
-```
-*Notice it returned the exact IP we registered.*
-
-**Step 6: Write to the Key-Value Store**
-```bash
-curl -X PUT -d 'prod-db.example.com' http://localhost:8500/v1/kv/config/myapp/db_host
-# Read it back
-curl http://localhost:8500/v1/kv/config/myapp/db_host?raw
-# Output: prod-db.example.com
+dig @127.0.0.1 -p 8600 web.service.consul +short
+# Output aayega: 192.168.1.50
 ```
 
-## Common Commands Cheat Sheet
+**Step 5: Write/Read from KV Store**
+```bash
+# Write
+curl -X PUT -d 'prod-db.example.com' http://localhost:8500/v1/kv/myapp/db_host
+# Read
+curl http://localhost:8500/v1/kv/myapp/db_host?raw
+```
 
-| Command | What It Does | Real Example |
-| :--- | :--- | :--- |
-| `consul agent -dev` | Starts a single-node in-memory server (for testing) | `consul agent -dev` |
-| `consul members` | Lists all nodes in the Consul cluster via Gossip | `consul members` |
-| `consul kv put` | Writes data to the Key-Value store | `consul kv put redis/port 6379` |
-| `consul kv get` | Reads data from the KV store | `consul kv get redis/port` |
-| `consul catalog services` | Lists all registered services | `consul catalog services` |
-| `consul reload` | Reloads agent configuration without downtime | `consul reload` |
-| `consul join` | Tells an agent to join a cluster | `consul join 10.0.0.5` |
-| `dig @localhost -p 8600` | Tests DNS resolution against Consul | `dig @127.0.0.1 -p 8600 db.service.consul` |
+# Daily Engineer Tasks
+- **L1/L2 Engineer:** Health check alerts ko monitor karna. Dead nodes ko cluster se force-leave karna.
+- **L3/Senior Engineer:** Consul cluster ki health, Raft latency, aur backup/restore operations handle karna.
+- **DevOps/Cloud Engineer:** Consul cluster ko Terraform se provision karna, TLS/Gossip encryption set karna, Consul Template aur Vault ke sath integrate karna.
 
-## Troubleshooting Guide
+# Real Industry Tasks
+- **Cluster Upgrade:** Zero downtime ke sath Consul versions upgrade karna (rolling upgrade).
+- **Service Mesh Implementation:** Consul Connect (mTLS) enable karna taaki do services aapas me secure encrypted communication kar sake bina code change kiye.
+- **Cross-Datacenter Federation:** AWS (us-east-1) ke Consul ko Azure (eastus) ke Consul se connect karna multi-cloud routing ke liye.
 
-| Problem | Likely Cause | Step-by-Step Fix |
-| :--- | :--- | :--- |
-| DNS query returns NXDOMAIN | Service is failing its health check | 1. Check Consul UI.<br>2. If health check fails, Consul removes it from DNS.<br>3. Fix the underlying app or correct the health check URL in the config. |
-| Agent won't join cluster | Gossip protocol (UDP 8301) blocked | 1. Ensure firewalls allow TCP/UDP 8301 between all agents and servers.<br>2. Check `consul members`. |
-| Split-brain (Cluster has no leader) | Network partition or lost quorum | 1. Ensure you have 3 or 5 servers.<br>2. If 2 out of 3 fail, quorum is lost. Recover via `peers.json` manual intervention. |
-| `rpc error: No cluster leader` | Servers have not elected a leader | 1. Check server logs.<br>2. Ensure `--bootstrap-expect` is set correctly on servers (e.g., 3). |
-| Apps not dynamically updating configs | App not watching KV changes | 1. Use a tool like `consul-template` to rewrite config files and reload apps when KV data changes. |
+# Troubleshooting
+- **Problem:** Split-brain (Cluster has no leader)
+  - **Symptoms:** `rpc error: No cluster leader` in logs. No new writes are accepted.
+  - **Root Cause:** Network partition ya majority nodes (quorum) ka down ho jana. Example: 3 me se 2 server down.
+  - **Resolution:** `peers.json` banakar bache hue nodes ko manually raft peers declare karna padta hai taaki nayi election ho sake. (Disaster Recovery).
 
-## Real-World Job Scenario
+- **Problem:** DNS returning NXDOMAIN for an existing service.
+  - **Symptoms:** `dig app.service.consul` gives NXDOMAIN.
+  - **Root Cause:** Service fail ho chuki hai apni health check mein. Consul ne use DNS se hata diya hai.
+  - **Resolution:** Consul UI me jaao, dekho "Failing Checks". App ke logs check karo ki /health endpoint 200 OK kyu nahi de raha.
 
-**Scenario:** A company has an application that connects to a Master Database. When the Master fails, the DBA promotes the Replica to Master. However, someone has to manually update the config files on 50 web servers with the new DB IP and restart them.
+# Interview Preparation
+**1. Consul vs etcd vs ZooKeeper me kya difference hai?**
+- *Expected Answer:* Teeno distributed KV store hain. `etcd` Kubernetes ka backbone hai, fast hai but usme in-built DNS service discovery nahi hai. `ZooKeeper` Hadoop/Kafka ecosystem me use hota hai, thoda purana aur complex hai. `Consul` specially Service Discovery aur Health Checks ke liye bana hai aur isme out-of-the-box DNS server aur UI hota hai.
 
-*   **Junior Engineer's Action:** Writes an Ansible playbook to automate pushing the new IP to all 50 servers. It's faster than manual, but still requires human intervention to trigger the playbook, causing 5 minutes of downtime.
-*   **Senior Engineer's Action:** Implements Consul. The DB promotion script simply updates a key in Consul KV: `consul kv put config/db_primary_ip 10.x.x.x`. The web servers run `consul-template` in the background, which watches this key. The moment the key changes, `consul-template` rewrites the web server config locally and reloads the web process. Zero-touch, sub-second failover.
+**2. Gossip protocol kya hota hai?**
+- *Expected Answer:* Ye ek decentralized peer-to-peer communication protocol hai. Ek node randomly dusre nodes ko apni state batata hai. Jaise virus failta hai, waise hi cluster state ki information (e.g., Node X is down) milliseconds me pure cluster me fail jati hai bina central server par load daale.
 
-## Interview Questions
+**3. Agar 5 node ka Consul Server cluster hai, aur 2 down ho jayein toh kya hoga?**
+- *Expected Answer:* Cluster chalta rahega. Raft consensus require karta hai (N/2)+1 nodes for quorum. 5 node me quorum 3 hota hai. Agar 2 down hain, tab bhi 3 bache hain, toh cluster read/write operation perform karta rahega.
 
-1.  **Q: How does Consul handle Service Discovery?**
-    *   **A:** Services register themselves with the local Consul agent. Consul aggregates this globally. Other services can then find instances by querying Consul's HTTP API or using Consul's built-in DNS server (e.g., querying `app.service.consul`).
-2.  **Q: What is the purpose of Health Checks in Consul?**
-    *   **A:** Health checks ensure that Consul only routes traffic to healthy service instances. If an instance's health check fails, Consul immediately removes it from the DNS responses and API results, preventing failed requests.
-3.  **Q: Explain the difference between Consul Servers and Consul Clients (Agents).**
-    *   **A:** Servers are the brain; they hold the KV data, manage the Raft consensus, and maintain cluster state (require 3-5 nodes). Clients run on every compute node; they are lightweight, handle local health checks, register services, and forward queries to the Servers.
-4.  **Q: What is a Gossip protocol, and how does Consul use it?**
-    *   **A:** Gossip is a peer-to-peer communication protocol where nodes share information with random neighbors, quickly propagating data across the cluster. Consul uses it (via Serf) to manage cluster membership, detect node failures quickly, and broadcast events without putting load on the central Servers.
-5.  **Q: Why use Consul KV over standard environment variables for configuration?**
-    *   **A:** Environment variables require a container restart to update. Consul KV allows for dynamic, real-time configuration changes. Combined with tools like `consul-template`, applications can update their configuration on the fly without downtime.
+**4. Consul KV vs Environment Variables me kya better hai?**
+- *Expected Answer:* Env variables ke liye container/app restart karna padta hai. Consul KV dynamic hai. Agar aap `consul-template` use karte ho, toh value change hote hi aapki application apna config reload kar legi bina downtime ke.
 
-## Related Notes
-- [[Master Index]]
-- [[KUBERNETES-04 Services and Ingress]]
+# Production Scenarios
+**Scenario: Database Failover Sub-Second Routing**
+- **How to think:** Ek legacy app hai jiska Master DB ka IP hardcoded hai. DB team jab Master fail hota hai toh Slave ko Master banati hai, par App team ko batane aur config change karne me 10 minute ka downtime lagta hai.
+- **Resolution:** Consul implement karo. DB team Consul KV me `config/db_primary_ip` ko update karegi script ke through. Web servers pe `consul-template` chalega jo KV ko watch karega. Jaise hi IP change hoga, wo nginx/app ka config rewrite karke graceful reload kar dega. Zero human intervention, sub-second failover.
+
+# Commands
+| Command | Purpose |
+| :--- | :--- |
+| `consul members` | Cluster ke sabhi agents/servers ki list aur status (alive/failed) dikhata hai. |
+| `consul info` | Agent aur server ki detailed stats (raft, memory, datacenter) batata hai. |
+| `consul kv put db/port 3306` | Key-value store me data likhna. |
+| `consul kv get db/port` | KV store se data read karna. |
+| `consul catalog services` | Cluster me registered saari services ki list nikalna. |
+| `consul force-leave <node>` | Agar koi dead node permanently delete karna ho cluster se. |
+| `consul reload` | Agent ki configuration hot-reload karna bina process kill kiye. |
+
+# Cheat Sheet
+- **Ports:** 8500 (HTTP/UI), 8600 (DNS), 8300 (Server RPC), 8301 (LAN Gossip).
+- **Quorum Rule:** `(N/2)+1` (3 node cluster = 2 ki quorum, 5 node = 3).
+- **Log Location:** `/var/log/consul/` ya `journalctl -u consul`
+- **DNS Query Format:** `<service>.service.<datacenter>.consul` (default DC is dc1)
+
+# SOP & Runbook & KB Article
+**SOP: Adding a New Consul Server to an Existing Cluster**
+1. **Purpose:** Increase fault tolerance.
+2. **Procedure:** Install Consul -> Copy TLS certs -> Configure `consul.hcl` with `retry_join` pointing to existing servers -> Start service.
+3. **Validation:** Run `consul members` and ensure the new node shows up as `server` and `alive`.
+
+**Runbook: Consul High Memory Usage Alert**
+1. **Detection:** Prometheus/Grafana alerts on memory > 85%.
+2. **Investigation:** Check if some app is dumping huge data into Consul KV (Consul KV is not for large objects). Run `consul kv get -recurse` (careful in prod) or check metrics.
+3. **Resolution:** Delete unnecessary large keys. Ensure snapshot retention is configured.
+
+# Best Practices & Beginner Mistakes
+**Best Practices:**
+- Server nodes ko humesha odd number me rakho (3, 5, 7) for Raft quorum.
+- Gossip traffic (8301) aur RPC traffic (8300) ko hamesha encrypt karo (TLS & Gossip Key).
+- Consul UI (8500) ko direct public internet par kabhi expose mat karo.
+- Automated snapshot backups enable karke rakho S3 bucket mein.
+
+**Beginner Mistakes:**
+- Consul KV me bade files (megabytes ki) store karna. (Consul memory me KV rakhta hai, server crash ho jayega).
+- `consul agent -dev` ko production me use kar lena.
+- Firewall rules me sirf TCP allow karna. Gossip protocol ke liye UDP zaroori hai.
+
+# Advanced Concepts
+**Consul Connect (Service Mesh):**
+Aajkal Consul sirf DNS nahi, balki Service Mesh ka kaam bhi karta hai. Sidecar proxies (Envoy) har app ke sath chalte hain. Jab App A ko App B se baat karni hoti hai, toh traffic Envoy proxy ke through jata hai, jo automatic mTLS encryption (Mutual TLS) lagata hai aur Intention rules check karta hai (ki kya A ko B se baat karne ki permission hai?).
+
+**Prepared Queries:**
+Agar "Nearest" healthy service dhundni ho multi-region me, toh Prepared Queries use hoti hain (Geo-failover routing).
+
+# Related Topics & Flashcards & Revision
 - [[TERRAFORM-01 Terraform Basics]]
+- [[KUBERNETES-04 Services and Ingress]]
+- [[TOOLS-03 Vault]] (Usually Consul KV is used as a backend for HashiCorp Vault)
+
+**Flashcards:**
+- Q: What port is Consul DNS? A: 8600
+- Q: What consensus protocol does Consul use? A: Raft
+- Q: Does Gossip use TCP or UDP? A: Both, mostly UDP.
+
+# Real Production Logs & Commands & Decision Tree
+**Sample Error Log:**
+```log
+[WARN] consul: Health check for service 'web' failed: Get "http://10.0.0.5/health": dial tcp 10.0.0.5:80: connect: connection refused
+```
+*Meaning:* Consul agent web service ko HTTP hit maar raha hai par connection refuse ho gaya. Nginx/App container crash ho gaya hai. Action: Start the app.
+
+**Decision Tree (Troubleshooting Resolution):**
+```mermaid
+graph TD
+    A[Can't resolve app.service.consul] --> B{Is Consul Agent running locally?}
+    B -- No --> C[Start Consul Agent]
+    B -- Yes --> D{Is the service registered?}
+    D -- No --> E[Register the service]
+    D -- Yes --> F{Is the Health Check passing?}
+    F -- No --> G[Fix application/health endpoint]
+    F -- Yes --> H[Check DNS forwarding (e.g. CoreDNS/systemd-resolved) config]
+```

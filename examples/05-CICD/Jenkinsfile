@@ -1,0 +1,68 @@
+pipeline {
+    agent any 
+    
+    options {
+        buildDiscarder(logRotator(numToKeepStr: '5'))
+        disableConcurrentBuilds()
+        timeout(time: 1, unit: 'HOURS')
+    }
+    
+    environment {
+        IMAGE_NAME = "godmode/app:${env.BUILD_ID}"
+        DOCKER_CREDENTIALS_ID = "dockerhub-creds"
+    }
+    
+    stages {
+        stage('Checkout') {
+            steps {
+                echo "Fetching code from SCM..."
+                // checkout scm
+            }
+        }
+        
+        stage('Build & Test') {
+            parallel {
+                stage('Unit Tests') {
+                    steps {
+                        echo "Running Unit Tests..."
+                        sh "sleep 2"
+                    }
+                }
+                stage('Security Scan') {
+                    steps {
+                        echo "Running Trivy Vulnerability Scan..."
+                        sh "sleep 2"
+                    }
+                }
+            }
+        }
+        
+        stage('Docker Build & Push') {
+            steps {
+                echo "Building Docker image ${IMAGE_NAME}..."
+                /*
+                script {
+                    withCredentials([usernamePassword(credentialsId: env.DOCKER_CREDENTIALS_ID, usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                        sh "echo \$DOCKER_PASS | docker login -u \$DOCKER_USER --password-stdin"
+                        sh "docker build -t ${IMAGE_NAME} ."
+                        sh "docker push ${IMAGE_NAME}"
+                    }
+                }
+                */
+            }
+        }
+    }
+    
+    post {
+        always {
+            echo "Cleaning up workspace to prevent disk full issues."
+            cleanWs()
+        }
+        success {
+            echo "Pipeline Passed! Sending Slack notification..."
+        }
+        failure {
+            echo "Pipeline Failed! Check logs and notify team."
+        }
+    }
+}

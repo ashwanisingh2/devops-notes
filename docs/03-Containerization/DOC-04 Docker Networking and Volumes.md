@@ -1,204 +1,218 @@
 ---
-tags: [devops, containerization, docker, networking, storage]
-aliases: [Docker Net & Vols]
+tags: [devops, containerization, docker, networking, storage, volume]
+aliases: [Docker Net & Vols, Docker Networking, Docker Volumes]
 created: 2025-06-27
 status: #complete
 difficulty: #intermediate
-cert-relevant: #none
+cert-relevant: #docker-cka
 ---
 
 # DOC-04 Docker Networking and Volumes
 
-> [!abstract] Overview
-> Containers are ephemeral and isolated by design. Without networking, they cannot talk to the internet, databases, or each other. Without volumes, all data is permanently destroyed the moment a container stops. Mastering Docker Networking and Volumes is the bridge between running simple stateless scripts and running stateful, production-ready, interconnected microservices.
+## Overview
+**Ye kya hai?** Docker containers by default isolated hote hain. Networking unhe aapas me aur internet se connect karta hai (jaise mobile network). Volumes containers ka data permanently store karte hain (jaise external hard drive), taaki agar container delete bhi ho jaye, data safe rahe.
 
----
+**Kyu use hota hai?** Stateless apps (jaise Nginx web server) bina data ke chal sakte hain, par Stateful apps (jaise MySQL, PostgreSQL) ka data save hona zaruri hai. Custom networks se hum DB aur Web server ko securely connect kar sakte hain, bina internet pe expose kiye.
 
-## Concept Overview
+**Real life example:**
+- Networking: Jaise ek office ka intercom (custom bridge network) jisme bahar se call nahi aa sakti, par andar ke log aapas me baat kar sakte hain.
+- Volumes: Jaise pen drive. Agar laptop (container) kharab ho jaye, toh pen drive nikal kar dusre laptop me lagao, data wahi milega.
 
-- **What it is** — **Networking** connects containers to each other and the outside world using different drivers (bridge, host). **Volumes** bypass the container's temporary filesystem to store data permanently on the host machine.
-- **Why DevOps engineers use it** — To persist database records (using volumes) across container upgrades, and to securely route traffic between microservices without exposing private databases to the public internet (using custom networks).
-- **Where you encounter this in a real job** — Recovering a Postgres database using a named volume backup, or debugging why a Node.js API container cannot resolve the IP address of a Redis container.
-- **Responsibility Split:**
-  - **Junior DevOps**: Maps host ports to container ports (`-p 8080:80`) and mounts local directories for dev (`-v $(pwd):/app`).
-  - **Mid DevOps**: Creates custom bridge networks for DNS isolation, and manages named volumes for databases.
-  - **Senior/SRE**: Uses `macvlan` for legacy network integration, writes backup automation scripts for volumes, and debugs MTU/iptables issues caused by Docker's network driver.
+**Industry kaha use karti hai?**
+Har production environment me! Database persistence ke liye volumes aur Microservices communication ke liye custom bridge networks standard hain.
 
-*Seedha simple mein: Networking matlab containers ki aapas ki mobile line. Volumes matlab containers ki permanent hard drive. Agar container (worker) mar bhi gaya, toh volume (hard drive) safe rehti hai, aur naya worker aake wahi se kaam shuru kar sakta hai.*
-
----
-
-## Technical Deep Dive
-
-### 1. Docker Network Drivers
-Docker uses pluggable network drivers. The most critical ones are:
-- **Bridge (Default)**: Creates a private internal network on the host. Containers on the *same* custom bridge network can resolve each other by name (DNS). Note: The default `docker0` bridge does *not* support automatic DNS resolution by container name; you must create a custom bridge network for that.
-- **Host**: The container shares the host's networking namespace completely. Port 80 in the container is port 80 on the host. It removes network isolation but offers maximum performance (no NAT overhead).
-- **None**: completely disables all networking for the container (used for highly secure, isolated processing).
-- **Macvlan**: Assigns a real MAC address to the container, making it look like a physical device on your company's actual network.
-
-### 2. DNS and Service Discovery
-When you create a custom bridge network (`docker network create my-net`), Docker runs an embedded DNS server at `127.0.0.11` inside every container attached to it. If you have a container named `db-prod`, any other container on `my-net` can simply connect to `http://db-prod`. Docker dynamically resolves this name to the internal IP address. This is the cornerstone of microservice communication.
-
-### 3. State Management: Volumes vs. Bind Mounts
-By default, files created inside a container are stored on a writable container layer. This is slow and deleted when the container is removed. To persist data, Docker offers:
-- **Named Volumes**: Managed entirely by Docker (stored in `/var/lib/docker/volumes/`). They are the most secure and performant option for production databases. Docker handles permissions and lifecycle.
-- **Bind Mounts**: Mounts a specific file or directory from your host machine (e.g., `/home/user/code`) into the container. Excellent for local development (live-reloading code) but terrible for production due to host filesystem dependency and permission nightmares.
-- **tmpfs**: Mounts data strictly in RAM. Fast and secure for sensitive data (secrets, keys), but lost on container stop.
-
----
-
-## Step-by-Step Lab
-
-> [!warning] Pre-requisites
-> - Docker Engine installed
-> - Terminal access
-
-### Step 1: Network Isolation and DNS
-```bash
-# Create a custom bridge network
-docker network create my-custom-net
-
-# Run a detached container on this network named 'db'
-docker run -d --name my-db --network my-custom-net nginx:alpine
-
-# Run a temporary troubleshooting container to ping the 'db' by NAME
-docker run --rm -it --network my-custom-net alpine sh -c "ping -c 3 my-db"
-
-# Expected output:
-# PING my-db (172.18.0.2): 56 data bytes
-# 64 bytes from 172.18.0.2: seq=0 ttl=64 time=0.081 ms
-```
-*Notice it resolved `my-db` to an IP automatically!*
-
-### Step 2: Bind Mounts (Local Development)
-```bash
-# Create a local file
-echo "Hello from Host" > index.html
-
-# Run Nginx, mounting the current directory to Nginx's html folder
-docker run -d --name bind-web -v $(pwd):/usr/share/nginx/html -p 8080:80 nginx:alpine
-
-# Change the file on the host
-echo "Updated live!" > index.html
-
-# The container sees the change instantly (test via curl localhost:8080)
-docker rm -f bind-web
+**Architecture (Mermaid Diagram)**
+```mermaid
+graph TD
+    Internet((Internet)) --> |Port 80/443| Host[Docker Host]
+    
+    subgraph Docker Custom Network
+        Web[Web Container Nginx] --> |Internal DNS: db-prod| DB[(Database Container)]
+    end
+    
+    Host --> |Port Mapping| Web
+    
+    subgraph Docker Volumes
+        Vol[Named Volume pg-data]
+    end
+    
+    DB -.-> |Mounts| Vol
 ```
 
-### Step 3: Named Volumes (Production Persistence)
+## Working
+**Internal Working:**
+- **Networking:** Docker Linux ke `namespaces`, `cgroups`, aur `iptables` use karta hai isolation aur traffic routing ke liye. Jab hum custom bridge network banate hain, Docker har container me ek embedded DNS server (127.0.0.11) inject karta hai, jisse containers ek dusre ko naam se resolve kar pate hain.
+- **Volumes:** Docker `/var/lib/docker/volumes/` path me host filesystem pe data store karta hai, bypassing the container's copy-on-write (CoW) filesystem. Isse performance fast hoti hai (Native I/O speed).
+
+**Data Flow / Request Flow:** User -> Host IP:Port -> Docker iptables NAT -> Container Network Interface -> Application.
+
+## Installation & Configuration
+Networking aur Volumes Docker daemon ka inbuilt part hain, alag se install nahi karna padta. Bas concepts aur commands clear hone chahiye.
+
+## Practical Lab
+**Step-by-step Implementation (CLI Method)**
+
+*Scenario: Ek web container (Nginx) aur ek database container (Postgres) deploy karna hai secure network aur persistent storage ke sath.*
+
+**Step 1: Network & Volume Creation**
 ```bash
-# Create a named volume for a database
+# Custom isolated network banao
+docker network create my-app-net
+
+# Database ke liye persistent volume banao
 docker volume create pg-data
-
-# Run Postgres, attaching the volume to the data directory
-docker run -d --name pg-db \
-  -e POSTGRES_PASSWORD=secret \
-  -v pg-data:/var/lib/postgresql/data \
-  postgres:14-alpine
-
-# Wait a few seconds, then kill and remove the container
-docker stop pg-db && docker rm pg-db
-
-# Expected output: Container is gone, but volume 'pg-data' remains safely on disk.
 ```
+*Expected Output: Network and Volume ID return hoga.*
 
-### Step 4: Restoring the Volume
+**Step 2: Database Container Start**
 ```bash
-# Run a BRAND NEW postgres container, but attach the OLD volume
-docker run -d --name pg-db-new \
-  -e POSTGRES_PASSWORD=secret \
+docker run -d \
+  --name my-postgres \
+  --network my-app-net \
   -v pg-data:/var/lib/postgresql/data \
-  postgres:14-alpine
-
-# Expected output: The new container boots instantly with all the old data intact.
+  -e POSTGRES_PASSWORD=supersecret \
+  postgres:15-alpine
 ```
+*Note: Humne `-p` (port mapping) use nahi kiya. DB bahar se accessible nahi hai!*
 
-### Step 5: System Cleanup
+**Step 3: Web Container Start (Troubleshooting/Test container)**
 ```bash
-# Volumes take up huge amounts of space. Clean up unused ones:
-docker volume prune -f
+# Nginx chalate hain aur DB ko ping karke dekhte hain
+docker run --rm -it \
+  --network my-app-net \
+  alpine sh -c "ping -c 3 my-postgres"
+```
+*Expected Output: `PING my-postgres (172.19.0.2): 56 data bytes...` (Resolution successful)*
 
-# Expected output:
-# Deleted Volumes: (lists any volumes not attached to a container)
+**Step 4: Cleanup**
+```bash
+docker rm -f my-postgres
+docker volume rm pg-data
+docker network rm my-app-net
 ```
 
-> [!tip] Pro Tip
-> When troubleshooting networking, use the `docker inspect <container_name>` command and scroll to the `"Networks"` section. It will show you the exact internal IP address, Gateway, and MAC address assigned to the container on that specific network.
+## Daily Engineer Tasks
+- **L1 Engineer:** `docker ps` aur `docker network ls` se network issues check karna. Developer ke dev environment me bind mounts (`-v $(pwd):/app`) troubleshoot karna.
+- **L2 Engineer:** Staging env me custom bridge networks create karna, orphaned volumes ko cleanup (`docker volume prune`) karna disk space bachane ke liye.
+- **L3/Senior Engineer:** Production me volume backup/restore strategies design karna. Host vs Bridge vs Macvlan networks ke architecture decisions lena. Iptables ke conflicts resolve karna.
+- **Production/SRE:** Ensure karna ki DB data loss na ho, zero-downtime volume migration scripts likhna, aur Docker networking overhead ki monitoring karna.
 
----
+## Real Industry Tasks
+- **Migration Ticket:** Old legacy MySQL container ka data naye server me move karna using volume backup and restore (Tarball method).
+- **Security CR (Change Request):** Exposed DB ports (`-p 3306:3306`) ko hata kar custom network pe move karna so they are only internally accessible.
+- **Maintenance Work:** `/var/lib/docker` full ho gaya hai disk space pe. `docker system prune --volumes -f` chala kar unused space recover karna.
 
-## Common Commands Cheat Sheet
+## Troubleshooting
+**Issue: Containers ek dusre ko naam se ping nahi kar pa rahe (DNS Resolution Failed)**
+- **Symptoms:** `curl: (6) Could not resolve host: my-backend`
+- **Root Cause:** Containers default `docker0` bridge pe chal rahe hain jisme automatic DNS nahi hota.
+- **Investigation:** `docker inspect <container-id>` aur check karo `"Networks"`.
+- **Resolution:** Naya custom network banao (`docker network create app-net`) aur dono ko usme attach karo (`docker network connect app-net container1`).
 
-| Command | What It Does | Real Example |
-|---------|-------------|--------------|
-| `docker network create` | Creates a new custom bridge network | `docker network create backend-net` |
-| `docker network ls` | Lists all Docker networks on the host | `docker network ls` |
-| `docker network connect` | Attaches a running container to a network | `docker network connect backend-net web1` |
-| `docker volume create` | Creates a persistent named volume | `docker volume create db-data` |
-| `docker volume ls` | Lists all named volumes | `docker volume ls` |
-| `docker volume prune` | Deletes all volumes NOT attached to a container | `docker volume prune -f` |
-| `docker run -v` | Mounts a volume or bind mount | `docker run -v my-vol:/app/data nginx` |
-| `docker run --network` | Specifies which network to join on startup | `docker run --network host nginx` |
+**Issue: Host folder bind mount kaam nahi kar raha, 'Permission Denied'**
+- **Symptoms:** Container logs me application crash ho rahi hai kyunki file write nahi ho pa rahi.
+- **Root Cause:** Host directory ka UID/GID aur container ke andar ke user ka UID/GID match nahi kar raha.
+- **Resolution:** Host me `chown -R 1000:1000 /path/to/folder` (Agar container user ka UID 1000 hai).
 
----
+## Interview Preparation
+- **Basic:** What is the default network in Docker? (Answer: Bridge). What is the difference between Bind mount and Volume? (Answer: Volume Docker manage karta hai, Bind mount directly host ka path hota hai).
+- **Intermediate:** Custom bridge vs default bridge me kya farq hai? (Answer: Custom bridge me internal DNS service discovery milti hai).
+- **Advanced:** Docker `--network host` kab use karenge? (Answer: Jab maximum network performance chahiye ya fir network monitoring tool jaise tcpdump chalana ho, isse NAT overhead hat jata hai, port mapping ki zarurat nahi padti).
+- **Scenario Based:** Agar main container delete kar du, toh uske sath attached named volume ka kya hoga? (Answer: Volume delete nahi hoga, wo `/var/lib/docker/volumes` me safe rahega).
+- **HR/Manager Round:** How do you ensure DB safety in containerized environments? (Answer: By strictly using Named Volumes, daily automated snapshot backups, and restricting network access via custom networks).
 
-## Troubleshooting Guide
+## Production Scenarios
+**Scenario: Production Website is Down - Database Connection Refused**
+- **How to think:** Web app DB se connect nahi kar pa rahi. Network issue ya DB down?
+- **Investigation Steps:**
+  1. `docker ps` (Check if DB container is running).
+  2. `docker logs web-app` (Check connection error).
+  3. `docker network inspect my-net` (Check IP and if both containers are in the same network).
+- **Root Cause:** DB container restart hua tha aur naya IP mil gaya, but web app abhi bhi purane IP pe connect karne ka try kar rahi thi kyunki DNS cache clear nahi hua, ya app DNS use nahi kar rahi IP hardcoded hai.
+- **Resolution:** App configuration ko hardcoded IP se hata kar container name (`db-prod`) pe update karna taaki Docker DNS IP dynamically resolve kare. `docker restart web-app`.
+- **Prevention:** Hamesha container DNS names use karein connection strings me.
 
-| Problem | Likely Cause | Step-by-Step Fix |
-|---------|-------------|------------------|
-| Containers can ping IPs but not names (DNS failing) | Using the default `docker0` bridge network | Docker's default bridge does not support DNS resolution. Create a custom network and attach containers to it. |
-| `Permission denied` when accessing files in a Bind Mount | Host user UID doesn't match container user UID | `chown` the host directory to match the UID expected inside the container (often 1000 or 999 for DBs). |
-| Port mapping ignores UFW/firewall rules and exposes DB to internet | Docker manipulates `iptables` directly | Never expose DB ports (`-p 3306:3306`) in production. If you must, bind to localhost: `-p 127.0.0.1:3306:3306`. |
-| Cannot delete a volume | A stopped/hidden container is still claiming it | Run `docker ps -a` to find the stopped container, `docker rm` it, then try `docker volume rm` again. |
-| `docker: Error response from daemon: network not found` | Network was pruned or deleted | Recreate it using `docker network create <name>`. Compose usually handles this automatically. |
+## Commands
+| Command | Purpose | Syntax | Example | Danger Level |
+|---------|---------|--------|---------|--------------|
+| `docker network create` | Naya network banana | `docker network create <name>` | `docker network create app-tier` | Low |
+| `docker network ls` | Saare networks dekhna | `docker network ls` | `docker network ls` | Low |
+| `docker network inspect`| Network/IP details dekhna| `docker network inspect <name>`| `docker network inspect app-tier`| Low |
+| `docker volume create` | Naya volume banana | `docker volume create <name>` | `docker volume create pgdata` | Low |
+| `docker volume ls` | Saare volumes dekhna | `docker volume ls` | `docker volume ls` | Low |
+| `docker volume prune` | Unused volumes delete karna| `docker volume prune -f` | `docker volume prune -f` | **High** (Data loss risk if not careful) |
+| `docker run -v` | Volume attach karna | `docker run -v <vol>:<path> ...`| `docker run -v pgdata:/var/lib/postgresql/data postgres` | Medium |
+| `docker run --network` | Container ko network me dalna| `docker run --network <net>` | `docker run --network host nginx` | Medium |
 
----
+## Cheat Sheet
+- **Default Bridge:** `docker0` (No DNS).
+- **Custom Bridge:** Created by user (Provides DNS).
+- **Host Network:** `host` (No isolation, direct host IP/ports).
+- **Volumes Path (Linux):** `/var/lib/docker/volumes/`
+- **Volume Type 1:** Named Volume (Docker managed, best for DB).
+- **Volume Type 2:** Bind Mount (User managed, host path, best for dev).
+- **Volume Type 3:** tmpfs (RAM storage, lost on restart, good for secrets).
 
-## Real-World Job Scenario
+## SOP & Runbook & KB Article
+**SOP: Backing up a Docker Volume**
+- **Purpose:** To create a tarball backup of a named volume.
+- **Procedure:**
+  1. `docker run --rm -v my_volume:/volume -v $(pwd):/backup alpine tar -czf /backup/my_volume_backup.tar.gz -C /volume .`
+- **Validation:** Check `ls -l` in current directory for `.tar.gz` file.
+- **Rollback:** `docker run --rm -v my_volume:/volume -v $(pwd):/backup alpine sh -c "rm -rf /volume/* && tar -xzf /backup/my_volume_backup.tar.gz -C /volume"`
 
-> [!info] Scenario
-> **Situation:** "A developer deployed a MySQL container to a staging server. The server rebooted after a kernel patch. When it came back online, the database was completely empty. A week of staging data is gone."
+**Runbook: Unused Disk Space Alert**
+- **Detection:** Zabbix/Prometheus alert for Host Disk Space > 85%.
+- **Commands:** `docker system df` (check disk usage).
+- **Resolution:** `docker volume prune -a -f` (delete unused volumes). *CAUTION: Verify no critical stopped containers exist.*
 
-**What Junior DevOps Does:**
-Checks the container logs, sees a fresh MySQL initialization, and panics. Realizes the developer ran `docker run -d --name mysql -e MYSQL_ROOT_PASSWORD=pass mysql` without any `-v` volume flag. The data died with the container.
+**KB Article: Iptables Bypass Issue**
+- **Problem:** UFW rules are being ignored by Docker.
+- **Cause:** Docker manages iptables rules directly and inserts them before UFW.
+- **Resolution:** Use internal networking. If you must expose ports, bind to localhost: `-p 127.0.0.1:8080:80`.
 
-**Escalation Trigger:**
-The data is unrecoverable, but they need to ensure this catastrophic failure never happens in production.
+## Best Practices & Beginner Mistakes
+**Best Practices:**
+- Always use Named Volumes for production database persistence.
+- Create distinct custom networks for frontend and backend tiers for better security (Zero Trust).
+- Define networks and volumes in `docker-compose.yml` for infrastructure as code.
 
-**Senior Engineer Resolution:**
-1. Enforces a policy that all stateful containers must use Named Volumes.
-2. Updates the run command/compose file: `-v mysql-staging-data:/var/lib/mysql`.
-3. Writes a cron job script to safely back up the named volume nightly: 
-   `docker run --rm -v mysql-staging-data:/data -v /host/backup:/backup alpine tar -czf /backup/mysql_backup.tar.gz -C /data .`
-4. Now, even if the container is deleted, the data lives safely in `/var/lib/docker/volumes/` and is zipped nightly.
+**Beginner Mistakes:**
+- *Mistake:* Using Bind Mounts for production database data. *Impact:* File permission issues and host-dependency. *Correction:* Use Named Volumes.
+- *Mistake:* Exposing database ports (e.g., `-p 3306:3306`) to the world just to connect an app. *Impact:* Huge security risk. *Correction:* Put both containers in a custom network, don't use `-p` for DB.
 
-**Lesson Learned:**
-Containers are disposable; data is not. Never run a stateful application (database, message queue, file storage) without an explicit Volume strategy.
+## Advanced Concepts
+- **Macvlan Network:** Gives the container its own MAC address, making it appear as a physical device on your company's network. Useful for legacy applications that need to sit directly on the physical LAN.
+- **Overlay Network:** Used in Docker Swarm (or Kubernetes Flannel/Calico). Allows containers on *different physical servers* to communicate over a secure virtual network.
+- **Iptables and Docker:** Jab aap `-p 80:80` karte ho, Docker Linux ke `nat` table me DNAT (Destination NAT) rules add kar deta hai jisse traffic direct container me chala jata hai, bypassing standard UFW blocks.
 
----
+## Related Topics & Flashcards & Revision
+- **Prerequisites:** [[03-Containerization/DOC-01 Docker Basics|Docker Basics]]
+- **Next Topic:** [[03-Containerization/DOC-03 Docker Compose|Docker Compose]]
+- **Related:** [[04-Orchestration/K8S-04 Persistent Volumes and Storage|K8S Persistent Storage]]
 
-## Interview Questions
+**Flashcards:**
+- *Q: Custom bridge network ka sabse bada faida?* -> A: Automatic DNS resolution by container name.
+- *Q: Docker volumes default kahan store hote hain?* -> A: `/var/lib/docker/volumes/`
+- *Q: Bind mount kab use karna chahiye?* -> A: Local development me live code reload ke liye.
 
-**Q1 (Conceptual):** What is the difference between a Bind Mount and a Named Volume?
-**A:** A Bind Mount maps a specific, absolute path from the host (like `/home/user/app`) directly into the container. It depends heavily on the host's directory structure and OS permissions. A Named Volume is entirely managed by Docker, stored securely in Docker's internal directories (`/var/lib/docker/volumes`), and is independent of the host's specific filesystem structure, making it much safer and more portable for production data.
+## Real Production Logs & Commands & Decision Tree
+**Sample Error Log (Nginx container failing to start with volume):**
+`nginx: [emerg] open() "/etc/nginx/nginx.conf" failed (13: Permission denied)`
+*Explanation:* Nginx container user ko bind mount folder pe read access nahi mila (Host permissions issue).
 
-**Q2 (Practical):** You have a Frontend container and a Backend container. How do you ensure the Frontend can talk to the Backend, but the Backend cannot be accessed directly from the host or internet?
-**A:** I would create a custom bridge network (`docker network create my-app-net`). I would attach both containers to it. For the Backend, I would NOT use the `-p` flag to publish any ports to the host. The Frontend can still reach the Backend via its container name over the private network, but the host/internet cannot reach the Backend.
+**Troubleshooting Decision Tree:**
+```mermaid
+graph TD
+    Start[App cannot connect to DB] --> CheckPing{Can ping DB by Name?}
+    CheckPing -- Yes --> CheckPort{Is DB listening on correct port?}
+    CheckPing -- No --> CheckNet{Are they in same custom network?}
+    CheckNet -- Yes --> CheckDNS[Restart DNS/Container]
+    CheckNet -- No --> Action1[Attach both to same network]
+    CheckPort -- Yes --> CheckAuth[Check DB Username/Password]
+    CheckPort -- No --> Action2[Fix DB Container Port config]
+```
 
-**Q3 (Scenario-based):** You want to run a network packet sniffer container (like Wireshark/tcpdump) to monitor all traffic on the physical host machine. Which network driver should you use?
-**A:** I would use the `host` network driver (`--network host`). This removes network isolation, placing the container directly in the host's networking namespace, allowing it to see all traffic entering and leaving the host's physical network interfaces.
-
-**Q4 (Deep dive):** Explain how Docker's iptables manipulation can cause severe security risks on a public-facing server.
-**A:** When you use `-p 8080:80`, the Docker daemon automatically modifies the Linux `iptables` rules (specifically the DOCKER chain in the nat table) to route traffic to the container. These rules execute *before* standard UFW (Uncomplicated Firewall) rules. This means even if you block port 8080 in UFW, Docker bypasses it, inadvertently exposing the container to the public internet.
-
-**Q5 (Trick/Gotcha):** Can you mount the exact same Named Volume to three different running containers simultaneously?
-**A:** Yes, Docker allows multiple containers to mount the same named volume simultaneously. However, this is extremely dangerous if the application inside the container isn't designed for concurrent writes (like a standard SQLite or MySQL database). It will lead to file corruption. It is usually only safe if mounted as Read-Only (`-v my-vol:/data:ro`).
-
----
-
-## Related Notes
-
-[[00-MOC/Master-Index|Master Index]]
-[[03-Containerization/DOC-03 Docker Compose|Docker Compose]]
-[[04-Orchestration/K8S-04 Persistent Volumes and Storage|K8S Persistent Storage]] (How Kubernetes solves the same volume problem)
+## AI Enhancement
+*Self-added notes on production efficiency:*
+Volumes can also use external storage drivers. In AWS, you can use the RexRay or AWS EBS volume plugin so a container running on EC2 can mount an EBS volume dynamically. This brings cloud-native persistence to raw Docker environments, acting as a precursor to Kubernetes PersistentVolumes.

@@ -6,51 +6,62 @@ status: #complete
 difficulty: #intermediate
 cert-relevant: #aws-devops
 ---
-# AWS Core Services for DevOps
 
-> [!abstract]
-> This note covers the foundational Amazon Web Services (AWS) that DevOps engineers interact with daily. We will explore compute (EC2, ASG, ECS, EKS, Lambda, ELB), storage (S3, EBS, EFS, Glacier), networking (VPC, Route 53), security (IAM), and management/monitoring tools (CloudWatch, CloudTrail, Config, X-Ray) to understand how to build resilient, scalable infrastructure.
+# Overview
+Ye AWS Core Services kya hai? Kyu use hota hai? Real life example. Industry kaha use karti hai?
+AWS (Amazon Web Services) building blocks provide karta hai modern scalable infrastructure banane ke liye. DevOps engineer hone ke naate, aapka kaam sirf ek server (EC2) provision karna nahi, balki ek highly available ecosystem design karna hai managed services (ELB, ASG, RDS) ko use karke.
 
-## Concept Overview
+Real life analogy: Cloud services bilkul ek rental toolkit ya rented space ki tarah hain. Compute (EC2) aapke workers hain, Storage (S3) aapka godown (warehouse) hai, aur Networking (VPC) wo roads hain jo in sabko connect karte hain. Pehle hum apne server khud kharidte the (on-prem), ab AWS se rent par lete hain jab zaroorat ho (pay-as-you-go). Agar website par sale aa jaye (traffic badhe), toh Auto Scaling Group (ASG) apne aap naye workers (EC2 instances) le aayega.
 
-AWS provides the building blocks for modern infrastructure. As a DevOps engineer, you don't just provision a server; you design a highly available ecosystem using managed services.
-- **Compute:** EC2 (Virtual Machines), Auto Scaling Groups (ASG) for dynamic scaling, Elastic Load Balancers (ELB) for traffic distribution, ECS/EKS for containers, and Lambda for serverless.
-- **Storage:** S3 (Object), EBS (Block/Disk), EFS (File/Shared), Glacier (Archive).
-- **Networking:** VPC (Virtual Private Cloud) creates isolated networks, Security Groups (Stateful firewalls) vs NACLs (Stateless subnet firewalls), Route 53 (DNS).
-- **Security & Identity:** IAM (Identity and Access Management) for permissions, IRSA (IAM Roles for Service Accounts) for EKS.
-- **Monitoring & Auditing:** CloudWatch (Metrics/Logs), CloudTrail (API Audits), Config (Resource history), X-Ray (Tracing).
+Industry Use Case: Netflix, Zomato, aur Amazon retail - sab cloud core services par chalte hain. Architecture design karte waqt elasticity aur high availability ensure karna core objective hota hai.
 
-*Hindi translation & analogy:* *Cloud services bilkul ek rental toolkit ki tarah hain. Compute resources aapke workers hain, storage aapka godown hai, aur networking wo roads hain jo in sabko connect karte hain. Pehle hum apne server khud kharidte the (on-prem), ab AWS se rent par lete hain jab zaroorat ho. Agar website par traffic badhe, toh ASG apne aap aur EC2 instances (workers) le aayega.*
+## Architecture
+```mermaid
+graph TD
+    User((User)) --> Route53[Route 53 DNS]
+    Route53 --> IGW[Internet Gateway]
+    IGW --> ALB[Application Load Balancer]
+    
+    subgraph VPC [AWS VPC]
+        ALB --> ASG[Auto Scaling Group]
+        subgraph Public Subnet
+            ALB
+        end
+        subgraph Private Subnet
+            ASG --> EC2_1[EC2 Instance 1]
+            ASG --> EC2_2[EC2 Instance 2]
+            EC2_1 --> RDS[(RDS Database)]
+            EC2_2 --> RDS
+        end
+    end
+    EC2_1 --> S3[S3 Bucket - Assets]
+```
 
-## Technical Deep Dive
+# Working
+Internal working and flow:
+1. **Compute:** EC2 (Virtual Machines), ASG (Auto Scaling) for dynamic scaling, ELB for traffic distribution, ECS/EKS for containers, aur Lambda for serverless compute.
+2. **Storage:** S3 (Object storage, for images/backups), EBS (Block storage, attached disk to EC2), EFS (File storage, shared across multiple EC2s), Glacier (Archive for compliance).
+3. **Networking:** VPC (Virtual Private Cloud - aapka private isolated network), Security Groups (Stateful firewalls - EC2 level) vs NACLs (Stateless firewalls - Subnet level), Route 53 (DNS resolution and routing).
+4. **Security:** IAM (Identity & Access Management) for users/roles/policies, IRSA (IAM Roles for Service Accounts) in EKS for pod-level security.
+5. **Monitoring:** CloudWatch (Metrics/Logs/Alarms), CloudTrail (API Audits - kisne kya kiya account mein), Config (Configuration history tracking).
 
-### 1. Compute and Scaling (EC2, ASG, ELB, ECS, EKS)
-Elastic Compute Cloud (EC2) provides resizable compute capacity. However, manual management is unscalable. We use Auto Scaling Groups (ASG) coupled with Elastic Load Balancers (ALB for HTTP/HTTPS, NLB for TCP/UDP) to ensure high availability. When a threshold (like CPU > 70%) is met, the ASG launches new instances, and the ELB distributes traffic to them.
-For containerized workloads, Elastic Container Service (ECS) and Elastic Kubernetes Service (EKS) abstract away the underlying infrastructure management, especially when using AWS Fargate, a serverless compute engine for containers that removes the need to provision or manage servers.
+# Installation
+Prerequisites: AWS Account, AWS CLI installed, IAM user with Administrator/PowerUser access. Koi manual server installation nahi hoti, bas API calls ke through provision hota hai.
 
-### 2. Storage and Networking (VPC, S3, EBS, EFS)
-Amazon VPC enables you to launch AWS resources into a virtual network. It involves subnets (public/private), Route Tables, and Internet Gateways (IGW) or NAT Gateways. Security is handled at the instance level by Security Groups (allow rules only, stateful) and at the subnet level by Network ACLs (allow/deny rules, stateless).
-Storage options vary by use case: EBS provides high-performance block storage attached to a single EC2 instance, EFS offers a shared file system across multiple instances, and S3 is highly durable object storage for backups, static assets, or logs.
+# Practical Lab
+Step-by-step implementation: Provision a highly available web server setup using EC2, ALB, and ASG within a VPC using CLI.
 
-### 3. Monitoring, Security, and Governance (IAM, CloudWatch, CloudTrail)
-Identity and Access Management (IAM) follows the principle of least privilege. In EKS, IRSA allows you to map IAM roles directly to Kubernetes service accounts, avoiding broad node-level permissions.
-Monitoring relies on CloudWatch for system metrics (CPU, RAM) and logs. CloudTrail logs all AWS API calls, crucial for auditing "who did what". AWS Config tracks resource configuration changes over time, while AWS X-Ray helps developers analyze and debug distributed microservices.
+Bajaaye command by command console mein paste karne ke, aap vault ke `examples/` folder se automated bash script use kar sakte hain jo properly variables aur error handling (set -e) use karti hai:
+- HA Architecture Bash Script: [examples/07-Cloud/aws-ha-web-architecture.sh](file:///C:/Users/SPTL/Documents/devops/devops/examples/07-Cloud/aws-ha-web-architecture.sh)
 
-## Step-by-Step Lab
-
-**Scenario:** Provision a highly available web server setup using EC2, ALB, and ASG within a VPC.
-
-1. **Create a VPC with Public and Private Subnets**
+**CLI Execution:**
+1. Navigate to the examples directory:
    ```bash
-   aws ec2 create-vpc --cidr-block 10.0.0.0/16
-   # Note the VpcId. Create subnets.
-   aws ec2 create-subnet --vpc-id vpc-xxx --cidr-block 10.0.1.0/24 --availability-zone us-east-1a
+   cd ../../examples/07-Cloud/
+   chmod +x aws-ha-web-architecture.sh
+   ./aws-ha-web-architecture.sh
    ```
-2. **Create a Security Group for ALB and EC2**
-   ```bash
-   aws ec2 create-security-group --group-name alb-sg --description "ALB SG" --vpc-id vpc-xxx
-   aws ec2 authorize-security-group-ingress --group-id sg-xxx --protocol tcp --port 80 --cidr 0.0.0.0/0
-   ```
+2. **Review the Script:** Open the script to see how VPCs, Subnets, IGWs, and Security Groups are programmatically linked together using `query` filters and outputs.
 3. **Create an Application Load Balancer (ALB)**
    ```bash
    aws elbv2 create-load-balancer --name my-alb --subnets subnet-xxx subnet-yyy --security-groups sg-xxx
@@ -63,8 +74,9 @@ Monitoring relies on CloudWatch for system metrics (CPU, RAM) and logs. CloudTra
    yum install httpd -y
    systemctl start httpd
    systemctl enable httpd
-   echo "Hello from AWS" > /var/www/html/index.html
+   echo "Hello from AWS Auto Scaling" > /var/www/html/index.html
    ```
+   Deploy Launch Template:
    ```bash
    aws ec2 create-launch-template --launch-template-name web-lt --version-description WebVersion1 \
    --launch-template-data '{"ImageId":"ami-0c55b159cbfafe1f0","InstanceType":"t2.micro","UserData":"<base64-encoded-userdata>"}'
@@ -75,63 +87,109 @@ Monitoring relies on CloudWatch for system metrics (CPU, RAM) and logs. CloudTra
    --launch-template LaunchTemplateName=web-lt,Version='1' --min-size 2 --max-size 5 \
    --vpc-zone-identifier "subnet-xxx,subnet-yyy" --target-group-arns arn:aws:elasticloadbalancing:...
    ```
-6. **Set Scaling Policy**
+6. **Set Target Tracking Scaling Policy**
    ```bash
    aws autoscaling put-scaling-policy --auto-scaling-group-name web-asg \
    --policy-name cpu-tracking --policy-type TargetTrackingScaling \
    --target-tracking-configuration '{"PredefinedMetricSpecification":{"PredefinedMetricType":"ASGAverageCPUUtilization"},"TargetValue":50.0}'
    ```
 
-*Expected Output:* Two EC2 instances will launch automatically, register with the ALB target group, and serve the "Hello from AWS" webpage via the ALB's DNS name.
+*Expected Output:* Do (2) EC2 instances automatically launch honge, ALB ke target group mein register honge. Jab aap ALB ke DNS name ko hit karenge, toh "Hello from AWS Auto Scaling" webpage show hoga.
 
-## Common Commands Cheat Sheet
+# Daily Engineer Tasks
+- **L1 Engineer:** CloudWatch alerts check karna, EC2 instances ko restart karna, S3 bucket permissions ko review karna.
+- **L2 Engineer:** ALB/NLB routing issues troubleshoot karna, ASG scaling events monitor karna, IAM roles and cross-account policies manage karna.
+- **L3/Senior Engineer:** Cross-region VPC peering setup karna, EKS clusters design karna, Transit Gateway implement karna, CloudTrail logs se security incidents investigate karna.
 
-| Command | What It Does | Real Example |
-| :--- | :--- | :--- |
-| `aws s3 ls` | Lists all S3 buckets | `aws s3 ls s3://my-app-logs-bucket` |
-| `aws ec2 describe-instances` | Shows running EC2 details | `aws ec2 describe-instances --filters "Name=instance-state-name,Values=running"` |
-| `aws iam get-user` | Gets current IAM user details | `aws iam get-user --user-name devops-admin` |
-| `aws sts get-caller-identity` | Shows current authenticated AWS entity | `aws sts get-caller-identity` |
-| `aws logs tail` | Live tails CloudWatch logs | `aws logs tail /aws/lambda/my-func --follow` |
-| `aws ecs list-clusters` | Lists ECS clusters in region | `aws ecs list-clusters` |
-| `aws eks update-kubeconfig` | Generates kubeconfig for EKS | `aws eks update-kubeconfig --region us-east-1 --name my-cluster` |
-| `aws cloudformation deploy` | Deploys a CFN stack | `aws cloudformation deploy --template-file template.yaml --stack-name my-stack` |
+# Real Industry Tasks
+- **Migration:** On-premise VMs ko AWS EC2 par lift-and-shift migrate karna using AWS Application Migration Service (MGN).
+- **Upgrade:** RDS MySQL engine version upgrade with minimal downtime using Read Replicas and DNS flip.
+- **Patch Management:** AWS Systems Manager (SSM) Patch Manager se puri fleet of instances ko zero downtime ke sath OS updates push karna.
+- **Cost Optimization:** Unused/unattached EBS volumes ko find and delete karna. S3 lifecycle rules configure karna taaki 30 days ke baad logs automatically Glacier mein move ho jaye.
 
-## Troubleshooting Guide
+# Troubleshooting
+| Symptom | Possible Root Cause | Investigation Steps / Commands | Resolution |
+| :--- | :--- | :--- | :--- |
+| **Connection timed out to EC2 SSH (Port 22)** | Security Group (SG) is blocking port 22 or VPC lacks an Internet Gateway (IGW) route. | `aws ec2 describe-security-groups --group-ids <sg-id>`. Check if IGW is attached and route table has `0.0.0.0/0` targeting IGW. | Add inbound rule for Port 22 in SG. Fix Route Table pointing to IGW. |
+| **S3 Access Denied (403)** | IAM Role is missing permissions, or Bucket Policy has an explicit Deny. | Review Bucket Policy. Use IAM Policy Simulator. | Update IAM policy to include `s3:GetObject`. Verify KMS key permissions if objects are encrypted. |
+| **ASG not scaling out under load** | CloudWatch metric not crossing the threshold, or ASG Max capacity reached. | Check ASG Activity History in AWS Console. Check CloudWatch alarms. | Increase MaxCapacity parameter of ASG. Check if account-level EC2 limits are hit (Service Quotas). |
+| **ECS Tasks stuck in PENDING** | No EC2 instances registered to cluster or insufficient CPU/Memory available. | `aws ecs describe-clusters`. Check instances tab. | Verify Task Definition resource requests fit within available underlying instance capacity. |
 
-| Problem | Likely Cause | Step-by-Step Fix |
-| :--- | :--- | :--- |
-| **Connection timed out to EC2 SSH (Port 22)** | Security Group blocking port 22 or no IGW attached to VPC. | 1. Check EC2 SG inbound rules. Add SSH (22) from your IP. 2. Verify subnet has a route to Internet Gateway. |
-| **S3 Access Denied (403)** | IAM Role missing permissions or Bucket Policy blocking access. | 1. Check IAM policy for `s3:GetObject` or `s3:PutObject`. 2. Verify Bucket Policy doesn't have an explicit Deny. |
-| **ECS Tasks stuck in PENDING** | No EC2 instances registered to cluster or insufficient CPU/Memory in cluster. | 1. Check ECS Cluster instances tab. 2. Verify Task Definition resource requests fit within available instance capacity. |
-| **ASG not scaling out under load** | CloudWatch metric not crossing threshold or ASG max size reached. | 1. Check ASG Activity History for errors. 2. Verify CloudWatch alarm state. 3. Increase MaxCapacity of ASG. |
-| **Lambda Timeout Error** | Function execution exceeded configured timeout limit (default 3s). | 1. Open Lambda console. 2. Increase Timeout in General Configuration. 3. Optimize code execution time. |
+*Decision Tree for Website Down (502/504 Error):*
+1. Ping/curl the ALB -> Timeout? Check DNS (Route53) and ALB Security Groups.
+2. 502/504 Bad Gateway? -> ALB is fine, backend EC2 instances are failing health checks. Check EC2 SG and application logs (CloudWatch).
+3. Service down inside EC2? -> SSM/SSH into instance. Check `systemctl status httpd` or application logs. RAM/CPU full?
 
-## Real-World Job Scenario
+# Interview Preparation
+- **Basic:** What is the difference between S3 and EBS? 
+  *Expected Answer:* S3 object storage hai (like Google Drive) accessible via API over internet. EBS block storage hai (like a C: drive) jo directly ek specific EC2 instance se attached hoti hai.
+- **Intermediate:** Explain the difference between Security Group and Network ACL? 
+  *Expected Answer:* SG operates at instance level, stateful hota hai (return traffic allowed automatically), aur isme sirf Allow rules hote hain. NACL operates at subnet level, stateless hota hai (return traffic manually allow karni padti hai), aur isme Allow/Deny dono rules hote hain.
+- **Scenario Based (FAANG):** Marketing team ek huge ad campaign launch karne waali hai 10 minutes mein. Traffic instantly 50x spike hoga. Aap ASG use kar rahe hain. How do you ensure the site stays up without crashing?
+  *Expected Answer:* Regular ASG ko scale out hone mein kuch minutes lagte hain (metrics collection + boot time). Instant spike ke liye: 
+  1. ALB ko pre-warm karna padega (AWS support ticket raise karke if massive).
+  2. CloudFront (CDN) use karenge edge caching ke liye.
+  3. ASG ka "Desired Capacity" manually increase karke pre-scale karenge (Scheduled Scaling or manual intervention) bajaye CloudWatch metrics ke wait karne ke.
 
-**Scenario:** The marketing team is launching a new campaign, and traffic is expected to 10x for a few hours. The current static EC2 setup will crash under load.
+# Production Scenarios
+*Scenario:* "Production Database (RDS) space is 95% full."
+- **How to think:** Immediate action vs Long-term fix. Agar disk 100% full ho gayi toh database crash ho jayega.
+- **Where to check:** CloudWatch `FreeStorageSpace` metric. RDS Console.
+- **Root Cause:** App generating too many logs, huge data insertion, or no data retention policy.
+- **Resolution:** Enable RDS Storage Autoscaling (immediate fix). Long term: Clean up old data, optimize queries, review data retention.
+- **Prevention:** Setup CloudWatch Alarm at 80% and 90% storage utilization to page on-call via PagerDuty.
 
-**Junior DevOps Action:** Might suggest manually changing the EC2 instance type to a larger size (Vertical scaling) which requires downtime, or manually launching more instances and updating DNS.
-**Senior DevOps Action:** Implements an Auto Scaling Group behind an Application Load Balancer. Configures a Target Tracking Scaling Policy based on ASGAverageCPUUtilization. Pre-warms the ALB by contacting AWS support if traffic spike is expected to be instantaneous and massive. Uses CloudFront (CDN) to cache static assets, drastically reducing the load on the backend servers.
+# Commands
+| Command | Purpose | Syntax/Example | When to use | Danger Level |
+| :--- | :--- | :--- | :--- | :--- |
+| `aws s3 ls` | Lists all S3 buckets | `aws s3 ls s3://my-app-logs-bucket` | To check bucket presence or contents | Low |
+| `aws ec2 describe-instances` | Shows running EC2s | `aws ec2 describe-instances --filters "Name=instance-state-name,Values=running"` | Inventory / troubleshooting | Low |
+| `aws sts get-caller-identity` | Shows current IAM entity | `aws sts get-caller-identity` | Verifying "Who am I logged in as?" | Low |
+| `aws cloudformation deploy` | Deploys IaC stack | `aws cloudformation deploy --template-file tpl.yaml --stack-name prod` | Creating or updating infrastructure | High |
+| `aws eks update-kubeconfig` | Generates K8s config | `aws eks update-kubeconfig --region us-east-1 --name my-cluster` | Connecting `kubectl` to EKS | Medium |
 
-## Interview Questions
+# Cheat Sheet
+- **Compute:** EC2 (VM), Lambda (Serverless code), ECS/EKS (Containers).
+- **Storage:** S3 (Object), EBS (Block/Boot drive), EFS (Shared File System over NFS), Glacier (Deep Archive).
+- **Networking:** VPC (Network boundary), Route53 (DNS), ALB (Layer 7 HTTP routing), NLB (Layer 4 TCP/UDP ultra-fast routing).
+- **Security:** IAM (Users/Roles), KMS (Encryption Keys), CloudTrail (Audit logs for API calls).
+- **Interview Shortcuts:** Always mention *Principle of Least Privilege* for IAM and *Multi-AZ Deployment* for High Availability / Disaster Recovery.
 
-**Q1: What is the difference between a Security Group and a Network ACL in AWS?**
-A1: A Security Group operates at the instance/ENI level, is stateful (return traffic is automatically allowed), and only supports allow rules. A Network ACL operates at the subnet level, is stateless (return traffic must be explicitly allowed), and supports both allow and deny rules.
+# SOP & Runbook & KB Article
+**Runbook - EC2 CPU Utilization Critical (>90%)**
+- **Detection:** CloudWatch Alarm triggers SNS -> PagerDuty.
+- **Investigation:** 
+  1. Connect to EC2 via AWS Systems Manager (SSM) Session Manager. 
+  2. Run `top` or `htop` to identify the culprit process consuming CPU.
+  3. Check application logs in `/var/log/`.
+- **Resolution:** 
+  - If a rogue process / memory leak -> Restart the service (`systemctl restart <app>`).
+  - If it's legitimate traffic -> Ensure ASG scaling policies are triggering and new instances are coming up.
+- **Validation:** Monitor CloudWatch metrics to ensure CPU drops below 60%.
+- **Rollback/Escalation:** If service keeps crashing, escalate to L3/Dev team.
 
-**Q2: How does an Application Load Balancer differ from a Network Load Balancer?**
-A2: An ALB operates at Layer 7 (HTTP/HTTPS), supports path-based and host-based routing, and is ideal for microservices. An NLB operates at Layer 4 (TCP/UDP), can handle millions of requests per second with ultra-low latency, and provides a static IP per Availability Zone.
+# Best Practices & Beginner Mistakes
+- **Best Practices (Production):** 
+  - Use IAM Roles for EC2 instead of hardcoding AWS Access/Secret Keys in code. 
+  - Always deploy databases in Private Subnets. 
+  - Enable S3 bucket versioning to prevent accidental deletions and ransomware.
+  - Implement Infrastructure as Code (Terraform/CloudFormation) instead of manual ClickOps.
+- **Beginner Mistakes:** 
+  - Leaving Security Group port 22 or 3306 open to `0.0.0.0/0` (entire internet).
+  - Using root AWS account for daily tasks (always use IAM users with MFA).
+  - Ignoring cost optimization (leaving large unused EC2s running over the weekend).
 
-**Q3: Explain the difference between EBS, EFS, and S3.**
-A3: EBS (Elastic Block Store) is block storage attached to a single EC2 instance (like a local hard drive). EFS (Elastic File System) is a managed NFS file system that can be mounted to multiple EC2 instances concurrently. S3 (Simple Storage Service) is an object storage service accessed via HTTP API, ideal for backups, static files, and media.
+# Advanced Concepts
+**IAM Roles for Service Accounts (IRSA):** EKS mein OIDC (OpenID Connect) provider ke through IAM role ko Kubernetes Service Account se directly map kiya jaata hai. Isse ek specific Pod ko AWS permissions milti hain (e.g. S3 access), bina pure EC2 worker node ko broad permissions diye. This perfectly aligns with the Principle of Least Privilege in cloud-native microservices.
 
-**Q4: How do you securely grant an EC2 instance access to read an S3 bucket?**
-A4: Create an IAM Role with a policy granting `s3:GetObject` and `s3:ListBucket` permissions. Attach this IAM Role to the EC2 instance as an Instance Profile. Avoid putting long-term IAM Access Keys directly on the instance.
-
-**Q5: What is IAM Roles for Service Accounts (IRSA) in EKS?**
-A5: IRSA allows you to associate an IAM role with a Kubernetes Service Account. This provides fine-grained, pod-level IAM permissions instead of assigning broad permissions to the underlying EC2 worker nodes, adhering to the principle of least privilege.
-
-## Related Notes
-- [[Master Index]]
+# Related Topics & Flashcards & Revision
 - [[07-Cloud/AWS-02 AWS DevOps Tools]]
 - [[04-Orchestration/K8S-01 Kubernetes Architecture]]
+- [[Master Index]]
+
+**Flashcards:**
+- **Q:** What makes an ALB different from NLB?
+  - **A:** ALB operates at Layer 7 (HTTP/HTTPS, path routing), NLB operates at Layer 4 (TCP/UDP, ultra-low latency).
+- **Q:** EBS vs EFS?
+  - **A:** EBS can be attached to only ONE instance at a time (generally), EFS is a network file system that can be mounted to THOUSANDS of EC2 instances concurrently.
+- **Revision:** 5 min (Cheat sheet), 15 min (Overview + Working), Interview Revision (Interview Prep + Prod Scenarios).

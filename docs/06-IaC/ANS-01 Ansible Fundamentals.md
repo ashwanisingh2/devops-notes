@@ -1,198 +1,212 @@
 ---
-tags: [devops, iac, ansible, config-management]
-aliases: [Ansible Basics]
+tags: [devops, iac, ansible, config-management, automation]
+aliases: [Ansible Basics, Ansible Fundamentals]
 created: 2025-06-27
 status: #complete
 difficulty: #beginner
-cert-relevant: #none
+cert-relevant: #rhce #cka #aws-devops
 ---
 
 # ANS-01 Ansible Fundamentals
 
-> [!abstract] Overview
-> Provisioning a server with Terraform is only half the battle; configuring it is the other half. If you have 50 Linux servers and need to install Nginx, create a user, and patch a security vulnerability on all of them simultaneously, doing it manually via SSH is impossible. Ansible is an IT automation engine that handles configuration management, application deployment, and task automation. Its agentless architecture (using standard SSH) makes it incredibly lightweight and universally adopted in DevOps.
+# Overview
+Ansible ek open-source IT automation tool hai jo configuration management, application deployment, aur task automation ke liye use hota hai. 
+Socho aapke paas 500 Linux servers hain aur sabhi pe Nginx install karna hai aur ek naya user create karna hai. Manually SSH karke ek-ek server pe jaana impossible hai. Yahan Ansible ka jadoo kaam aata hai. Aap ek jagah code (YAML) mein likhte ho ki kya karna hai, aur Ansible ek command mein un saare 500 servers pe wo kaam kar deta hai. Industry isko "Infrastructure as Code" (IaC) aur Configuration Management ke liye use karti hai.
 
----
+**Real life analogy:** Jaise TV ka remote control. Agar 10 TV ek sath on karne hain, toh ek universal remote use karlo bajaye sabke paas physical jane ke.
 
-## Concept Overview
+**Real production use-case:** Zero-day vulnerability (jaise Log4j) aane pe hazaaron servers ko ek minute ke andar patch karna.
 
-- **What it is** — An open-source configuration management tool written in Python. It uses YAML to describe the desired state of systems and executes modules over SSH to achieve that state.
-- **Why DevOps engineers use it** — Idempotency and Agentless design. **Idempotency** means you can run an Ansible script 100 times, and if the server is already correctly configured, Ansible does nothing. **Agentless** means you don't need to install any special Ansible software on the target servers; if you can SSH into it, Ansible can manage it.
-- **Where you encounter this in a real job** — Patching the OpenSSL vulnerability on 500 EC2 instances across 3 AWS regions in one command, or bootstrapping a fresh Ubuntu server with monitoring agents and firewall rules.
-- **Responsibility Split:**
-  - **Junior DevOps**: Runs Ansible Ad-Hoc commands (e.g., `ansible all -m ping`) and executes pre-written playbooks.
-  - **Mid DevOps**: Writes Idempotent playbooks, manages the `inventory` file, and handles privilege escalation (`become`).
-  - **Senior/SRE**: Writes custom Python modules for Ansible, sets up Dynamic Inventories pulling directly from AWS APIs, and integrates Ansible with Packer for immutable image baking.
-
-*Seedha simple mein: Ansible ek jaadui remote control hai. Agar aapke paas 100 TV (servers) hain, toh aapko sabke paas jaa kar volume set nahi karna padega. Aap Ansible remote mein YAML mein likh do "Volume 50", aur wo SSH ke through sab TVs ka volume ek second mein 50 kar dega. Aur sabse acchi baat, TVs pe koi receiver (agent) install nahi karna.*
-
----
-
-## Technical Deep Dive
-
-### 1. Architecture: Control Node vs. Managed Nodes
-Ansible operates on a push model.
-- **Control Node**: The laptop or CI/CD server where Ansible is installed. (Must be Linux/Mac, Windows requires WSL).
-- **Managed Nodes**: The servers you are configuring. They only need Python and SSH installed.
-- **Inventory**: A file (usually INI or YAML) that lists the IP addresses of your Managed Nodes, grouped logically (e.g., `[webservers]`, `[dbservers]`).
-
-### 2. Modules and Idempotency
-Ansible doesn't just run raw bash commands; it uses Python **Modules**. A module (like `apt`, `yum`, `user`, `file`) understands the desired state. 
-If you use the `shell` module to run `mkdir /app`, and you run it twice, the second run fails because the directory exists. This is NOT idempotent.
-If you use the `file` module (`state: directory`), Ansible checks if the directory exists. If yes, it reports `OK` and does nothing. If no, it creates it and reports `CHANGED`. Always use Ansible modules instead of raw shell commands to guarantee idempotency.
-
-### 3. Ad-Hoc Commands vs. Playbooks
-- **Ad-Hoc Commands**: Quick, one-line commands run from the terminal to do a single task across many servers (e.g., checking uptime, restarting a service). They are not saved for reuse.
-- **Playbooks**: YAML files where complex, multi-step configurations are saved, version-controlled, and executed sequentially.
-
----
-
-## Step-by-Step Lab
-
-> [!warning] Pre-requisites
-> - A Control Node (Linux/Mac/WSL) with Ansible installed (`sudo apt install ansible`)
-> - 2 target Linux servers (e.g., AWS EC2 instances)
-> - SSH Key access from Control Node to target servers
-
-### Step 1: Create the Inventory File
-```ini
-# Create a file named 'hosts'
-[webservers]
-192.168.1.10
-192.168.1.11
-
-[dbservers]
-192.168.1.12
-
-# Grouping groups together
-[production:children]
-webservers
-dbservers
+**Architecture:**
+```mermaid
+flowchart LR
+    ControlNode[Control Node \n Ansible Installed] -->|SSH / Python| Web1(Web Server 1)
+    ControlNode -->|SSH / Python| Web2(Web Server 2)
+    ControlNode -->|SSH / Python| DB1(DB Server 1)
+    
+    subgraph Managed Nodes
+    Web1
+    Web2
+    DB1
+    end
 ```
 
-### Step 2: Configure ansible.cfg
-```ini
-# Create ansible.cfg in the same directory to override default behaviors
-[defaults]
-inventory = ./hosts
-host_key_checking = False
-remote_user = ubuntu
-private_key_file = ~/.ssh/my-key.pem
+# Working
+Ansible **Push Model** pe kaam karta hai aur **Agentless** hai. Matlab target servers pe koi special software (agent) install karne ki zarurat nahi hai.
+1. **Control Node:** Jis server ya laptop pe Ansible install hota hai. (Must be Linux/macOS/WSL).
+2. **Managed Nodes:** Jin servers ko configure karna hai. Inpe sirf `Python` aur `SSH` chahiye.
+3. **Inventory:** Ek simple text file jisme target servers ke IP addresses likhe hote hain, logically grouped (e.g., `[webservers]`, `[dbservers]`).
+4. **Modules:** Ansible raw bash commands use nahi karta, balki Python modules (jaise `apt`, `user`, `file`) use karta hai jo **Idempotency** ensure karte hain. (Idempotency matlab, agar server pe desired state pehle se hai, toh Ansible kuch change nahi karega, just 'OK' bol dega).
+
+# Installation
+## Prerequisites
+- Ek Control Node (Linux/Mac/WSL)
+- Target nodes pe SSH access aur Python installed.
+
+## Installation (Ubuntu/Debian)
+```bash
+sudo apt update
+sudo apt install software-properties-common
+sudo add-apt-repository --yes --update ppa:ansible/ansible
+sudo apt install ansible -y
 ```
+
+## Verification
+```bash
+ansible --version
+```
+## Rollback
+```bash
+sudo apt remove --purge ansible
+```
+
+# Practical Lab
+**Scenario:** Connect to 2 Web servers and verify uptime using Ad-Hoc commands.
+
+Bajaaye configuration files ko manually likhne ke, aap vault ke `examples/` folder se ready-made template copy kar sakte hain:
+- Config File: [examples/07-Ansible/ansible.cfg](file:///C:/Users/SPTL/Documents/devops/devops/examples/07-Ansible/ansible.cfg)
+- Inventory File: [examples/07-Ansible/inventory.ini](file:///C:/Users/SPTL/Documents/devops/devops/examples/07-Ansible/inventory.ini)
+- Sample Playbook: [examples/07-Ansible/ping-playbook.yml](file:///C:/Users/SPTL/Documents/devops/devops/examples/07-Ansible/ping-playbook.yml)
+
+### Step 1: Navigate to the Examples Directory
+```bash
+cd ../../examples/07-Ansible/
+```
+
+### Step 2: Review `inventory.ini` and `ansible.cfg`
+* (Open the real files in the directory to see advanced group nesting and privilege escalation configurations).
 
 ### Step 3: Run Ad-Hoc Ping Module
 ```bash
-# Test connectivity to all servers in the inventory
 ansible all -m ping
-
-# Expected output:
-# 192.168.1.10 | SUCCESS => {
-#     "ansible_facts": {
-#         "discovered_interpreter_python": "/usr/bin/python3"
-#     },
-#     "changed": false,
-#     "ping": "pong"
-# }
+```
+*Expected Output:*
+```json
+192.168.1.10 | SUCCESS => {
+    "ansible_facts": {
+        "discovered_interpreter_python": "/usr/bin/python3"
+    },
+    "changed": false,
+    "ping": "pong"
+}
 ```
 
-### Step 4: Run Ad-Hoc System Tasks
+### Step 4: Idempotency Test (Create User)
 ```bash
-# Check uptime on all webservers
-ansible webservers -m command -a "uptime"
+# Run first time
+ansible webservers -m user -a "name=devops state=present" -b
+# Output: CHANGED (Yellow)
 
-# Create a user on all servers. Requires sudo/root privileges (-b / --become)
-ansible all -m user -a "name=johndoe state=present" -b
-
-# Expected output:
-# 192.168.1.10 | CHANGED => { "name": "johndoe", "state": "present", ... }
+# Run second time
+ansible webservers -m user -a "name=devops state=present" -b
+# Output: SUCCESS (Green). Ansible knew the user existed and did nothing!
 ```
 
-### Step 5: Test Idempotency
-```bash
-# Run the EXACT SAME user creation command again
-ansible all -m user -a "name=johndoe state=present" -b
+# Daily Engineer Tasks
+- **L1 Engineer:** Run simple Ad-Hoc commands (e.g., `ansible all -m ping`), check server status, restart services using predefined scripts.
+- **L2 Engineer:** Manage inventory files, add new servers, execute playbooks for application deployment, basic troubleshooting.
+- **L3/Senior Engineer:** Write Idempotent playbooks, set up Dynamic Inventories (AWS/Azure API), write custom roles.
+- **DevOps/SRE:** Ansible Tower / AWX setup, CI/CD pipeline integration, custom Python module development, Immutable infrastructure with Packer + Ansible.
 
-# Expected output:
-# 192.168.1.10 | SUCCESS => { "name": "johndoe", "state": "present" ... }
-# Notice it says SUCCESS (Green), not CHANGED (Yellow). Ansible knew the user existed and did nothing!
+# Real Industry Tasks
+- **Patch Management:** Running OS updates on 1000+ EC2 instances on Patching Sunday using `ansible all -m yum -a "name=* state=latest" -b`.
+- **Application Deployment:** Pulling latest Git code and restarting Tomcat/Nginx.
+- **User Management:** Onboarding/Offboarding SSH keys for developers across all environments.
+- **Security Compliance:** Enforcing CIS benchmarks on Linux servers automatically.
+
+# Troubleshooting
+| Symptom | Possible Root Cause | Investigation & Resolution |
+|---------|---------------------|----------------------------|
+| `UNREACHABLE! => "Failed to connect via ssh"` | SSH Key, Port issue, or Firewall blocking | Check manual SSH `ssh -i key.pem user@IP`. Ensure Security Groups/Firewall allows Port 22. Check `remote_user` in `ansible.cfg`. |
+| `MODULE FAILURE: /usr/bin/python: not found` | Python missing on Managed Node | Run raw command to install python: `ansible all -m raw -a "apt install -y python3" -b` |
+| `Missing sudo password` | Passwordless sudo not set | Pass `-K` (or `--ask-become-pass`) during ansible run. |
+| `Permission denied` | Forgot Privilege Escalation | Add `-b` (become) flag to run as root. |
+
+*Sample SSH Error Log:*
+```text
+192.168.1.10 | UNREACHABLE! => {
+    "changed": false,
+    "msg": "Failed to connect to the host via ssh: Permission denied (publickey).",
+    "unreachable": true
+}
 ```
+*Action:* Key galat hai ya target server ke `authorized_keys` mein tumhari public key nahi hai.
 
-> [!tip] Pro Tip
-> Never disable `host_key_checking = False` in a true production environment, as it opens you up to Man-in-the-Middle (MITM) attacks via SSH. Instead, strictly manage your `known_hosts` file, or use a tool like HashiCorp Vault to inject SSH certificates dynamically.
+# Interview Preparation
+- **Basic (L1/L2):** Ansible kya hai? Agentless ka kya matlab hai? Push vs Pull model kya hota hai?
+  *Expected Answer:* Ansible agentless hai, SSH use karta hai. Yeh push model pe chalta hai, server pe bina agent dale config push karte hain.
+- **Intermediate (L2/L3):** Idempotency kya hoti hai? `shell` vs `command` module mein kya difference hai?
+  *Expected Answer:* Idempotency matlab multiple runs pe same state maintain karna bina duplicate action ke. `shell` pipes aur redirects (`|`, `>`) allow karta hai, `command` bypasses shell (more secure).
+- **Advanced (Senior/SRE):** Ansible facts kya hote hain? Dynamic Inventory kaise kaam karti hai AWS ke sath?
+  *Expected Answer:* Facts target OS ki info hain gathered by `setup` module. Dynamic inventory API query karke real-time list of IPs fetch karti hai bajaye static file ke.
+- **FAANG Scenario Based:** 500 servers me se 50 unresponsive hain SSH pe, ansible run karte time wo delay (timeout) laa rahe hain, pipeline slow ho rahi hai. Kaise fix karoge?
+  *Expected Answer:* Ansible me `timeout` adjust kar sakte hain `ansible.cfg` mein, ya `async` aur `poll` tasks use karenge, and forks ko increase karenge (`-f 50` or `100`). Baki unreachable hosts ko ignore karne ke liye `--limit` or `meta: clear_host_errors` use karenge.
 
----
+# Production Scenarios
+**Scenario: Website down due to misconfiguration pushed by Ansible.**
+- **How to think:** Kounsa playbook chala? Kya change hua?
+- **Where to check:** AWX/Tower logs ya local terminal history. Check Nginx/Apache config using Ansible Ad-Hoc: `ansible web -m command -a "nginx -t" -b`
+- **Resolution:** Agar syntax error hai template me, purana git commit revert karo aur playbook wapas chalao (Rollback).
+- **Prevention:** CI/CD me ansible-lint aur `--check` (dry run) flag chalana mandatory karo production me deploy karne se pehle.
 
-## Common Commands Cheat Sheet
+# Commands
+| Command | Purpose | Syntax/Example | Danger Level |
+|---------|---------|----------------|--------------|
+| `ansible all -m ping` | Connectivity check | `ansible all -m ping` | Low |
+| `ansible -m command` | Run raw command (no pipe) | `ansible web -m command -a "uptime"` | Low |
+| `ansible -m shell` | Run shell command (supports `\|`) | `ansible db -m shell -a "cat /etc/passwd \| grep root"` | Medium |
+| `ansible -m setup` | Gather Facts | `ansible all -m setup` | Low |
+| `ansible-doc <module>` | Read module docs | `ansible-doc yum` | Low |
+| `ansible-inventory` | Dump inventory | `ansible-inventory --list` | Low |
+| `ansible -b` | Run as root (become) | `ansible all -m apt -a "name=nginx state=latest" -b` | High |
 
-| Command | What It Does | Real Example |
-|---------|-------------|--------------|
-| `ansible all -m ping` | Tests SSH and Python connectivity | `ansible all -m ping -i hosts` |
-| `ansible -m command` | Runs a raw command (bypasses shell) | `ansible web -m command -a "uptime"` |
-| `ansible -m shell` | Runs a shell command (supports pipes `\|`) | `ansible db -m shell -a "cat /etc/passwd \| grep root"` |
-| `ansible -m setup` | Gathers "Facts" (OS, IP, CPU details) | `ansible all -m setup` |
-| `ansible-doc <module>`| Reads the manual/parameters for a module | `ansible-doc yum` |
-| `ansible-inventory` | Validates and dumps the inventory config | `ansible-inventory --list` |
-| `ansible -b` | Elevates privileges (runs as root/sudo) | `ansible all -m apt -a "name=nginx" -b` |
+# Cheat Sheet
+- **Default config location:** `/etc/ansible/ansible.cfg`
+- **Default inventory:** `/etc/ansible/hosts`
+- **SSH Key Ignore:** `export ANSIBLE_HOST_KEY_CHECKING=False`
+- **Dry Run:** Add `--check` to command.
+- **Verbose mode:** `-v`, `-vv`, `-vvv`, `-vvvv` (max debug).
 
----
+# SOP & Runbook & KB Article
+**SOP: Adding a new server to Ansible Management**
+1. **Scope:** New Linux instances.
+2. **Procedure:** 
+   - Add SSH public key of Control Node to target's `~/.ssh/authorized_keys`.
+   - Update `hosts` file with new IP.
+   - Run `ansible <new-ip> -m ping` to validate.
+3. **Rollback:** Remove IP from `hosts` and delete SSH key from target.
 
-## Troubleshooting Guide
+**Runbook: Log4j Zero-Day Mitigation (Emergency Service Stop)**
+- **Detection:** CISO alert for log4j.
+- **Commands:** `ansible all -m service -a "name=java-app state=stopped" -b -f 50`
+- **Validation:** `ansible all -m shell -a "ps aux | grep java"`
 
-| Problem | Likely Cause | Step-by-Step Fix |
-|---------|-------------|------------------|
-| `UNREACHABLE! => "msg": "Failed to connect to the host via ssh"` | SSH Key or Port issue | Verify you can manually SSH (`ssh -i key.pem user@IP`). Check if `remote_user` in `ansible.cfg` matches the cloud provider's default user (e.g., `ubuntu` or `ec2-user`). |
-| `MODULE FAILURE: /usr/bin/python: not found` | Target is missing Python | Ansible requires Python on the target. Run an ad-hoc command to install it first: `ansible all -m raw -a "apt install -y python3" -b`. |
-| `Missing sudo password` | Passwordless sudo not configured | If the target user requires a password for `sudo`, you must pass the `-K` (or `--ask-become-pass`) flag to the ansible command. |
-| Ad-Hoc command modifying files fails with `Permission denied` | Forgot privilege escalation | You are trying to edit `/etc/` or install packages as a normal user. Add the `-b` (become) flag to the end of your command. |
-| Dynamic inventory script returns nothing | Cloud credentials missing | If using `aws_ec2` plugin, ensure your terminal has valid AWS keys exported, otherwise Ansible cannot query the AWS API. |
+# Best Practices & Beginner Mistakes
+**Best Practices:**
+- Hamesha Ansible modules (jaise `user`, `file`, `service`) use karo bajaye `shell` module ke (for Idempotency).
+- Production me kabhi `host_key_checking = False` hamesha ke liye set mat chhodna. Use SSH certificate authority ya proper known_hosts management.
+- Hardcoded secrets mat use karo, hamesha `Ansible Vault` use karo.
 
----
+**Beginner Mistakes:**
+- `shell` module me `mkdir` ya `apt install` chalana jo fail ho jata hai second run me (Breaks idempotency). Correct approach: Use `file` and `apt` modules.
+- Privilege escalation (`-b`) lagana lagana bhool jana system tasks ke liye (jaise package install ya service restart).
 
-## Real-World Job Scenario
+# Advanced Concepts
+- **Forks:** Default Ansible 5 servers se parallel connect karta hai. `--forks 50` or `-f 50` lagane se wo 50 servers parallelly process karega (Speed optimization).
+- **Ansible Vault:** Encrypting sensitive data (like passwords, API keys) inside YAML files so they can be safely stored in Git.
+- **Dynamic Inventory:** Cloud (AWS/Azure) se API call karke real-time me servers uthana. Agar Auto-scaling se naye servers aye toh ansible ko automatically pata chal jata hai.
 
-> [!info] Scenario
-> **Situation:** "A critical zero-day vulnerability is announced in `log4j`. Security mandates that every Java process on all 200 Linux servers must be stopped immediately."
+# Related Topics & Flashcards & Revision
+- [[06-IaC/ANS-02 Ansible Playbooks|Ansible Playbooks - Next Step]]
+- [[01-Linux-Foundation/LX-01 Linux for DevOps|Linux SSH Basics]]
+- [[Terraform vs Ansible]]
 
-**What Junior DevOps Does:**
-Opens 5 terminal windows, connects to 5 servers via SSH, runs `systemctl stop java-app`, and prepares to spend the next 4 hours doing this manually, praying they don't miss a server.
+**Flashcards:**
+Q: Does Ansible require an agent on managed nodes?
+A: No, it is agentless. Uses SSH and Python.
+Q: Command to test Ansible connectivity?
+A: `ansible all -m ping`
 
-**Escalation Trigger:**
-The CISO wants confirmation in 10 minutes that the vulnerability is mitigated across the entire fleet. Manual SSH will not meet the SLA.
-
-**Senior Engineer Resolution:**
-1. Verifies the Ansible inventory is up to date (`ansible all --list-hosts`).
-2. Runs a single Ad-Hoc command using the `service` module with privilege escalation:
-   `ansible all -m service -a "name=java-app state=stopped" -b -f 50`
-3. The `-f 50` flag tells Ansible to fork 50 parallel SSH connections at once.
-4. Within 15 seconds, Ansible reports back the status of all 200 servers. 195 report `CHANGED` (service stopped). 5 report `FAILED`.
-5. The Senior immediately isolates those 5 failed servers for manual investigation, while confidently reporting to the CISO that 98% of the fleet is secured.
-
-**Lesson Learned:**
-Ansible Ad-Hoc commands are the ultimate firefighting tool for widespread fleet operations.
-
----
-
-## Interview Questions
-
-**Q1 (Conceptual):** What does "Agentless" mean in the context of Ansible, and why is it an advantage over Chef or Puppet?
-**A:** Agentless means Ansible does not require any proprietary daemon or software running continuously on the target servers. It relies entirely on standard SSH and Python. This is a massive advantage because it eliminates the overhead of managing, patching, and troubleshooting agent software, and reduces CPU/Memory consumption on the target nodes.
-
-**Q2 (Practical):** You need to restart the `nginx` service on 10 servers, but you only want to do it on servers where the OS is Ubuntu. How do you do this using an Ad-Hoc command?
-**A:** Assuming my inventory has a group for ubuntu servers, I would run: `ansible ubuntu_group -m service -a "name=nginx state=restarted" -b`. If they aren't grouped, I can filter using gathered facts, but standard grouping in the inventory file is the correct Ansible pattern.
-
-**Q3 (Scenario-based):** You wrote a script to append a line to a configuration file using the `shell` module (`echo "config=true" >> /etc/app.conf`). Your senior rejects the PR and says it breaks idempotency. Why, and how do you fix it?
-**A:** The `shell` module is not idempotent; if run 10 times, it will append "config=true" 10 times, corrupting the file. To fix it, I must use Ansible's built-in `lineinfile` module: `-m lineinfile -a "path=/etc/app.conf line='config=true'"`. This module checks if the line exists first; if it does, it safely skips the action.
-
-**Q4 (Deep dive):** Explain what "Ansible Facts" are and how they are gathered.
-**A:** Ansible Facts are system properties (like OS family, IP addresses, MAC addresses, CPU cores, and free memory) gathered from the target nodes. When an Ansible run starts, it secretly executes the `setup` module first. This module queries the target's system information and stores it in variables (like `ansible_os_family`) that you can use later to write conditional logic (e.g., "Only run this yum command IF OS is CentOS").
-
-**Q5 (Trick/Gotcha):** Can you use Ansible to manage Windows servers? If yes, does it use SSH?
-**A:** Yes, Ansible can manage Windows servers, but it does NOT natively use SSH. Instead, it uses Windows Remote Management (WinRM) or PowerShell Remoting over HTTPS. You must configure the Windows host to accept WinRM connections and use specific Windows modules (like `win_service` or `win_feature`) instead of the Linux modules.
-
----
-
-## Related Notes
-
-[[00-MOC/Master-Index|Master Index]]
-[[06-IaC/ANS-02 Ansible Playbooks|Ansible Playbooks]]
-[[01-Linux-Foundation/LX-01 Linux for DevOps|Linux SSH Basics]]
+**Revision:**
+- 5 min: Read Overview, Architecture Diagram, and Cheat Sheet.
+- Interview revision: Read Interview Questions, Troubleshooting, and Production Scenarios.

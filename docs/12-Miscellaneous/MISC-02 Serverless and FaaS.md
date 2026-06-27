@@ -1,185 +1,196 @@
 ---
-tags: [devops, serverless, aws, lambda]
-aliases: [Serverless and FaaS]
+tags: [devops, serverless, aws, lambda, faas, cloud]
+aliases: [Serverless and FaaS, AWS Lambda]
 created: 2025-06-27
 status: #complete
 difficulty: #intermediate
-cert-relevant: #aws-devops
+cert-relevant: #aws-devops #aws-solutions-architect
 ---
 
 # MISC-02 Serverless and FaaS
 
-> [!abstract] Overview
-> Serverless computing allows developers to build and run applications without thinking about servers. It doesn't mean servers don't exist; it means the cloud provider dynamically manages the allocation and provisioning of servers. Function-as-a-Service (FaaS) is a core component of Serverless, where you deploy individual functions (pieces of code) that execute in response to events. AWS Lambda is the most prominent FaaS offering.
+## Overview
+**Ye kya hai?** 
+Serverless computing ka matlab ye nahi ki server nahi hai. Iska seedha matlab hai ki "Server ka dard apka nahi, Cloud provider (AWS/Azure/GCP) ka hai". Aapko server provisioning, OS patching, ya auto-scaling ki tension nahi leni. Aap sirf apna code likho aur deploy karo. FaaS (Function-as-a-Service) iska core part hai jahan aap apna code small functions (e.g., AWS Lambda) ke form me run karte ho.
 
-## Concept Overview
-In traditional computing, you rent a virtual machine (EC2) and pay for it 24/7, whether it's doing work or sitting idle. You also have to patch the OS and manage scaling.
-In Serverless (FaaS), you upload your code, and it only runs when triggered (e.g., an HTTP request, a file upload, a database change). You pay *only* for the compute time you consume—down to the millisecond. If your code isn't running, you pay nothing.
+**Kyu use hota hai?**
+Traditional EC2 (VM) me aap 24/7 ka paisa dete ho, chahe server idle hi kyu na baitha ho. Serverless (Lambda) me aap sirf us "execution time" ka paisa dete ho jitni der code run hua (in milliseconds). Zero traffic = Zero cost.
 
-*Hindi Explanation: Serverless ka matlab ye nahi ki server ud gaya. Iska matlab hai ki server ka dard (management, OS patching, scaling) ab cloud provider (AWS) ka hai. Jaise Ola/Uber mein aap gadi nahi kharidte, sirf ride ka paisa dete ho. FaaS (Lambda) mein aap sirf utne time ka paisa dete ho jitni der aapka code run hota hai.*
+**Simple Analogy:**
+- **Traditional Server (EC2):** Jaise apna private driver rakhna. Gadi chale ya na chale, mahine ki salary deni padegi.
+- **Serverless (Lambda):** Jaise Ola/Uber book karna. Jitna kilometer chaloge, sirf utne ka paisa dena hai.
 
-**Key Concepts:**
-- **Serverless:** An execution model where the cloud provider manages infrastructure. Includes databases (DynamoDB), storage (S3), and compute.
-- **FaaS (Function-as-a-Service):** Event-driven compute. Code runs in ephemeral, stateless containers. (e.g., AWS Lambda, Google Cloud Functions).
-- **Cold Start:** The delay experienced when a Serverless function is invoked for the first time or after a period of inactivity, as the cloud provider has to spin up a new container.
-- **Serverless Framework & AWS SAM:** IaC tools designed specifically to make defining, packaging, and deploying serverless applications easier.
+**Industry kaha use karti hai?**
+- Image processing (Jaise hi user profile pic upload kare, S3 event se Lambda trigger hoke image compress kar de).
+- Cron jobs (EventBridge se Lambda trigger karna for daily database backups).
+- API backends (API Gateway + Lambda + DynamoDB for fully serverless APIs).
 
-**Desi Analogy:**
-Traditional Servers (EC2) are like hiring a full-time driver. Even if he sits idle all day, you pay his full monthly salary.
-Serverless (Lambda) is like booking an Auto-rickshaw on demand. You only pay for the exact distance traveled. If you don't travel, you pay 0 rupees. But, sometimes finding an auto takes a few minutes (Cold Start).
+**Architecture (Mermaid Diagram)**
 
-## Technical Deep Dive
-
-### 1. AWS Lambda Architecture
-When you create a Lambda function, you provide the code (ZIP file or Container Image) and configure settings like Memory (from 128MB to 10GB). CPU power scales linearly with memory. 
-Lambda is heavily event-driven. It integrates natively with over 200 AWS services. For example, an object uploaded to S3 can automatically trigger a Lambda function to resize the image. Lambda scales automatically and massively—handling thousands of concurrent requests without manual intervention.
-
-### 2. Overcoming Cold Starts
-Because Lambda spins up microVMs (using Firecracker) dynamically, the first request might take a few seconds (Cold Start) to load the runtime and your code. Subsequent requests to that same instance are fast (Warm Start).
-To mitigate cold starts:
-- Use faster runtimes (Go, Node.js, Python) instead of heavier ones (Java, .NET) unless optimized (e.g., GraalVM).
-- Use **Provisioned Concurrency**: A feature that keeps a specified number of execution environments initialized and ready to respond immediately, at an extra cost.
-
-### 3. Deployment Tools (AWS SAM vs Serverless Framework)
-Deploying Lambda functions manually via the AWS Console is fine for testing, but terrible for CI/CD.
-- **Serverless Framework (`sls`):** A popular third-party tool that supports multiple clouds (AWS, Azure, GCP). You define your app in a `serverless.yml` file, and it compiles it down to CloudFormation (on AWS) and handles packaging.
-- **AWS SAM (Serverless Application Model):** AWS's native extension to CloudFormation. It uses a `template.yaml` file. The `sam cli` allows you to test Lambda functions locally using Docker before deploying.
-
-## Step-by-Step Lab
-**Scenario:** Deploy a Python AWS Lambda function using the Serverless Framework. The function is triggered by an S3 upload and sends a mock notification.
-
-**Step 1: Install Serverless Framework**
-```bash
-npm install -g serverless
+```mermaid
+graph LR
+    User((User)) -->|HTTP Request| API[API Gateway]
+    API -->|Triggers| Lambda[AWS Lambda Function]
+    Lambda -->|Reads/Writes| DB[(DynamoDB)]
+    S3[S3 Bucket] -->|Upload Event| Lambda2[AWS Lambda Image Processor]
 ```
-*Expected output: Serverless Framework installed globally.*
 
-**Step 2: Create a new service**
-```bash
-serverless create --template aws-python3 --name s3-notifier --path s3-notifier
-cd s3-notifier
-```
-*Expected output: Generates boilerplate files `serverless.yml` and `handler.py`.*
+## Working
+**Internal Working:**
+1. Code ko ZIP file ya Container image (up to 10GB) me package kiya jata hai.
+2. Cloud provider background me ek ephemeral (temporary) container (microVM using Firecracker) spin up karta hai.
+3. Code run hota hai, output return karta hai, aur thodi der baad container destroy ya freeze ho jata hai.
+4. **Cold Start:** Jab Lambda bohot der baad call hota hai, toh naya container banne aur code load hone me 1-3 seconds lag sakte hain. 
+5. **Warm Start:** Agar back-to-back requests aa rahi hain, toh purana container reuse hota hai (milliseconds me response).
 
-**Step 3: Update handler.py**
-Open `handler.py` and replace with:
-```python
-import json
-import urllib.request
-import os
+**Data Flow / Request Flow:**
+Event Source (API/S3/SQS) -> IAM Role Check -> Lambda Execution Environment -> Runs Handler function -> Returns Response/Logs to CloudWatch.
 
-def hello(event, context):
-    # Get the bucket and file name from the S3 event
-    for record in event['Records']:
-        bucket = record['s3']['bucket']['name']
-        key = record['s3']['object']['key']
-        message = f"New file uploaded: {key} in bucket {bucket}"
-        print(message)
-        
-        # Mock sending a Slack notification
-        # webhook_url = os.environ.get('SLACK_WEBHOOK_URL')
-        # ... logic to post to webhook ...
+## Installation & Deployment Tools
+Pre-requisites: AWS Account, AWS CLI, Node.js (for Serverless framework).
 
-    return {"statusCode": 200, "body": json.dumps("Success!")}
-```
-*Expected output: Code saved.*
+Serverless directly code deploy karne ke tools:
+1. **Serverless Framework (`sls`):** Multi-cloud support. Uses `serverless.yml`. Industry standard for startups.
+2. **AWS SAM (Serverless Application Model):** AWS native tool. Uses `template.yaml`.
 
-**Step 4: Update serverless.yml**
-Configure the S3 trigger:
-```yaml
-service: s3-notifier
-frameworkVersion: '3'
+## Practical Lab
+**Goal:** S3 bucket me file upload hone par Lambda function trigger karna aur CloudWatch me log print karna (Using Serverless Framework).
 
-provider:
-  name: aws
-  runtime: python3.9
-  region: us-east-1
+**CLI Method (PowerShell / Bash):**
+1. Install Serverless Framework:
+   ```bash
+   npm install -g serverless
+   ```
+2. Scaffold new Python template:
+   ```bash
+   serverless create --template aws-python3 --name s3-notifier --path s3-notifier
+   cd s3-notifier
+   ```
+3. Update `handler.py`:
+   ```python
+   import json
 
-functions:
-  hello:
-    handler: handler.hello
-    events:
-      - s3:
-          bucket: my-unique-upload-bucket-999123 # Must be globally unique
-          event: s3:ObjectCreated:*
-          rules:
-            - suffix: .txt
-```
-*Expected output: Configuration saved.*
+   def hello(event, context):
+       for record in event['Records']:
+           bucket = record['s3']['bucket']['name']
+           key = record['s3']['object']['key']
+           print(f"New file uploaded: {key} in bucket {bucket}")
+           
+       return {"statusCode": 200, "body": json.dumps("Success!")}
+   ```
+4. Update `serverless.yml`:
+   ```yaml
+   service: s3-notifier
+   provider:
+     name: aws
+     runtime: python3.9
+     region: us-east-1
+   functions:
+     hello:
+       handler: handler.hello
+       events:
+         - s3:
+             bucket: my-unique-upload-bucket-999123 # globally unique
+             event: s3:ObjectCreated:*
+             rules:
+               - suffix: .txt
+   ```
+5. Deploy to AWS:
+   ```bash
+   serverless deploy
+   ```
+6. **Verification:** Upload a `.txt` file in S3, run `serverless logs -f hello`.
 
-**Step 5: Deploy the Service**
-*(Requires AWS CLI configured with admin credentials)*
-```bash
-serverless deploy
-```
-*Expected output: Packaging service, creating CloudFormation stack, creating S3 bucket, deploying Lambda. Outputs endpoints and function names.*
+## Daily Engineer Tasks
+- **L1 Engineer:** Check CloudWatch logs for Lambda errors. Increase timeout limits if function is timing out.
+- **L2 Engineer:** Fix IAM Role permissions (e.g., Lambda ko S3 access nahi mil raha). Optimize basic code issues.
+- **L3/Senior Engineer:** Optimize Cold Starts using Provisioned Concurrency, reduce ZIP size using Lambda Layers, orchestrate complex workflows using AWS Step Functions.
+- **DevOps/Cloud Architect:** Design fully serverless resilient architectures. Decide between ECS (Containers) vs Lambda based on cost and execution time (Lambda max limit is 15 mins).
 
-**Step 6: Test the Trigger**
-Upload a `.txt` file to the newly created S3 bucket.
-```bash
-echo "Hello Serverless" > test.txt
-aws s3 cp test.txt s3://my-unique-upload-bucket-999123/
-```
-Check the Lambda logs:
-```bash
-serverless logs -f hello
-```
-*Expected output: Logs showing "New file uploaded: test.txt in bucket..."*
+## Real Industry Tasks
+- **Migration Ticket:** Migrate an old EC2 based nightly cron job script to an EventBridge triggered AWS Lambda function to save $50/month.
+- **Maintenance Work:** Update Lambda runtime from Python 3.7 (deprecated) to Python 3.10 using CI/CD pipelines.
+- **Performance CR:** Implement **Lambda Layers** to extract heavy dependencies (`numpy`, `pandas`) out of the deployment package so deployment becomes 5x faster.
 
-## Common Commands Cheat Sheet
+## Troubleshooting
+**Issue:** `Function execution times out after 3 seconds.`
+- **Symptoms:** Lambda logs show "Task timed out after 3.00 seconds".
+- **Possible Root Cause:** Code external API ko call kar raha hai jo slow hai, ya infinite loop fas gaya hai. Lambda default timeout is 3s.
+- **Investigation Steps:** Check CloudWatch logs for API response time.
+- **Resolution:** Change `timeout` in `serverless.yml` to 10-30 seconds. Fix slow API calls.
 
-| Command | What It Does | Real Example |
-| :--- | :--- | :--- |
-| `serverless create` | Scaffolds a new serverless project | `sls create --template aws-nodejs` |
-| `serverless deploy` | Deploys the stack to AWS | `sls deploy --stage prod` |
-| `serverless invoke` | Runs the function remotely on AWS | `sls invoke -f hello -d '{"key":"val"}'` |
-| `serverless logs` | Fetches CloudWatch logs for a function| `sls logs -f hello -t` |
-| `sam local invoke` | Tests a Lambda locally using Docker | `sam local invoke "MyFunction" -e event.json` |
-| `sam deploy -g` | Guided deployment of a SAM application | `sam deploy --guided` |
-| `aws lambda list-functions`| Lists all Lambda functions | `aws lambda list-functions` |
-| `aws lambda update-function-code`| Updates code without touching IaC (quick fix) | `aws lambda update-function-code --function-name myFunc --zip-file fileb://code.zip` |
+**Issue:** `AccessDenied Exception when Lambda accesses DynamoDB`
+- **Symptoms:** Code fails with IAM permissions error in CloudWatch.
+- **Possible Root Cause:** Lambda Execution Role me DynamoDB ka `GetItem`/`PutItem` policy attached nahi hai.
+- **Resolution:** Attach inline policy or add IAM roles in `serverless.yml`.
 
-## Troubleshooting Guide
+## Interview Preparation
+**Basic:** What is Serverless? EC2 aur Lambda me kya difference hai?
+- *Answer:* EC2 IaaS hai, Lambda FaaS hai. EC2 hourly bill hota hai, Lambda execution ms pe bill hota hai.
 
-| Problem | Likely Cause | Step-by-Step Fix |
-| :--- | :--- | :--- |
-| Error: `Bucket already exists` during deployment. | S3 bucket names must be globally unique across all AWS accounts. | 1. Open `serverless.yml`. 2. Change the bucket name to something random (e.g., append your name or random numbers). 3. Redeploy. |
-| Function execution times out after 3 seconds. | Lambda's default timeout is 3s. Your code is taking longer (e.g., API call). | 1. Open `serverless.yml`. 2. Add `timeout: 10` under your function config. 3. Redeploy. |
-| AccessDenied Exception when Lambda tries to read DynamoDB. | Lambda Execution Role lacks permissions. | 1. Go to `provider.iam.role.statements` in `serverless.yml`. 2. Add `Allow` for `dynamodb:GetItem` on the target table ARN. |
-| Deployment fails: `Unzipped size must be smaller than 250 MB`. | You are bundling too many heavy dependencies (like pandas, numpy) in the ZIP. | 1. Use Lambda Layers to separate dependencies. 2. Alternatively, package the Lambda function as a Docker Container Image (up to 10GB). |
-| `sls command not found` | Node or Serverless Framework is not installed. | 1. Install NodeJS. 2. Run `npm install -g serverless`. |
+**Intermediate:** Lambda me Cold Start kya hota hai aur usko kaise fix karein?
+- *Answer:* Pehli request ko process karne me lagne wala time kyunki container initialize hota hai. Fix karne ke liye Provisioned Concurrency use karte hain (keeps instances warm) ya lightweight runtime (Go/Nodejs) use karte hain.
 
-## Real-World Job Scenario
-**The Situation:** The marketing team needs to generate PDF reports from user data, but traffic is unpredictable. Sometimes 0 requests per day, sometimes 50,000 requests in an hour after a campaign email.
+**Advanced (FAANG Scenario):** A Lambda function is attached to a private VPC to read an RDS database. Users are complaining about 10-second delays.
+- *Answer:* Pehle VPC attached Lambdas me ENI (Elastic Network Interface) creation slow hota tha. Halaki AWS ne Hyperplane ENI se ise improve kiya hai, RDS connection pooling ki wajah se delay ho sakta hai. Use **Amazon RDS Proxy** so Lambda functions don't exhaust DB connections during scaling spikes.
 
-**Junior DevOps Action:**
-- Spins up 5 large EC2 instances behind an Application Load Balancer just to be safe.
-- Pays hundreds of dollars a month for servers that sit completely idle 95% of the time.
-- Struggles to write auto-scaling rules that respond fast enough to the sudden spikes.
+## Production Scenarios
+**Scenario:** "Website Down - API Gateway throwing 502 Bad Gateway"
+- **How to think:** 502 means API Gateway Lambda se connect nahi kar pa raha ya Lambda invalid response de raha hai.
+- **Where to check:** API Gateway CloudWatch logs. Lambda CloudWatch logs.
+- **Commands:** `sls logs -f <function_name>`
+- **Root Cause:** Lambda function crashed with syntax error, OR returning an invalid JSON format (API Gateway requires exact `{statusCode, body}` format).
+- **Resolution:** Fix code, redeploy.
 
-**Senior DevOps Action:**
-- Chooses a Serverless architecture (API Gateway + AWS Lambda).
-- Writes the PDF generation logic in a Lambda function.
-- Deploys using the Serverless Framework.
-- Result: When traffic is 0, the cost is $0. When the 50,000 request spike hits, AWS automatically scales out thousands of concurrent Lambda instances instantly to handle the load without breaking a sweat, costing only a few dollars for that specific hour.
+## Commands
+| Command | Purpose | Syntax/Example | When NOT to use |
+| :--- | :--- | :--- | :--- |
+| `serverless deploy` | Deploy entire stack via CloudFormation | `sls deploy --stage prod` | Never run from local machine directly to Production. Use CI/CD. |
+| `serverless logs` | Tail logs | `sls logs -f hello -t` | Large log volumes (use AWS console instead). |
+| `aws lambda update-function-code` | Direct code update bypassing IaC | `aws lambda update-function-code --function-name myFunc --zip-file fileb://code.zip` | Avoid in prod. Creates config drift between codebase and AWS. Danger level: High. |
 
-## Interview Questions
+## Cheat Sheet
+- **Max Execution Time:** 15 minutes (900 seconds).
+- **Max Memory:** 10 GB.
+- **Max Deployment Package (ZIP):** 50MB zipped, 250MB unzipped. (Container image is 10GB).
+- **Concurrency Limit:** 1000 per region (can be increased via AWS Support ticket).
+- **Runtimes Supported:** Node.js, Python, Java, Go, Ruby, .NET, Custom (Rust, C++).
 
-**Q1: What is a "Cold Start" in Serverless computing and how can you minimize its impact?**
-**A:** A cold start is the latency experienced when a serverless function is invoked after being idle. The cloud provider must allocate resources, download the code, start the container, and bootstrap the runtime. To minimize it, you can use lighter runtimes (Python/Node vs Java), keep the deployment package small, or use AWS Provisioned Concurrency, which keeps instances "warm" and ready for a fee.
+## SOP & Runbook & KB Article
+**Runbook: Handling Lambda Concurrency Limits**
+- **Detection:** CloudWatch Alarm on `Throttles` metric > 0.
+- **Investigation:** Check if one rogue Lambda is eating all 1000 concurrent executions, starving other production Lambdas.
+- **Resolution:** Go to AWS Console -> Lambda -> Set "Reserved Concurrency" on the rogue function to a limit (e.g., 100) so it doesn't drain the account-level pool.
+- **Validation:** Check `Throttles` metric dropping for other functions.
 
-**Q2: What is the maximum execution time limit for an AWS Lambda function?**
-**A:** The maximum execution time limit for AWS Lambda is 15 minutes (900 seconds). If a task takes longer than that, Lambda is not the right tool; you should consider AWS Batch, ECS tasks, or Step Functions to orchestrate multiple Lambdas.
+## Best Practices & Beginner Mistakes
+**Best Practices:**
+- Always separate business logic from the handler function for easy unit testing.
+- Store secrets (DB passwords) in AWS Secrets Manager, NOT in environment variables.
+- Keep deployment packages small.
+- Avoid Recursive Loops! (e.g., S3 triggers Lambda -> Lambda writes to same S3 -> Triggers Lambda again -> Infinite Loop = Massive AWS Bill!).
 
-**Q3: How does pricing work for AWS Lambda compared to EC2?**
-**A:** EC2 is priced based on uptime (hourly or per-second billing) regardless of CPU utilization. Lambda is priced based on the number of requests and the execution duration (measured in milliseconds) multiplied by the amount of RAM allocated to the function.
+**Beginner Mistakes:**
+- Mistake: Using Lambda for long-running batch jobs (e.g., 30 min video rendering).
+- Impact: Process will kill at 15 minutes. Data corruption.
+- Correct approach: Use AWS Batch or ECS Fargate.
 
-**Q4: Can an AWS Lambda function run inside a private VPC?**
-**A:** Yes. You can configure a Lambda function to connect to private subnets in a VPC, which allows it to access private resources like RDS databases or ElastiCache. However, attaching to a VPC used to cause severe cold starts (due to ENI creation), but AWS improved this significantly in 2019. Note that a VPC-attached Lambda loses direct internet access unless the subnet has a NAT Gateway.
+## Advanced Concepts
+- **Lambda Layers:** A ZIP archive that contains libraries. Lets you keep your deployment package small.
+- **Provisioned Concurrency:** Keeps your functions initialized and warm. Eliminates cold starts but costs extra hourly money.
+- **Firecracker MicroVM:** The open-source virtualization technology built by AWS (in Rust) that powers Lambda and Fargate, allowing microVMs to boot in milliseconds.
 
-**Q5: What are Lambda Layers?**
-**A:** Lambda Layers are a distribution mechanism for libraries, custom runtimes, and other function dependencies. Instead of bundling massive libraries (like `numpy`) into every single function's deployment package, you put them in a Layer. Multiple functions can reference the same layer, keeping the deployment ZIPs small and deployments fast.
-
-## Related Notes
+## Related Topics & Flashcards & Revision
 - [[Master Index]]
 - [[MISC-03 Infrastructure Testing]]
+- [[Containers vs Serverless]]
+- [[AWS API Gateway]]
+
+**Flashcards:**
+- Q: What happens if Lambda runs over 15 minutes? -> A: It timeouts and gets killed forcibly.
+- Q: How to handle DB connections in Lambda? -> A: Use RDS Proxy.
+
+**Revision:** 
+- 5 min: Read Cheat Sheet. 
+- 15 min: Read Architecture & Troubleshooting.
+- Interview revision: Focus on Cold Starts, Concurrency, and VPC networking.

@@ -1,7 +1,7 @@
 ---
 tags: [devops, containerization, docker-compose]
-aliases: [Docker Compose]
-created: 2025-06-27
+aliases: [Docker Compose, Compose]
+created: 2026-06-27
 status: #complete
 difficulty: #intermediate
 cert-relevant: #none
@@ -9,60 +9,69 @@ cert-relevant: #none
 
 # DOC-03 Docker Compose
 
-> [!abstract] Overview
-> Modern applications rarely consist of just one container. A standard web application requires a frontend, a backend API, a database, and perhaps a caching layer like Redis. Managing 4-5 long `docker run` commands with complex network flags is tedious and error-prone. Docker Compose solves this by allowing you to define multi-container applications in a single declarative YAML file, bringing up the entire stack with one command.
+# Overview
+**Ye kya hai?** Docker Compose ek orchestration aur management tool hai jo aapko ek declarative YAML file ke through multi-container Docker applications ko define aur run karne ki facility deta hai.
+**Kyu use hota hai?** Modern applications me frontend, backend API, cache (Redis), aur database (Postgres) sab alag-alag containers me hote hain. Har container ko manually `docker run` karna aur unki networking configure karna bohot tedious hai. Compose in sabko ek sath ek simple command se up and connect kar deta hai.
+**Real life example & Simple Analogy:** Agar Docker ek akela worker (container) hai jisko aap bataate ho kya karna hai, toh Docker Compose ek Project Manager hai. Is Manager ko aap ek To-Do list (YAML file) pakda dete ho ki "Mujhe ye 4 workers chahiye, inka ye department hoga (network), aur ye unka storage (volume)". Manager sab khud handle kar lega.
+**Industry kaha use karti hai?** 99% cases me ye local development environments setup karne, testing environments, aur chhoti-moti single-server deployments me use hota hai. Developers ke liye DevEx (Developer Experience) improve karne ke liye ye best tool hai.
 
----
+### Architecture
+```mermaid
+graph TD
+    User[Developer / DevOps] -->|docker compose up| ComposeCLI[Docker Compose CLI]
+    ComposeCLI -->|Reads| YAML(docker-compose.yml)
+    YAML -->|Creates Network| Net((Compose Default Network))
+    YAML -->|Spins up| Web[Web Container - Nginx]
+    YAML -->|Spins up| API[API Container - Node]
+    YAML -->|Spins up| DB[Database Container - Postgres]
+    
+    Web -->|Connects to| Net
+    API -->|Connects to| Net
+    DB -->|Connects to| Net
+    
+    Web -.->|Proxies request to| API
+    API -.->|Reads/Writes| DB
+```
 
-## Concept Overview
+# Working
+**Internal working & Data Flow:**
+Jab aap `docker compose up` chalate ho, Compose engine aapki current directory me `docker-compose.yml` dhoondhta hai. 
+1. Sabse pehle ye ek custom bridge network create karta hai.
+2. Fir ye `volumes` block ko padhta hai aur persistent storage volumes banata hai.
+3. Uske baad ye `services` block ko read karke containers banata hai aur unko network me attach kar deta hai.
+4. **DNS Resolution:** Docker ka embedded DNS engine har service name ko uske internal IP par map kar deta hai. Iska matlab hai `api` container apne code me database ko directly `db:5432` se access kar sakta hai, IP yaad rakhne ki zaroorat nahi.
 
-- **What it is** — A tool for defining and running multi-container Docker applications. It uses a `docker-compose.yml` file to configure application services, networks, and volumes.
-- **Why DevOps engineers use it** — To standardize local development environments and simple deployments. Instead of writing a bash script full of `docker run` commands, you write a clean YAML file that anyone on the team can run with `docker compose up`.
-- **Where you encounter this in a real job** — Setting up a local testing environment that mirrors production (e.g., spinning up Kafka, Zookeeper, and Postgres simultaneously on your laptop).
-- **Responsibility Split:**
-  - **Junior DevOps**: Runs `docker compose up/down` and views aggregated logs.
-  - **Mid DevOps**: Writes the `docker-compose.yml` for multi-tier apps, manages `.env` files, and configures persistent volumes.
-  - **Senior/SRE**: Uses `docker-compose.override.yml` for dev vs prod parity, implements strict healthchecks, and manages compose profiles.
-
-*Seedha simple mein: Docker ek akela worker (container) hai. Docker Compose ek manager hai. Agar aapko ek web app chalani hai jisme database aur frontend dono hain, toh Compose ko ek YAML list de do. Wo automatically pehle DB start karega, phir frontend, aur dono ko ek network se connect kar dega.*
-
----
-
-## Technical Deep Dive
-
-### 1. Anatomy of docker-compose.yml
-A compose file is divided into three main root blocks:
-- `services`: Defines the actual containers (e.g., `web`, `db`, `redis`). Each service defines the image to use, ports to expose, and environment variables.
-- `networks`: Defines custom networks. If omitted, Compose automatically creates a default bridge network, placing all services on it so they can communicate using their service names (DNS).
-- `volumes`: Defines persistent named volumes so data isn't lost when containers are destroyed.
-
-### 2. Dependencies and Healthchecks
-Just putting `depends_on: db` inside the `web` service tells Compose to start the `db` container first. However, the `web` container might still crash if the database takes 10 seconds to fully boot its internal engine. 
-To solve this, we use `healthcheck`. You define a command (like `pg_isready`) inside the `db` service. Then, in the `web` service, you use `depends_on: db: condition: service_healthy`. This guarantees the web app only starts when the database is actually ready to accept connections.
-
-### 3. Environment Variables, Overrides, and Profiles
-Managing secrets is crucial. Instead of hardcoding passwords in YAML, use `env_file: .env` to inject variables. 
-For different environments (Dev vs Prod), you use overrides. Docker Compose automatically reads `docker-compose.override.yml` if it exists, merging it over the base file. You can use this to expose ports in Dev that you keep hidden in Prod.
-**Profiles** allow you to selectively run services. For example, assigning a `profile: ["debug"]` to a heavy monitoring container means it won't start unless you explicitly run `docker compose --profile debug up`.
-
----
-
-## Step-by-Step Lab
-
-> [!warning] Pre-requisites
-> - Docker and Docker Compose installed
-
-### Step 1: Create the Project Directory and Env File
+# Installation
+**Prerequisites:** Docker Engine installed hona chahiye.
+**Installation:**
+- **Windows/Mac:** Docker Desktop ke sath automatically aata hai. Kuch alag se karne ki zaroorat nahi.
+- **Linux:** 
+  ```bash
+  sudo apt update
+  sudo apt install docker-compose-plugin
+  ```
+*(Note: Pehle log `docker-compose` likhte the jo v1 python script thi. Naya tareeka `docker compose` space ke sath hai jo golang based plugin hai)*
+**Verification:** 
 ```bash
-mkdir 3-tier-app && cd 3-tier-app
+docker compose version
+```
+
+# Practical Lab
+**Scenario:** Ek 3-tier application deploy karni hai jisme Nginx (Proxy), Node API, aur PostgreSQL database ho.
+
+Aap real execution ke liye vault ke example folder se file use kar sakte hain: [examples/03-Docker/docker-compose.yml](file:///C:/Users/SPTL/Documents/devops/devops/examples/03-Docker/docker-compose.yml)
+
+### Step 1: Directory & Variables
+Hamesha project folder banaye aur hardcoded passwords avoid karne ke liye `.env` file banaye.
+```bash
+cd ../../examples/03-Docker/
 echo "POSTGRES_PASSWORD=supersecret" > .env
 echo "DB_HOST=db" >> .env
 ```
 
-### Step 2: Write the docker-compose.yml
+### Step 2: Write `docker-compose.yml`
+(Refer to the actual file for the full robust configuration with networks and healthchecks).
 ```yaml
-# Create docker-compose.yml
-cat << 'EOF' > docker-compose.yml
 version: '3.8'
 
 services:
@@ -70,26 +79,26 @@ services:
   proxy:
     image: nginx:alpine
     ports:
-      - "80:80"
+      - "8080:80"
     depends_on:
       - api
 
-  # 2. Node.js API (using a dummy image for lab)
+  # 2. API Tier
   api:
     image: node:18-alpine
-    command: sh -c "sleep 3600" # Dummy command to keep it alive
+    command: sh -c "sleep 3600" # Dummy running process
     environment:
       - DB_HOST=${DB_HOST}
       - DB_PASS=${POSTGRES_PASSWORD}
     depends_on:
       db:
-        condition: service_healthy
+        condition: service_healthy # Wait untill DB is completely ready
 
-  # 3. PostgreSQL Database
+  # 3. Database Tier
   db:
     image: postgres:14-alpine
     env_file:
-      - .env
+      - .env # Load variables from .env file
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -99,120 +108,141 @@ services:
       retries: 5
 
 volumes:
-  pgdata: # Named volume for persistence
-EOF
+  pgdata: # Persistent storage
 ```
 
-### Step 3: Bring Up the Stack
+### Step 3: Run & Verify
 ```bash
-# Start all services in the background
+# Background me chalaye
 docker compose up -d
 
-# Expected output:
-# Network 3-tier-app_default  Creating...
-# Volume "3-tier-app_pgdata"  Creating...
-# Container 3-tier-app-db-1  Starting...
-# Container 3-tier-app-db-1  Healthy
-# Container 3-tier-app-api-1  Starting...
-# Container 3-tier-app-proxy-1  Starting...
-```
-
-### Step 4: Verify Processes and Logs
-```bash
-# Check the status of all services in the compose file
+# Status check kare
 docker compose ps
 
-# View aggregated logs from all 3 containers
+# Sabhi containers ke combined logs dekhein
 docker compose logs -f
-
-# Expected output:
-# Logs from db, api, and proxy interleaved, prefixed with the service name.
 ```
 
-### Step 5: Tear Down Safely
+### Step 4: Cleanup
 ```bash
-# Stop and remove containers and networks (keeps volumes!)
+# Containers and network delete (Volumes bache rahenge data save rakhne ke liye)
 docker compose down
 
-# If you want to wipe the database volume too:
-# docker compose down -v
+# Pura kachra saaf karna ho (Volumes and Data bhi delete hoga)
+docker compose down -v
 ```
 
-> [!tip] Pro Tip
-> Never use `docker compose up` in production environments for critical workloads. Compose is great for local dev and single-server apps, but it does not auto-heal containers if the node crashes, nor does it scale across multiple servers. That is what Kubernetes is for.
+# Daily Engineer Tasks
+- **L1 Engineer:** `docker compose ps` se services check karna aur `docker compose logs -f <service_name>` se error dhundhna.
+- **L2 Engineer:** Existing `docker-compose.yml` me naye environment variables add karna, volumes configure karna, and images upgrade karna.
+- **L3/Senior Engineer:** `docker-compose.override.yml` likhna developers ke local testing ke liye, healthchecks setup karna taaki containers crash loop me na jaaye, aur compose profiles banana.
 
----
+# Real Industry Tasks
+**Real tickets:**
+- **Ticket:** "Developers complain local dev is slow and DB keeps crashing on start."
+- **Action:** Senior engineer inspect karega. Pata chalega ki `depends_on` use kiya hai par `healthcheck` nahi. DB initialize hone se pehle Backend request bhej deta hai. Engineer `docker-compose.yml` me `pg_isready` ka healthcheck dalega aur frontend/backend dependencies ko `condition: service_healthy` update karega. Developer setup abb stable ho gaya!
 
-## Common Commands Cheat Sheet
+# Troubleshooting
+- **Issue:** Containers ek dusre se localhost pe baat nahi kar pa rahe hain.
+  - **Root Cause:** Har container ka apna localhost (loopback) hota hai. 
+  - **Resolution:** Connection string me service ka naam use kare. Example: `http://localhost:5432` ki jagah `http://db:5432` use kare.
+- **Issue:** Code changes container me update nahi ho rahe.
+  - **Root Cause:** Image cache ho chuki hai.
+  - **Resolution:** `docker compose up -d --build` chalaye to force rebuild.
+- **Issue:** `variable is not set. Defaulting to a blank string.`
+  - **Root Cause:** YAML me env variable use hua hai par `.env` file missing hai ya source nahi hui.
 
-| Command | What It Does | Real Example |
-|---------|-------------|--------------|
-| `docker compose up -d` | Builds, (re)creates, and starts containers in background | `docker compose up -d` |
-| `docker compose down -v` | Stops containers and removes networks AND volumes | `docker compose down -v` |
-| `docker compose ps` | Lists containers belonging to the compose project | `docker compose ps` |
-| `docker compose logs -f` | Tails aggregated logs from all services | `docker compose logs -f api db` |
-| `docker compose exec` | Executes a command in a running compose service | `docker compose exec db psql -U postgres` |
-| `docker compose build` | Builds or rebuilds services defined with `build:` | `docker compose build --no-cache` |
-| `docker compose config` | Validates and views the final merged compose file | `docker compose config` |
-| `docker compose --profile` | Runs services assigned to a specific profile | `docker compose --profile debug up -d` |
+# Interview Preparation
+**Q1 (Basic): Difference between `docker-compose up` and `docker-compose start`?**
+*Answer:* `up` pura stack (network, volume, containers) naye sire se banata aur chalata hai. `start` sirf un containers ko start karta hai jo pehle se bane the par stopped state me the.
+*Confidence Level:* Beginner
 
----
+**Q2 (Intermediate): How to keep secrets out of `docker-compose.yml`?**
+*Answer:* `env_file: .env` directive use karke environment variables inject karte hain. `.env` file ko `.gitignore` me dalte hain taaki passwords github me expose na ho.
+*Confidence Level:* Intermediate
 
-## Troubleshooting Guide
+**Q3 (Scenario Based): API container fails initially because database takes 10 seconds to setup. How to fix?**
+*Answer:* `depends_on` by default sirf check karta hai ki container start hua ya nahi. Proper fix ke liye db service me `healthcheck` block dalenge (e.g., `pg_isready`). Phir API service me `depends_on: db: condition: service_healthy` set karenge.
+*Experience Level:* Production / L2
 
-| Problem | Likely Cause | Step-by-Step Fix |
-|---------|-------------|------------------|
-| API starts but instantly crashes saying "DB Connection Refused" | Missing healthcheck | `depends_on` only waits for the DB container to *start*. Add a `healthcheck` to the DB and use `condition: service_healthy` in the API. |
-| Changes in code aren't reflecting in the container | Image is cached | Run `docker compose up -d --build` to force a rebuild of the image. |
-| `variable is not set. Defaulting to a blank string.` | Missing `.env` file | Ensure `.env` is in the same directory as the YAML, or pass variables inline. |
-| Cannot talk to another service using `localhost` | Container isolation | Containers must talk to each other using their service name (e.g., `http://db:5432`), not `localhost`. |
-| Compose file fails to validate | YAML indentation error | YAML relies strictly on spaces. Run `docker compose config` to pinpoint the syntax error. |
+**Q4 (Advanced): Kya Docker Compose production-grade container orchestrator hai?**
+*Answer:* No. Docker Compose auto-scaling aur self-healing across multiple nodes (servers) handle nahi kar sakta. Ye local dev aur single-server deployments ke liye accha hai. Production scale ke liye Kubernetes (K8s) ya Docker Swarm chahiye.
+*Experience Level:* Senior / Architect
 
----
+# Production Scenarios
+**Scenario: Website Down in Local Environment**
+- **How to think:** Sabse pehle check karo ki saare containers running hain ya restarting loop me hain.
+- **Commands:** `docker compose ps` -> `docker compose logs -f api`
+- **Root Cause Analysis:** Pata chala DB connection refused aa raha hai.
+- **Resolution:** Developer ne shayad naya DB password `.env` me update nahi kiya ya data volume corrupt hai. `docker compose down -v` karke clean start karke verify karenge.
 
-## Real-World Job Scenario
+# Commands
+| Command | Purpose | When to use | Danger Level |
+|---------|---------|-------------|--------------|
+| `docker compose up -d` | Background me stack start karta hai | Daily local dev ke time | Low |
+| `docker compose down` | Stack rok kar delete karta hai | Jab kaam khatam ho jaye | Low |
+| `docker compose down -v` | Stack + Volumes (Data) sab delete | Jab DB/data reset karna ho | **HIGH** |
+| `docker compose logs -f` | Realtime combined logs dikhata hai | Debugging errors | Low |
+| `docker compose exec db sh` | Running container ke andar shell deta hai | Manual database queries chalane ke liye | Medium |
+| `docker compose config` | Pura final parsed YAML validate and dikhata hai | Syntax errors verify karne ke liye | Low |
 
-> [!info] Scenario
-> **Situation:** "Developers complain that testing locally is too hard. They have to manually run a Redis container, a MySQL container, and the API, and they keep forgetting the correct port mappings."
+# Cheat Sheet
+- **Scale containers:** `docker compose up --scale worker=3 -d`
+- **Build without cache:** `docker compose build --no-cache`
+- **Check config errors:** `docker compose config`
+- **Run specific profile:** `docker compose --profile debug up -d`
 
-**What Junior DevOps Does:**
-Writes a bash script with `docker run ...` for Redis, MySQL, and the API. It works on Linux but breaks on a developer's Mac because of network binding differences.
+# SOP & Runbook & KB Article
+### Runbook: Application Services crashing on startup
+- **Detection:** `docker compose ps` shows containers in "Exited" state.
+- **Investigation:** `docker compose logs <service_name> --tail=50`.
+- **Cause:** Usually DB dependency missing ya environment variables not loaded.
+- **Resolution:** Check `.env` file presence. Ensure healthcheck is configured for dependent services.
+- **Verification:** Run `docker compose up -d` and check `docker compose ps` for "Up" status.
 
-**Escalation Trigger:**
-Developers are losing hours every week debugging the bash script instead of writing code. The script doesn't handle database persistence, so they lose test data every reboot.
+# Best Practices & Beginner Mistakes
+**Best Practices:**
+- Hamesha container ka image tag fix karein (e.g., `node:18-alpine` instead of `node:latest`). Latest tag unpredictable hota hai.
+- Hamesha `.env` file ka use karein.
+- Named volumes create karein data persist karne ke liye.
 
-**Senior Engineer Resolution:**
-1. Writes a standardized `docker-compose.yml`.
-2. Includes a named volume for MySQL so test data persists.
-3. Adds a `docker-compose.override.yml` strictly for developers, mapping local port `3306` directly to their machines so they can use GUI tools like DBeaver.
-4. Developers now just type `docker compose up -d` and the entire perfectly-configured environment spins up in 5 seconds.
+**Beginner Mistakes:**
+- `ports` ko hamesha host port bind kar dena. Agar `80:80` bind kiya toh aap us service ke 2 container nahi chala sakte (Port Conflict). Use `80` (only container port) ya `8080-8085:80` for scaling.
+- Production environment me Compose par rely karna bina failover server ke.
 
-**Lesson Learned:**
-Developer Experience (DevEx) is a core DevOps responsibility. Docker Compose is the ultimate tool for frictionless local development.
+# Advanced Concepts
+**1. Docker Compose Overrides**
+Aapke paas `docker-compose.yml` hai. Ab local dev ke liye aapko kuch extra ports kholne hain jo production me hide rahenge. Aap ek file banayenge `docker-compose.override.yml`. Compose automatically dono ko merge kar dega jab aap `docker compose up` chalayenge. Dev overrides ko version control me dalne ki zaroorat nahi padti kai baar.
 
----
+**2. Compose Profiles**
+Agar project me 10 services hain par ek developer ko sirf frontend pe kaam karna hai aur heavy monitoring tools (Prometheus, Grafana) nahi chahiye. Hum heavy services ko `profiles: ["monitoring"]` de sakte hain. Ye tab tak start nahi honge jab tak `docker compose --profile monitoring up` na bola jaye.
 
-## Interview Questions
+# Related Topics & Flashcards & Revision
+- **Prerequisites:** [[DOC-01 Docker Fundamentals]]
+- **Next Topic:** [[DOC-04 Docker Networking and Volumes]], [[Kubernetes Architecture]]
 
-**Q1 (Conceptual):** What is the difference between `docker-compose up` and `docker-compose start`?
-**A:** `up` is a comprehensive command that builds images (if missing), creates networks/volumes, and creates and starts the containers. `start` only starts containers that have *already* been created but were stopped. If the container doesn't exist yet, `start` will fail.
+**Flashcards:**
+- *Q: Docker Compose me volume kaise banate hain?* -> A: Root level `volumes:` block define karke.
+- *Q: Default Compose network ka naam kya hota hai?* -> A: `<folder-name>_default`
 
-**Q2 (Practical):** How do you define an environment variable in Compose without hardcoding it in the YAML?
-**A:** You can define a `.env` file in the same directory, which Compose reads automatically to substitute `${VAR_NAME}` in the YAML. Alternatively, you can use the `env_file: - .env` directive under a specific service to pass the whole file directly into the container.
+# Real Production Logs & Commands & Decision Tree
+**Logs Example when Healthcheck works:**
+```text
+Network 3-tier-app_default  Creating...
+Volume "3-tier-app_pgdata"  Creating...
+Container db-1  Starting...
+Container db-1  Healthy    <-- (healthcheck passed)
+Container api-1  Starting...
+```
 
-**Q3 (Scenario-based):** You have a web service and a db service. The web service keeps failing because the database takes 15 seconds to initialize. How do you fix this natively in Compose?
-**A:** I would define a `healthcheck` block inside the `db` service running a command like `pg_isready`. Then, in the `web` service, I would use `depends_on:` pointing to `db` with the `condition: service_healthy` flag. Compose will hold the web container until the DB passes the healthcheck.
-
-**Q4 (Deep dive):** Explain how Docker Compose handles networking by default between services.
-**A:** By default, Docker Compose sets up a single custom bridge network for the entire project. All services defined in the YAML are attached to this network. Compose also utilizes Docker's embedded DNS server, which maps the service names (like `db` or `api`) directly to the containers' internal IP addresses. This means `api` can simply ping `db` without knowing its IP.
-
-**Q5 (Trick/Gotcha):** Can you scale a service to 5 instances using Docker Compose?
-**A:** Yes, you can use `docker compose up --scale web=5`. However, if your `web` service has a hardcoded host port mapping (like `ports: - "80:80"`), it will fail because 5 containers cannot bind to the host's port 80 simultaneously. You must remove the host port mapping (e.g., just `ports: - "80"`) so Docker assigns random host ports, or place a load balancer service (like Nginx/HAProxy) in front of them.
-
----
-
-## Related Notes
-
-[[00-MOC/Master-Index|Master Index]]
-[[03-Containerization/DOC-01 Docker Fundamentals|Docker Fundamentals]]
-[[03-Containerization/DOC-04 Docker Networking and Volumes|Docker Networking and Volumes]]
+**Decision Tree - App Not Starting:**
+```mermaid
+graph TD
+    A[Start: docker compose up fails] --> B{Check Error Message}
+    B -->|YAML syntax error| C[Run docker compose config. Fix spacing]
+    B -->|Port already in use| D[Check if another app is using that host port using netstat]
+    B -->|Container Exited| E[Run docker compose logs <container>]
+    E --> F{Log output}
+    F -->|Connection Refused| G[Add healthchecks to depends_on]
+    F -->|Command Not Found| H[Check entrypoint/cmd in Dockerfile]
+```

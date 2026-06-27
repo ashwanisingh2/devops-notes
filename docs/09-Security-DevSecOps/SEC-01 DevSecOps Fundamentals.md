@@ -4,177 +4,204 @@ aliases: [DevSecOps Basics]
 created: 2025-06-27
 status: #complete
 difficulty: #beginner
-cert-relevant: #none
 ---
 
 # SEC-01 DevSecOps Fundamentals
 
-> [!abstract] Overview
-> In traditional IT, the Security team was the "Department of No." They sat at the very end of the software lifecycle, running manual audits right before a release, finding 100 vulnerabilities, and blocking the deployment. This completely broke the speed of DevOps. DevSecOps is the philosophy of integrating security natively into the CI/CD pipeline, catching vulnerabilities automatically within seconds of a developer committing code. Security becomes everyone's responsibility, not just an afterthought.
+## Overview
+**Ye kya hai?** DevSecOps (Development, Security, and Operations) ek philosophy hai jahan hum security ko software development lifecycle (SDLC) ke har phase mein integrate karte hain. Pehle security sirf production release ke time check hoti thi (Traditional approach), jisse deployment slow ho jati thi. DevSecOps mein hum security ko left side shift karte hain (Shift-Left), matlab code likhte waqt, build karte waqt, aur deploy karte waqt security checks automatic run hote hain.
+**Kyu use hota hai?** Taaki vulnerabilities aur bugs early catch ho jayein. Agar production mein bug mile to fix karna $10,000 lagta hai, par agar developer ke IDE ya CI pipeline mein catch ho jaye to sirf $10 lagta hai.
+**Real life example:** Pehle building poori banne ke baad fire-safety inspector aata tha aur kehta tha ki building safe nahi hai, isko todo. Ab DevSecOps mein, fire-safety inspector building banate waqt har ek eent (brick) ko check kar raha hai, taaki baad mein dikkat na aaye.
+**Industry kaha use karti hai?** Har FAANG aur modern startup mein, jahan CI/CD pipelines (GitHub Actions/Jenkins) ke andar Trivy, SonarQube, aur TruffleHog jaise tools embedded hote hain.
 
----
+```mermaid
+graph LR
+    A[Plan] --> B[Code]
+    B --> C[Build]
+    C --> D[Test]
+    D --> E[Deploy]
+    E --> F[Operate]
+    E --> G[Monitor]
+    
+    style B fill:#f9f,stroke:#333,stroke-width:2px
+    style C fill:#f9f,stroke:#333,stroke-width:2px
+    
+    subgraph Shift-Left Security
+    B -. IDE Plugins .-> H(IDE Security Warnings)
+    C -. Pre-Commit Hooks .-> I(Secret Scanning)
+    C -. SAST/SCA .-> J(Code & Dependency Scan)
+    D -. DAST/Container Scan .-> K(Image & Runtime Scan)
+    end
+```
 
-## Concept Overview
+## Working
+**Internal working:** DevSecOps automatically security gates create karta hai CI/CD pipeline mein. Data flow kuch is tarah hota hai:
+1. **Pre-commit:** Developer code commit karta hai. `trufflehog` ya `git-secrets` laptop par check karte hain ki koi AWS secret leak to nahi ho raha.
+2. **CI Build:** Code GitHub par push hota hai. CI pipeline trigger hoti hai. SonarQube (SAST) source code padhta hai bad logic dhoondhne ke liye.
+3. **Containerization:** Docker build hota hai. Trivy (SCA/Container scanning) OS packages aur `package.json` ko scan karta hai CVEs (Common Vulnerabilities and Exposures) ke liye.
+4. **Deploy:** Agar koi "CRITICAL" issue milta hai, to pipeline `exit 1` return karti hai aur code deploy nahi hota.
 
-- **What it is** — The integration of security testing, policies, and culture directly into the DevOps lifecycle.
-- **Why DevOps engineers use it** — To "Shift Left." If you find a security bug in Production, it costs $10,000 to fix. If you find it in the IDE or the first CI pipeline run, it costs $10 to fix. DevSecOps automates this early detection.
-- **Where you encounter this in a real job** — Blocking a Pull Request because a developer accidentally committed an AWS Secret Key, or forcing a Docker build to fail because the base image has a critical OpenSSL vulnerability.
-- **Responsibility Split:**
-  - **Junior DevOps**: Monitors security dashboard alerts and bumps package versions (e.g., `npm audit fix`) to resolve known CVEs.
-  - **Mid DevOps**: Integrates automated scanning tools (SAST/DAST/SCA) directly into GitHub Actions or Jenkins pipelines.
-  - **Senior/SRE**: Defines company-wide security policies, implements image signing (Cosign/Sigstore) for supply chain security, and architects zero-trust network boundaries.
+## Installation
+*(DevSecOps concept hai, isliye common Trivy scanner ka installation dekhte hain)*
+**Prerequisites:** Linux/Ubuntu machine, Docker installed.
+**Installation (Trivy on Ubuntu):**
+```bash
+sudo apt-get install wget apt-transport-https gnupg lsb-release
+wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key | sudo apt-key add -
+echo deb https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main | sudo tee -a /etc/apt/sources.list.d/trivy.list
+sudo apt-get update
+sudo apt-get install trivy
+```
+**Verification:** `trivy --version`
 
-*Seedha simple mein: Pehle security guard building ke exit gate par khada hota tha (traditional security). DevSecOps ka matlab hai ki security guard ab building banate waqt har eent (brick) ko check kar raha hai, taaki baad mein poori building todni na pade. Isey kehte hain "Shift Left" - left matlab process ke shuru mein.*
-
----
-
-## Technical Deep Dive
-
-### 1. Shift-Left Security
-The software development lifecycle moves left-to-right (Plan -> Code -> Build -> Test -> Deploy -> Operate). "Shifting Left" means moving security checks as far left as possible.
-- **Far Left (Code)**: IDE plugins that warn developers about SQL injection as they type.
-- **Mid Left (Build/Test)**: CI pipeline failing if a vulnerable library is detected or a secret is committed.
-- **Right (Operate)**: Runtimes firewalls (WAF) and Kubernetes admission controllers.
-
-### 2. Supply Chain Attacks and SBOM
-A modern application is 90% open-source libraries and 10% custom code. If a hacker breaches a popular open-source library (like `log4j` or `solarwinds`), every company using that library is breached. This is a Supply Chain Attack.
-To combat this, the US Government now mandates an **SBOM (Software Bill of Materials)**. It is a formal, machine-readable inventory (JSON/XML) of every single dependency, nested dependency, and version used in your software. If a new zero-day vulnerability drops, you query your SBOMs to instantly know if you are affected.
-
-### 3. CI/CD Security Gates
-Security tools are integrated as "Gates" in the pipeline.
-- **Pre-commit**: `git-secrets` or `trufflehog` scans for passwords *before* the code even leaves the developer's laptop.
-- **CI Build**: SonarQube (SAST) scans the raw source code for bad logic. Trivy (SCA) scans the Docker image for vulnerable OS packages.
-- If a critical vulnerability is found, the pipeline exits with `exit 1`, preventing the code from ever reaching the deployment stage.
-
----
-
-## Step-by-Step Lab (Mental/Config Walkthrough)
-
-> [!warning] Pre-requisites
-> - Understanding of GitHub Actions
-
-### Step 1: The Insecure Pipeline
-Imagine a standard CI pipeline.
+## Practical Lab
+**Step-by-step implementation: Adding Trivy to GitHub Actions**
+1. Ek basic Dockerfile create karo:
+```dockerfile
+FROM ubuntu:18.04
+RUN echo "Hello World"
+```
+2. GitHub Repo banakar `.github/workflows/security.yml` create karo:
 ```yaml
-# Insecure pipeline
+name: CI Security Gate
+on: [push]
 jobs:
-  build:
+  build-and-scan:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - run: docker build -t myapp .
-      - run: docker push myregistry/myapp
-```
-This pipeline builds and pushes the image instantly. If `myapp` uses a Python library with a known Remote Code Execution (RCE) flaw, it gets deployed to production.
-
-### Step 2: Adding a Secret Scanner (TruffleHog)
-We must stop AWS keys from being committed.
-```yaml
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0 # Fetch all history for all tags and branches
-      
-      - name: TruffleHog Secret Scan
-        uses: trufflesecurity/trufflehog@main
-        with:
-          path: ./
-          base: ${{ github.event.repository.default_branch }}
-          head: HEAD
-```
-If a dev commits `AKIAIOSFODNN7EXAMPLE`, this step fails and blocks the PR.
-
-### Step 3: Adding an Image Scanner (Trivy)
-We must stop vulnerable OS packages from being pushed.
-```yaml
-      - run: docker build -t myapp .
-      
-      - name: Run Trivy vulnerability scanner
+      - name: Checkout Code
+        uses: actions/checkout@v3
+        
+      - name: Build Image
+        run: docker build -t myapp:latest .
+        
+      - name: Scan Image with Trivy
         uses: aquasecurity/trivy-action@master
         with:
-          image-ref: 'myapp'
+          image-ref: 'myapp:latest'
           format: 'table'
-          # ONLY fail the build if it's a CRITICAL vulnerability
-          exit-code: '1'
+          exit-code: '1' # Fail pipeline if Critical found
           severity: 'CRITICAL,HIGH'
-          
-      - run: docker push myregistry/myapp
 ```
-Now, Trivy scans the compiled image. If it finds a CRITICAL vulnerability (e.g., CVSS score 9.0+), it returns `exit 1`. The `docker push` step will never execute. The company is safe.
+3. Code commit aur push karo.
+**Expected Output:** GitHub Actions fail ho jayega kyunki `ubuntu:18.04` mein bahut saare purane vulnerabilities (CVEs) hain.
+**Verification:** Pipeline logs mein Trivy ka table dikhega with CVE IDs.
 
-> [!tip] Pro Tip
-> Do not set your pipeline to fail on "LOW" or "MEDIUM" vulnerabilities on day one. You will likely find hundreds of them in legacy code, and developers will be permanently blocked from deploying. This creates massive friction. Start by failing ONLY on "CRITICAL", and slowly increase strictness over time as the tech debt is paid down.
+## Daily Engineer Tasks
+- **L1 Engineer:** Dashboards monitor karna (SonarQube/Dependency-Track). "LOW" aur "MEDIUM" vulnerabilities ke liye `npm audit fix` chala ke PR raise karna.
+- **L2 Engineer:** False positives ko `.trivyignore` ya `.snyk` file mein dalna. Naye repositories mein standard DevSecOps pipeline attach karna.
+- **L3 / Senior Engineer:** Core pipeline mein naye scanners (Cosign/Sigstore for image signing) integrate karna. CISO ke saath milkar company-wide security policies define karna.
+- **Production/SRE:** Zero-trust architecture implement karna. WAF aur Kubernetes admission controllers likhna.
 
----
+## Real Industry Tasks
+- **Real tickets:** "Fix High vulnerability in microservice-A due to log4j."
+- **Real change requests:** "Enforce mandatory TruffleHog scan across all 500 company repos."
+- **Migration:** Purane monolithic Jenkins pipeline ko DevSecOps enabled GitHub Actions mein move karna.
+- **Patch management:** Har mahine base OS images (e.g., node:14-alpine to node:18-alpine) ko upgrade karna taaki CVEs kam hon.
 
-## Common Commands Cheat Sheet
-*(Since DevSecOps is a philosophy, these are common tool CLI commands)*
+## Troubleshooting
+**Common issues:** 
+1. **Pipeline fails constantly on false positives:** 
+   - *Symptoms:* Devs chilla rahe hain ki humara code deploy nahi ho raha.
+   - *Possible root causes:* Un-tuned security tools failing on everything.
+   - *Resolution:* Har SAST/SCA tool mein ignore list hoti hai. Security team se verify karke un CVEs ko `.trivyignore` mein daal do.
+2. **Secrets leaked to GitHub despite CI pipeline secret scanning:**
+   - *Symptoms:* AWS billing suddenly skyrockets to $50,000.
+   - *Root Cause:* GitHub Actions push *ke baad* run hota hai. Jab tak pipeline fail hogi, secret public ho chuka hoga aur bots ne usko copy kar liya hoga.
+   - *Resolution:* Pre-commit hooks (`husky` ya `pre-commit`) setup karo dev ke laptop par taaki push command block ho jaye.
 
-| Command / Tool | What It Does | Real Example |
-|----------------|-------------|--------------|
-| `npm audit` | Scans Node.js `package.json` for known vulnerabilities | `npm audit fix` |
-| `pip-audit` | Scans Python `requirements.txt` for vulnerabilities | `pip-audit -r reqs.txt` |
-| `trivy image` | Scans a Docker image for OS and app CVEs | `trivy image nginx:latest` |
-| `checkov -d .` | Scans Terraform/IaC code for misconfigurations | `checkov -d ./terraform` |
-| `trufflehog` | Scans Git history for hardcoded passwords | `trufflehog git file://.` |
-| `syft` | Generates an SBOM from a container image | `syft packages myapp:latest` |
+## Interview Preparation
+- **Basic:** What is DevSecOps and Shift Left? 
+  *Expected Answer:* DevSecOps is integrating security at every step of SDLC. Shift Left means moving testing closer to code creation to save cost and time. (Confidence: High)
+- **Intermediate:** What's the difference between SAST, DAST, and SCA?
+  *Expected Answer:* SAST (Static) scans source code. DAST (Dynamic) attacks running app. SCA scans third-party libraries (e.g., `package.json`) for known CVEs. (Confidence: High)
+- **Advanced / Scenario Based:** Developer pushed AWS Secret to public repo. First step?
+  *Expected Answer:* IMMEDIATELY deactivate/delete the key in AWS IAM Console. Do NOT waste time deleting the commit or making the repo private because scrapers already copied it. Fix Git history *after* deactivation. (Experience Level: L2/L3)
+- **Production:** How do you handle 500 CVEs in an old Docker image?
+  *Expected Answer:* Change the base image in Dockerfile. Replace `ubuntu:latest` with `alpine`, `distroless`, or `-slim` versions. This drops CVEs by 90% instantly. (Experience Level: Senior)
 
----
+## Production Scenarios
+**Scenario: "Zero-Day Log4Shell Vulnerability Outbreak"**
+- *How to think:* Hamein pata karna hai ki humare 200 microservices mein se kitne log4j use kar rahe hain, directly ya indirectly (transitive).
+- *Where to check:* SBOM (Software Bill of Materials) database (e.g., Dependency-Track).
+- *Commands / Action:* SBOM tool mein "log4j" search karo. Jo 14 services affected hain unki list nikalo aur unhe patch karo.
+- *Root Cause:* Third-party library exploit.
+- *Resolution:* Update to patched log4j version in all affected `pom.xml`.
+- *Verification:* Re-run syft SBOM generation and ensure no log4j vulnerable version is present.
 
-## Troubleshooting Guide
+## Commands
+| Command | Purpose | Syntax/Example | Output / When to use |
+|---------|---------|----------------|----------------------|
+| `npm audit fix` | Fix known Node package vulnerabilities | `npm audit fix` | Updates `package-lock.json`. Use when package CVEs are found. |
+| `trivy image` | Scans a Docker image | `trivy image nginx:latest` | Table with CVEs. Use before pushing image to ECR. |
+| `trufflehog` | Scans local git repo for secrets | `trufflehog git file://.` | Fails if password found. Run in CI pre-commit. |
+| `syft packages` | Generates SBOM | `syft packages myapp:latest` | JSON list of all packages. Use for inventory. |
 
-| Problem | Likely Cause | Step-by-Step Fix |
-|---------|-------------|------------------|
-| Developers complaining pipeline fails constantly on false positives | Un-tuned security tools | Every SAST/SCA tool has an `.ignore` file (e.g., `.trivyignore`). If the security team reviews a vulnerability and deems it unexploitable in your specific context, add the CVE ID to the ignore list so the pipeline passes. |
-| Secrets leaked to GitHub despite CI pipeline secret scanning | Scan runs *after* push | CI pipelines run *after* code hits the GitHub server. By then, hackers monitoring public repos have already stolen it. Implement client-side `pre-commit` hooks so the scan runs on the dev's laptop before `git push`. |
-| Pipeline takes 30 minutes to run | Bloated security scans | Running a deep SAST scan on a 5M line monolithic codebase on every PR takes too long. Run fast scanners (SCA/Secrets) on every PR, and run heavy SAST scans nightly asynchronously. |
-| 500 High vulnerabilities found in a legacy app | Outdated Base Image | Usually caused by using `FROM ubuntu:18.04` or full OS images. Change the Dockerfile to use `alpine`, `distroless`, or `-slim` variants to instantly drop the CVE count. |
+## Cheat Sheet
+- **SAST (Static):** SonarQube, Checkmarx. (Reads Code)
+- **SCA (Composition):** Snyk, Trivy. (Reads Dependencies/Packages)
+- **DAST (Dynamic):** OWASP ZAP, Burp Suite. (Attacks App)
+- **Secret Scanning:** TruffleHog, GitLeaks.
+- **IaC Scanning:** Checkov, tfsec (for Terraform misconfigurations).
+- **Golden Rule:** Never fail pipeline on Day 1 for "LOW" vulnerabilities. Start with "CRITICAL" only to avoid developer friction.
 
----
+## SOP & Runbook & KB Article
+**SOP: Handling Leaked Credentials in Git**
+- **Purpose:** Containment of leaked credentials.
+- **Scope:** All GitHub Repositories.
+- **Procedure:** 
+  1. Deactivate credential in provider (AWS/Azure/DB).
+  2. Rotate the credential.
+  3. Inform Security Team.
+  4. Use `git filter-repo` to remove secret from git history.
+  5. Force push (`git push -f`).
+- **Validation:** Run Trufflehog again to ensure clean history.
+- **Rollback:** Restore from internal secure backup if code goes missing.
 
-## Real-World Job Scenario
+## Best Practices & Beginner Mistakes
+- **Beginner Mistake:** Running the container as `root` user (`USER root` in Dockerfile).
+  - *Impact:* Agar container hack hua to hacker ko host ka root access mil jayega (Container Breakout).
+  - *Correct approach:* Always use a non-root user (e.g., `USER appuser`) at the end of the Dockerfile.
+- **Best Practice (Security):** Generate and sign SBOMs for every release using Sigstore/Cosign. Supply Chain Attacks (like SolarWinds) ko rokne ka yahi sabse modern tareeka hai.
 
-> [!info] Scenario
-> **Situation:** "A massive zero-day vulnerability called 'Log4Shell' is announced on a Friday night. It affects a Java logging library. The CEO calls the DevOps team in a panic: 'Are we vulnerable? How many of our 200 microservices use Log4j?'"
+## Advanced Concepts
+**Supply Chain Attacks & SBOM Architecture:** 
+Modern applications 90% open-source aur 10% custom code hoti hain. Agar hacker ne `log4j` ya `solarwinds` library ko hack kar liya, to usko use karne wali saari companies hack ho jayengi. Isey "Supply Chain Attack" kehte hain. US Govt ab SBOM (Software Bill of Materials) mandate karti hai taaki har company ke paas exact version list (JSON/XML) ho ki wo kaunsi libraries use kar rahe hain. Ek SBOM essentially ek "ingredients list" hoti hai aapke software ki.
 
-**What Junior DevOps Does:**
-Starts checking out all 200 Git repositories one by one, opening `pom.xml` files, hitting CTRL+F for "log4j", and making a manual Excel spreadsheet. It takes 12 hours.
+## Related Topics & Flashcards & Revision
+- [[00-MOC/Master-Index|Master Index]]
+- [[09-Security-DevSecOps/SEC-02 SAST DAST and Container Scanning|Deep Dive: SAST/DAST/SCA]]
+- [[05-CI-CD/CICD-01 CI-CD Concepts|CI/CD Concepts]]
 
-**Escalation Trigger:**
-The manual search is slow, error-prone, and misses nested transitive dependencies (e.g., we don't use log4j directly, but we use a library that uses a library that uses log4j).
+**Flashcards:**
+- *Q: What scans running application?* -> *A: DAST*
+- *Q: What tool checks Terraform for missing encryptions?* -> *A: Checkov or tfsec*
 
-**Senior Engineer Resolution:**
-1. Because the Senior implemented DevSecOps, the CI pipeline automatically generates an SBOM (Software Bill of Materials) using `Syft` every time an image is built.
-2. These SBOMs are pushed to a central metadata server (like Dependency-Track).
-3. The Senior logs into Dependency-Track, types `log4j-core` into the search bar.
-4. Within 5 seconds, the system lists the exact 14 microservices that contain the vulnerable version of the library, including transitive dependencies.
-5. The developers patch exactly those 14 services. The company is secured in 2 hours instead of 2 days.
+**Revision:** 
+- 5 min: Read Cheat Sheet and Mermaid diagrams.
+- Interview revision: Read "Interview Preparation" and "Production Scenarios".
 
-**Lesson Learned:**
-You cannot secure what you cannot see. Automated SBOM generation is critical for rapid incident response during supply chain attacks.
+## Real Production Logs & Commands & Decision Tree
+**Log Example (Trivy Scan Result in CI):**
+```
+myapp:latest (ubuntu 18.04)
+Total: 1 (UNKNOWN: 0, LOW: 0, MEDIUM: 0, HIGH: 0, CRITICAL: 1)
++---------+------------------+----------+-------------------+---------------+
+| LIBRARY | VULNERABILITY ID | SEVERITY | INSTALLED VERSION | FIXED VERSION |
++---------+------------------+----------+-------------------+---------------+
+| openssl | CVE-2021-3449    | CRITICAL | 1.1.1f-1ubuntu2   | 1.1.1f-1ub..2 |
++---------+------------------+----------+-------------------+---------------+
+```
+*Explanation:* Pipeline ne `openssl` package mein CRITICAL CVE pakda hai. `exit-code: '1'` ki wajah se pipeline fail ho jayegi. Fix version `1.1.1f-1ub..2` diya gaya hai. Base image (Ubuntu 18.04) update karne ya `apt-get upgrade openssl` chalane se issue resolve ho jayega.
 
----
-
-## Interview Questions
-
-**Q1 (Conceptual):** What does the term "Shift Left" mean in DevSecOps?
-**A:** "Shift Left" refers to moving security testing and validation as early in the software development lifecycle as possible. Instead of waiting for a manual audit right before deployment (on the right side of the timeline), we integrate automated security checks into the IDE, Git hooks, and the CI build phase (on the left side) to catch issues when they are cheapest and fastest to fix.
-
-**Q2 (Practical):** Your developers accidentally pushed an AWS Secret Key to a public GitHub repository. What is the very first thing you do?
-**A:** I immediately log into the AWS Console (or use the CLI) and Deactivate/Delete that specific Access Key. I do NOT just delete the commit or make the repository private, because automated bots scrape public GitHub repos in seconds. Once the key is invalidated in AWS, then I can worry about rewriting the Git history to remove the plain-text secret.
-
-**Q3 (Scenario-based):** You integrated a container scanner into your CI pipeline, and it's blocking a deployment because of a "High" severity CVE in a system library inside the Docker image. The application team says they don't even use that library. How do you resolve this?
-**A:** I would work with the application team to modify their Dockerfile to use a minimal base image, like `alpine` or Google's `distroless` images. These images strip out all unnecessary OS packages (like bash, wget, curl, and unused system libraries). By removing the library entirely, the CVE disappears, the scanner passes, and the attack surface is permanently reduced.
-
-**Q4 (Deep dive):** Explain the difference between SAST, DAST, and SCA.
-**A:** **SAST (Static Application Security Testing)** scans the raw source code for insecure logic (like SQL injection) without running the app. **DAST (Dynamic Application Security Testing)** attacks the running, compiled application from the outside (like a hacker) to find runtime vulnerabilities. **SCA (Software Composition Analysis)** scans the `package.json` or `requirements.txt` to find known CVEs in third-party open-source libraries.
-
-**Q5 (Trick/Gotcha):** If you use Docker, is it safe to run your application as the `root` user inside the container since it's isolated from the host OS?
-**A:** No, it is absolutely not safe. While Docker provides namespace isolation, a process running as root inside a container still runs as root on the host kernel. If a hacker finds a container breakout vulnerability, they instantly have root access to the underlying Kubernetes worker node or EC2 instance. Always use the `USER` instruction in Dockerfiles to run apps as a non-privileged user.
-
----
-
-## Related Notes
-
-[[00-MOC/Master-Index|Master Index]]
-[[09-Security-DevSecOps/SEC-02 SAST DAST and Container Scanning|Deep Dive: SAST/DAST/SCA]]
-[[05-CI-CD/CICD-01 CI-CD Concepts|CI/CD Concepts]]
+**Troubleshooting Decision Tree:**
+```mermaid
+flowchart TD
+    A[Vulnerability Found in Pipeline] --> B{Is it a Secret?}
+    B -->|Yes| C[Deactivate in Cloud ASAP]
+    B -->|No| D{Is it in App Code?}
+    D -->|Yes| E[Developer modifies code logic]
+    D -->|No| F{Is it in Docker OS?}
+    F -->|Yes| G[Change base image to Alpine/Slim]
+    F -->|No| H[Update package.json / requirements.txt]
+```

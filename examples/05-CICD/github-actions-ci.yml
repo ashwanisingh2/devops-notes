@@ -1,0 +1,64 @@
+name: Production Node.js CI/CD
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch: # Allows manual triggering from the UI
+
+# Use OIDC for cloud authentication (Best Practice)
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  test-and-build:
+    name: Build and Test
+    runs-on: ubuntu-latest
+    
+    # Advanced: Matrix Strategy to test on multiple Node versions
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x]
+        
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js ${{ matrix.node-version }}
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ matrix.node-version }}
+        cache: 'npm' # Automatically caches ~/.npm to speed up subsequent builds
+
+    - name: Install Dependencies
+      run: npm ci # Faster and more reliable than npm install in CI
+
+    - name: Run Linter
+      run: npm run lint --if-present
+
+    - name: Run Tests
+      run: npm test
+
+  deploy:
+    name: Deploy to Production
+    needs: test-and-build # Will only run if the build job succeeds
+    if: github.ref == 'refs/heads/main' # Only deploy on merges to main
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    # Example of OIDC Auth with AWS (No static credentials stored!)
+    - name: Configure AWS Credentials using OIDC
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: arn:aws:iam::123456789012:role/GitHubActionsRole
+        aws-region: us-east-1
+
+    - name: Deploy Application
+      run: |
+        echo "Deploying to production..."
+        # e.g., aws s3 sync ./build s3://my-production-bucket

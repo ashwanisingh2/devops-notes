@@ -1,50 +1,33 @@
 ---
-tags:
-  - devops
-  - kubernetes
-  - architecture
-aliases:
-  - K8s Architecture
+tags: [devops, kubernetes, architecture, interview-ready, production-grade]
+aliases: [K8s Architecture, Kubernetes Core]
 created: 2025-06-27
-status: "#complete"
-difficulty: "#beginner"
-cert-relevant: "#cka"
+status: #complete
+difficulty: #advanced
+cert-relevant: #cka, #ckad, #cks
 ---
 
-# Kubernetes Architecture
+# K8S-01 Kubernetes Architecture
 
-> [!abstract] Overview
-> Kubernetes (K8s) is an open-source container orchestration platform originally designed by Google and now maintained by the CNCF. It automates the deployment, scaling, and management of containerized applications across clusters of machines. Understanding K8s architecture is the single most important prerequisite for every CKA exam topic, every production troubleshooting session, and every design discussion around microservices. This note breaks down the control plane, worker nodes, networking primitives, and local development tools in depth.
+> [!important]
+> **God Mode Vault**: This note covers the entire K8s architecture. Master this, and you can troubleshoot 90% of K8s cluster issues in production and easily crack any FAANG Kubernetes interview.
 
-*Kubernetes ek orchestration platform hai jo containers ko automatically manage karta hai — socho ek traffic police jo hazaaron gaadiyaan (containers) ko smoothly chalata hai bina kisi accident ke. Docker akela ek gaadi chala sakta hai, lekin jab fleet manage karni ho toh K8s chahiye.*
+## # Overview
 
----
+**Ye kya hai?**
+Kubernetes (K8s) ek open-source container orchestration platform hai. Ye automatically containers ko deploy, scale, aur manage karta hai across multiple servers (cluster).
 
-## Concept Overview
+**Kyu use hota hai?**
+Docker akela ek ya do containers chala sakta hai. Par production me jab aapko 1000 containers chalane hon, crash hone par auto-restart karna ho, traffic load balance karna ho, aur zero-downtime updates dene hon — wahan Kubernetes life saver ban jata hai.
 
-### Why Kubernetes Exists — Docker Alone Ki Limitations
+**Real life example / Simple Analogy:**
+Kubernetes ek Orchestra ka **Conductor (Music Director)** hai. Har musician ek container (Pod) hai jo apna kaam kar raha hai. Conductor (K8s Master Node) decide karta hai ki kaun kab bajayega, kaun thak gaya hai aur uski jagah naya musician (Self-healing) kab aayega, aur volume kab badhana hai (Auto-scaling).
 
-Docker revolutionised packaging applications, but running containers at scale with Docker alone creates serious operational gaps:
+**Industry kaha use karti hai? / Real production use-case:**
+- Global companies (Netflix, Spotify, Zomato) jahan traffic seconds me 10x ho jata hai. K8s turant naye pods spin up kar deta hai (HPA - Horizontal Pod Autoscaler).
+- Complex microservices ko ek sath connect aur secure karne ke liye.
 
-| Problem with Docker Alone | How Kubernetes Solves It |
-|---|---|
-| No auto-restart on crash | Self-healing via controllers |
-| No built-in load balancing | Service abstraction with kube-proxy |
-| No rolling updates natively | Deployment strategy (RollingUpdate) |
-| No declarative desired-state | etcd stores desired state, controllers reconcile |
-| No cross-host networking | CNI plugins (Calico, Flannel, Cilium) |
-| Manual scaling | HPA / VPA autoscalers |
-| No secrets management | Secret objects with RBAC |
-| No health checks built-in | Liveness, Readiness, Startup probes |
-
-*Docker ek bahut achha carpenter hai — ek chair bana sakta hai. Lekin jab tumhe 500 chairs banani ho, quality check karni ho, tootne pe replace karni ho — tab tumhe factory chahiye. Kubernetes woh factory hai.*
-
----
-
----
-
-### Architecture Diagram
-
+**Architecture Diagram:**
 ```mermaid
 graph TD
     subgraph "Control Plane (Master Node)"
@@ -52,13 +35,15 @@ graph TD
         ETCD[(etcd)]
         SCHED[kube-scheduler]
         CM[kube-controller-manager]
+        CCM[cloud-controller-manager]
         
         API <--> ETCD
         API <--> SCHED
         API <--> CM
+        API <--> CCM
     end
 
-    subgraph "Worker Node"
+    subgraph "Worker Nodes (Data Plane)"
         KLET[kubelet]
         KPROXY[kube-proxy]
         CRI[Container Runtime]
@@ -72,435 +57,347 @@ graph TD
     
     API <-->|REST| KLET
     API <-->|REST| KPROXY
-    
     USER([User / kubectl]) -->|HTTPS| API
 ```
 
-## Technical Deep Dive
+---
 
-### Control Plane Components
+## # Working
 
-The control plane (master node) is the brain of the cluster. It makes global decisions about the cluster (scheduling), and detects and responds to cluster events.
+Kubernetes ka internal working Master (Control Plane) aur Worker nodes me divided hai.
 
-#### 1. kube-apiserver
+### Control Plane Components (The Brain)
+1. **kube-apiserver:** 
+   - Cluster ka "Front Door" aur "Receptionist". Koi bhi (kubectl, user, ya internal components) direct baat nahi karta, sab API server ke through baat karte hain. Ye request ko authenticate aur validate karta hai.
+2. **etcd:** 
+   - Cluster ka "Memory / Database". Ye ek highly available key-value store hai. K8s ka saara state (Kitne pods hain? Kaunse node par hain? Secrets kya hain?) sirf yahan save hota hai. Agar etcd ud gaya, toh K8s ki memory chali gayi.
+3. **kube-scheduler:** 
+   - Cluster ka "Hostel Warden". Jab naya Pod banta hai toh wo homeless hota hai. Scheduler CPU/RAM aur rules (Taints, Affinities) dekh kar decide karta hai ki pod kis Worker Node par jayega.
+4. **kube-controller-manager:** 
+   - Cluster ka "Supervisor". Ye consistently check karta hai ki *Desired State* (jo aapne manga) aur *Actual State* (jo chal raha hai) match ho rahi hai ya nahi. (e.g., agar aapne 3 pods mange aur 1 crash ho gaya, ye turant 1 naya bana dega).
+5. **cloud-controller-manager:** 
+   - AWS, Azure, GCP ke specific resources (jaise Cloud Load Balancers, EBS volumes) ko manage karta hai.
 
-The API Server is the **front door** of Kubernetes. Every interaction — whether from `kubectl`, the dashboard, or internal components — goes through the API Server as a RESTful API call.
+### Worker Node Components (The Muscle)
+1. **kubelet:** 
+   - Har node par "Captain". Ye API server se instructions leta hai aur Pods/Containers ko start karta hai. Ye continuously API server ko node ki health batata rehta hai.
+2. **kube-proxy:** 
+   - Network "Traffic Police". Ye IPTables/IPVS rules banata hai taaki cluster ke andar (Pod to Pod) aur bahar ka network traffic theek se route ho sake.
+3. **Container Runtime (CRI):** 
+   - Software jo actually container chalata hai (e.g., `containerd`, `CRI-O`). (Note: Docker as runtime K8s 1.24+ me hata diya gaya hai).
 
-- Validates and processes REST requests
-- Serves as the single point of communication between all components
-- Implements admission controllers (mutating and validating webhooks)
-- Authenticates and authorises every request via RBAC
-- Horizontally scalable — you can run multiple instances behind a load balancer
+**Request flow (Jab aap `kubectl run` karte ho):**
+1. User -> `kube-apiserver` (Validate & Auth)
+2. `kube-apiserver` -> `etcd` (Save as Pending)
+3. `kube-scheduler` notices Pending pod -> Decides Node -> Tells `kube-apiserver`
+4. `kube-apiserver` -> `etcd` (Update Node info)
+5. `kubelet` on Worker Node notices new assignment -> Tells `containerd` to run it
+6. `kubelet` -> `kube-apiserver` (Pod is Running) -> `etcd` (State updated).
 
-*API Server ek reception desk hai — koi bhi office mein aaye, pehle reception pe jaana padega. Bina reception ke koi seedha andar nahi ja sakta.*
+---
 
-#### 2. etcd
+## # Installation
 
-etcd is a distributed, consistent key-value store that acts as the **single source of truth** for the entire cluster.
+**Prerequisites:** Ubuntu Linux, Minimum 2 CPUs, 2GB RAM.
 
-- Stores all cluster state: nodes, pods, configmaps, secrets, RBAC policies
-- Uses the Raft consensus algorithm for leader election and replication
-- Typically deployed as a 3 or 5 node cluster for high availability (odd numbers to avoid split-brain)
-- Direct access is dangerous — always interact through the API Server
-- Backup and restore of etcd is a critical CKA exam topic
-
+**Installation (Minikube CLI Method for Lab):**
 ```bash
-# Check etcd health
-ETCDCTL_API=3 etcdctl endpoint health \
-  --endpoints=https://127.0.0.1:2379 \
-  --cacert=/etc/kubernetes/pki/etcd/ca.crt \
-  --cert=/etc/kubernetes/pki/etcd/server.crt \
-  --key=/etc/kubernetes/pki/etcd/server.key
+# Update and install Docker first
+sudo apt-get update && sudo apt-get install docker.io -y
+sudo usermod -aG docker $USER && newgrp docker
 
-# Backup etcd
-ETCDCTL_API=3 etcdctl snapshot save /tmp/etcd-backup.db \
-  --endpoints=https://127.0.0.1:2379 \
-  --cacert=/etc/kubernetes/pki/etcd/ca.crt \
-  --cert=/etc/kubernetes/pki/etcd/server.crt \
-  --key=/etc/kubernetes/pki/etcd/server.key
-```
+# Install kubectl
+curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
+sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
 
-*etcd ek government record room hai — sabki jaankari yahan likhi hoti hai. Agar record room jal jaaye toh poora office band. Isliye backup zaroori hai.*
-
-#### 3. kube-scheduler
-
-The Scheduler watches for newly created Pods that have no node assigned and selects a node for them to run on.
-
-- Evaluates resource requirements (CPU/memory requests and limits)
-- Checks node affinity/anti-affinity rules
-- Evaluates taints and tolerations
-- Considers pod topology spread constraints
-- Uses a scoring algorithm: filtering → scoring → binding
-
-*Scheduler ek hostel warden hai — naye student aaye toh dekhta hai kis room mein jagah hai, kaunsa room suitable hai, aur phir assign karta hai.*
-
-#### 4. kube-controller-manager
-
-Runs a collection of controller loops that watch the cluster state via the API Server and make changes to move the **current state** toward the **desired state**.
-
-Key controllers include:
-- **Node Controller** — monitors node health (40s default timeout)
-- **ReplicaSet Controller** — ensures correct number of pod replicas
-- **Endpoints Controller** — populates endpoint objects for services
-- **Service Account Controller** — creates default service accounts for new namespaces
-- **Job Controller** — watches for Job objects and creates pods to run them
-
-*Controller Manager ek supervisor hai factory mein — agar koi worker absent ho jaaye toh turant replacement bhejta hai. Desired state aur current state match karana iska kaam hai.*
-
-#### 5. cloud-controller-manager (Optional)
-
-Links the cluster to cloud provider APIs (AWS, GCP, Azure) for managing load balancers, storage volumes, and node lifecycle. Not present in bare-metal or minikube setups.
-
----
-
-### Worker Node Components
-
-#### 1. kubelet
-
-The kubelet is the **primary agent** running on every worker node. It receives pod specifications (PodSpecs) from the API Server and ensures containers described in those specs are running and healthy.
-
-- Registers the node with the API Server
-- Watches for PodSpecs assigned to its node
-- Pulls container images via the container runtime
-- Executes liveness, readiness, and startup probes
-- Reports node and pod status back to the API Server
-- Does NOT manage containers not created by Kubernetes
-
-*kubelet ek foreman hai construction site pe — blueprint (PodSpec) milta hai architect (API Server) se, aur woh ensure karta hai ki building (container) theek se ban rahi hai.*
-
-#### 2. kube-proxy
-
-kube-proxy maintains network rules on each node that allow network communication to pods from inside or outside the cluster.
-
-- Implements Services using iptables rules (default mode) or IPVS
-- Handles ClusterIP, NodePort, and LoadBalancer traffic routing
-- Watches the API Server for Service and Endpoint changes
-- In IPVS mode, provides better performance at scale with O(1) connection routing
-
-*kube-proxy ek telephone exchange operator hai — call aaye toh correct extension pe connect karta hai. Service ka traffic correct pod tak pahunchana iska kaam hai.*
-
-#### 3. Container Runtime
-
-The software responsible for actually running containers. Kubernetes supports any CRI (Container Runtime Interface) compliant runtime:
-
-- **containerd** — industry standard, used by Docker Desktop and most managed K8s
-- **CRI-O** — lightweight, designed specifically for Kubernetes
-- **Docker Engine** (via dockershim, removed in K8s 1.24+)
-
----
-
-### kubectl and kubeconfig
-
-`kubectl` is the command-line tool for communicating with the Kubernetes API Server.
-
-**kubeconfig** is the configuration file (default `~/.kube/config`) that stores:
-
-```yaml
-apiVersion: v1
-kind: Config
-clusters:
-  - cluster:
-      server: https://192.168.49.2:8443
-      certificate-authority: /home/user/.minikube/ca.crt
-    name: minikube
-contexts:
-  - context:
-      cluster: minikube
-      user: minikube
-      namespace: default
-    name: minikube
-current-context: minikube
-users:
-  - name: minikube
-    user:
-      client-certificate: /home/user/.minikube/profiles/minikube/client.crt
-      client-key: /home/user/.minikube/profiles/minikube/client.key
-```
-
-**Contexts** allow switching between multiple clusters:
-```bash
-kubectl config get-contexts
-kubectl config use-context minikube
-kubectl config set-context --current --namespace=dev
-```
-
-**Namespaces** provide logical isolation within a cluster:
-```bash
-kubectl get namespaces
-kubectl create namespace dev
-kubectl get pods -n kube-system    # see control plane pods
-```
-
-*kubeconfig ek address book hai — ismein likha hai ki kaunsa cluster kahan hai, login kaise karna hai. Context switch karna matlab ek office se doosre office ka address use karna.*
-
----
-
-### K8s Object Model Overview
-
-Everything in Kubernetes is an **object** — a persistent entity that represents the desired state. Objects have:
-
-- **apiVersion** — which API group the object belongs to
-- **kind** — type of object (Pod, Deployment, Service, etc.)
-- **metadata** — name, namespace, labels, annotations
-- **spec** — desired state declared by the user
-- **status** — current state reported by the system (managed by controllers)
-
-```yaml
-apiVersion: v1
-kind: Pod
-metadata:
-  name: nginx
-  labels:
-    app: web
-spec:
-  containers:
-    - name: nginx
-      image: nginx:1.25
-      ports:
-        - containerPort: 80
-```
-
----
-
-### Minikube vs Kind vs K3s — Local Kubernetes Options
-
-| Feature | Minikube | Kind | K3s |
-|---|---|---|---|
-| Full Name | Mini Kubernetes | Kubernetes in Docker | Lightweight Kubernetes |
-| Best For | Learning, CKA prep | CI/CD pipelines, testing | Edge, IoT, resource-constrained |
-| Runs On | VM or Docker | Docker containers | Bare metal, VM |
-| Multi-node | Yes (with --nodes) | Yes (native) | Yes |
-| Resource Usage | Medium-High | Low | Very Low |
-| LoadBalancer Support | `minikube tunnel` | MetalLB needed | Built-in (Traefik) |
-| Add-ons | Built-in addon system | Manual | Helm charts |
-| CKA Exam Relevance | High | Medium | Low |
-
----
-
-## Step-by-Step Lab
-
-### Lab: Install Minikube, Explore Components, Break etcd
-
-**Prerequisites:** Docker Desktop installed and running, `kubectl` installed.
-
-#### Step 1 — Install Minikube
-
-```bash
-# Windows (PowerShell)
-choco install minikube
-
-# macOS
-brew install minikube
-
-# Linux
+# Install Minikube
 curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube-linux-amd64
 sudo install minikube-linux-amd64 /usr/local/bin/minikube
+
+# Start Cluster
+minikube start --driver=docker
 ```
 
-#### Step 2 — Start a Cluster
-
+**Verification:**
 ```bash
-minikube start --driver=docker --cpus=2 --memory=4096 --kubernetes-version=v1.29.0
+kubectl get nodes
+kubectl get pods -A
 ```
 
-Expected output:
-```
-😄  minikube v1.32.0 on Ubuntu 22.04
-✨  Using the docker driver based on user configuration
-📌  Using Docker Desktop driver with root privileges
-🧯  Creating docker container (CPUs=2, Memory=4096MB) ...
-🐳  Preparing Kubernetes v1.29.0 on Docker 24.0.7 ...
-🔎  Verifying Kubernetes components...
-🌟  Enabled addons: default-storageclass, storage-provisioner
-🏄  Done! kubectl is now configured to use "minikube" cluster
-```
+---
 
-#### Step 3 — Explore Control Plane Components
+## # Practical Lab
 
+**Step-by-step implementation (Creating your first Nginx Pod):**
+
+**CLI Method:**
 ```bash
-# See all system pods
-kubectl get pods -n kube-system
+# Imperative way to run a pod
+kubectl run my-nginx --image=nginx:latest --port=80
 
-# Expected output:
-# NAME                               READY   STATUS    RESTARTS   AGE
-# coredns-5dd5756b68-xxxxx           1/1     Running   0          2m
-# etcd-minikube                      1/1     Running   0          2m
-# kube-apiserver-minikube            1/1     Running   0          2m
-# kube-controller-manager-minikube   1/1     Running   0          2m
-# kube-proxy-xxxxx                   1/1     Running   0          2m
-# kube-scheduler-minikube            1/1     Running   0          2m
-# storage-provisioner                1/1     Running   0          2m
+# Expected Output: pod/my-nginx created
 
-# Describe the API server
-kubectl describe pod kube-apiserver-minikube -n kube-system
-
-# Check cluster info
-kubectl cluster-info
-
-# View nodes
-kubectl get nodes -o wide
-
-# Check component statuses
-kubectl get componentstatuses   # deprecated but still works on some versions
-```
-
-#### Step 4 — Explore kubeconfig and Contexts
-
-```bash
-# View kubeconfig
-kubectl config view
-
-# See current context
-kubectl config current-context
-
-# List all contexts
-kubectl config get-contexts
-
-# Create a namespace and switch context
-kubectl create namespace lab-test
-kubectl config set-context --current --namespace=lab-test
-kubectl config get-contexts   # notice the NAMESPACE column
-```
-
-#### Step 5 — Understand What Breaks If etcd Goes Down
-
-```bash
-# SSH into minikube node
-minikube ssh
-
-# Find etcd process
-ps aux | grep etcd
-
-# Simulate etcd failure by pausing the container (inside minikube)
-docker pause $(docker ps -q --filter "name=etcd")
-
-# In another terminal, try creating a pod:
-kubectl run test-pod --image=nginx
-# ERROR: the connection to the server was refused / context deadline exceeded
-
-# Try listing pods:
+# Verify it's running
 kubectl get pods
-# ERROR: etcdserver: request timed out
 
-# Resume etcd
-minikube ssh
-docker unpause $(docker ps -q --filter "name=etcd")
-
-# Now try again — everything works
-kubectl get pods
-kubectl run test-pod --image=nginx
+# Check detailed internal state
+kubectl describe pod my-nginx
 ```
 
-*Jab etcd band hua, kuch bhi kaam nahi kiya — na pod bana, na list aaya. Kyunki etcd hi woh jagah hai jahan saara data stored hai. Bina record room ke office chalta nahi.*
-
-#### Step 6 — Cleanup
-
+**Testing the Networking (kube-proxy at work):**
 ```bash
-kubectl delete pod test-pod
-kubectl config set-context --current --namespace=default
-kubectl delete namespace lab-test
-minikube stop
+# Expose the pod as a service (NodePort)
+kubectl expose pod my-nginx --type=NodePort --name=nginx-service
+
+# Get the URL in Minikube
+minikube service nginx-service --url
+
+# Run a curl to the URL
+curl http://<minikube-ip>:<node-port>
+```
+*Expected Output: HTML page of Nginx.*
+
+---
+
+## # Daily Engineer Tasks
+
+- **L1 Engineer:** Checking pod status (`kubectl get pods`), getting logs (`kubectl logs pod-name`), restarting pods by deleting them (`kubectl delete pod pod-name`).
+- **L2 Engineer:** Writing YAML manifests, managing ConfigMaps/Secrets, applying Node labels for scheduling, debugging `CrashLoopBackOff`.
+- **L3 / Senior Engineer:** Writing Helm charts, setting up RBAC policies, analyzing OOMKilled issues, designing Network Policies for security.
+- **Production Engineer / SRE:** Upgrading K8s cluster versions without downtime, ETCD backup and restoration, configuring cluster autoscaler, debugging CNI (Calico/Cilium) network drops.
+
+---
+
+## # Real Industry Tasks
+
+- **Real tickets:** "Jenkins CI job is failing to deploy due to `ImagePullBackOff`." (Action: Check ECR/ACR registry credentials in K8s Secrets).
+- **Migration:** Moving from self-hosted K8s (kubeadm) to managed cloud (AWS EKS or Azure AKS).
+- **Patch management:** Upgrading worker nodes OS. (Action: `kubectl cordon`, `kubectl drain`, patch OS, reboot, `kubectl uncordon`).
+- **Production validation:** Checking API server latency via Prometheus metrics during high load.
+
+---
+
+## # Troubleshooting
+
+**Common Issue: Pod is in `CrashLoopBackOff`**
+- **Symptoms:** Pod starts, crashes, K8s restarts it, it crashes again.
+- **Possible root causes:** Wrong entrypoint command, missing environment variables, application code throwing fatal error, missing database connection.
+- **Investigation steps:**
+  ```bash
+  # Check logs of the previous crashed container instance
+  kubectl logs <pod-name> --previous
+  
+  # Check events
+  kubectl describe pod <pod-name>
+  ```
+- **Resolution:** Fix the underlying app issue in the container image or provide correct ConfigMap/EnvVars.
+
+**Common Issue: Pod is in `Pending` state forever**
+- **Symptoms:** Pod never moves to Running.
+- **Root causes:** Scheduler can't find a node. Cluster might be out of CPU/RAM, or strict nodeSelector/taints are blocking it.
+- **Investigation:** `kubectl describe pod <pod-name>`. Check the "Events" section for "FailedScheduling".
+- **Resolution:** Add more nodes, adjust requested CPU/RAM limits, or fix tolerations in YAML.
+
+---
+
+## # Production Scenarios
+
+### Scenario: Kubernetes API Server is Unresponsive
+**How to think:** If API server is down, nobody can talk to the cluster. But running pods on worker nodes will *continue to run and serve traffic*.
+**Where to check:** Master node logs. `journalctl -u kubelet` on master, or check `/var/log/pods/kube-system_kube-apiserver...`.
+**Root Cause:** ETCD database corruption, out of memory on Master node, or expired TLS certificates (very common after 1 year).
+**Commands to verify certs:**
+```bash
+kubeadm certs check-expiration
+```
+**Resolution:** Renew certificates (`kubeadm certs renew all`), restart kubelet, or restore ETCD from backup.
+
+---
+
+## # Commands
+
+| Command | Purpose | Syntax | Danger Level |
+|---------|---------|--------|--------------|
+| `kubectl get pods -A` | List pods in all namespaces | `kubectl get pods -A` | Low |
+| `kubectl describe pod <name>`| Deep dive into pod events | `kubectl describe pod nginx` | Low |
+| `kubectl logs <name>` | See application logs | `kubectl logs nginx` | Low |
+| `kubectl exec -it <name> -- sh`| Go inside the pod | `kubectl exec -it nginx -- /bin/sh`| Medium |
+| `kubectl drain <node>` | Safely evict all pods for maintenance | `kubectl drain node-1 --ignore-daemonsets`| High |
+| `kubectl delete namespace <ns>`| Deletes namespace AND everything inside | `kubectl delete ns prod` | **VERY HIGH** |
+
+---
+
+## # Cheat Sheet
+
+- **Master Components Namespace:** `kube-system`
+- **Default Kubeconfig Location:** `~/.kube/config`
+- **ETCD Default Port:** 2379
+- **API Server Default Port:** 6443
+- **Get all resources at once:** `kubectl get all -n <namespace>`
+- **Check node resource usage:** `kubectl top nodes` (requires metrics-server)
+
+---
+
+## # SOP & Runbook
+
+**SOP: Node Maintenance (OS Patching)**
+**Purpose:** Patch worker node without application downtime.
+**Procedure:**
+1. Block new pods: `kubectl cordon worker-node-1`
+2. Evict existing pods: `kubectl drain worker-node-1 --ignore-daemonsets --delete-emptydir-data --force`
+3. SSH into node, run `apt-get upgrade`, reboot.
+4. Allow pods again: `kubectl uncordon worker-node-1`
+**Validation:** `kubectl get nodes` should show `Ready`.
+
+**Runbook: Debugging Network Drops**
+**Detection:** Datadog alerts that 504 Gateway Timeouts are occurring.
+**Investigation:** 
+- Check if CoreDNS is running: `kubectl get pods -n kube-system -l k8s-app=kube-dns`
+- Exec into a pod and run `nslookup kubernetes.default`
+- Check `kube-proxy` logs.
+**Resolution:** Restart CoreDNS deployment if stuck.
+
+---
+
+## # KB Article
+
+**Problem:** `error: You must be logged in to the server (Unauthorized)`
+**Environment:** Client terminal trying to connect to EKS/AKS.
+**Symptoms:** No kubectl commands work.
+**Cause:** Your `kubeconfig` token has expired, or IAM role mapping in `aws-auth` ConfigMap is incorrect.
+**Resolution:** 
+AWS: Run `aws eks update-kubeconfig --name cluster_name --region us-east-1`
+Azure: Run `az aks get-credentials --resource-group myRG --name myAKS`
+
+---
+
+## # Best Practices
+
+- **Resource Limits:** Hamesha YAML me `resources.requests` aur `resources.limits` define karo. Warna ek pod poore node ka RAM kha jayega aur node crash (OOM) ho jayega.
+- **Probes:** `livenessProbe` aur `readinessProbe` zaroor lagao. Iske bina K8s ko pata nahi chalega ki aapka app actually traffic serve karne ke liye ready hai ya nahi.
+- **Labels & Selectors:** Proper naming convention use karo (e.g., `app: frontend`, `env: prod`).
+- **Security:** Containers ko `root` user se mat chalao. Use `securityContext.runAsUser`.
+
+---
+
+## # Beginner Mistakes
+
+- **Mistake:** Editing pods directly using `kubectl edit pod`.
+- **Impact:** Agar pod crash hua, naya pod purani state par aayega.
+- **Correct approach:** Hamesha `Deployment` ko edit karo. Pods ephemeral (temporary) hote hain, unko manually manage nahi karte.
+
+---
+
+## # Advanced Concepts
+
+- **Raft Consensus Algorithm:** ETCD ye algorithm use karta hai taaki multiple master nodes ke beech data sync rahe. ETCD ko odd numbers (3, 5, 7) me hi deploy karna chahiye taaki Split-Brain problem (vote tie) na ho.
+- **CNI (Container Network Interface):** K8s by default network provide nahi karta. Flannel, Calico, ya Cilium (eBPF based) dalna padta hai jo actual IP assign karte hain pods ko.
+- **CSI (Container Storage Interface):** Cloud volumes (AWS EBS) ko pods se attach karne ka standard interface.
+
+---
+
+## # Related Topics
+
+- Next Step: [[04-Orchestration/K8S-02 Pods Deployments Services|Pods, Deployments, and Services]]
+- Networking: [[04-Orchestration/K8S-05 Ingress and Networking|Ingress and CNI Networking]]
+- Storage: [[04-Orchestration/K8S-04 Persistent Volumes and Storage|Persistent Volumes]]
+- Troubleshooting: [[04-Orchestration/K8S-06 RBAC and Security|RBAC & Security]]
+
+---
+
+## # Flashcards
+
+**Q:** API Server ke alawa ETCD se kaun direct baat kar sakta hai?
+**A:** Koyi nahi. Sirf API Server ETCD se direct connect hota hai.
+
+**Q:** kube-proxy ka main kaam kya hai?
+**A:** Ye IPTables rules maintain karta hai taaki Services ka traffic correct Pod tak pahunch sake.
+
+---
+
+## # Revision
+
+- **5 min revision:** Master Node = Brain (API, ETCD, Scheduler, Controller). Worker Node = Muscle (Kubelet, Kube-proxy, Runtime). API Server is the only gateway. ETCD is the memory.
+- **Interview revision:** Focus on the flow of `kubectl run`. Know what happens if ETCD goes down. Understand `cordon` vs `drain`. Know `Pending` vs `CrashLoopBackOff`.
+
+---
+
+## # Decision Tree
+
+```mermaid
+graph TD
+    A[Pod is Failing] --> B{Check Pod Status}
+    B -->|Pending| C[Node available? Check Scheduler Events]
+    C -->|No Space| D[Add Nodes / Change Limits]
+    C -->|Taint Issue| E[Add Toleration to Pod]
+    
+    B -->|CrashLoopBackOff| F[Check: kubectl logs pod-name]
+    F -->|App Exception| G[Fix App Code]
+    F -->|Missing Env| H[Fix ConfigMap/Secret]
+    
+    B -->|ImagePullBackOff| I[Check Image Name & Registry Auth]
+    
+    B -->|Running but not accessible| J[Check Readiness Probe & Service Selectors]
 ```
 
 ---
 
-## Commands Cheat Sheet
+## # INTERVIEW PREPARATION (HIGH PRIORITY)
 
-| Command | Description |
-|---|---|
-| `minikube start --driver=docker` | Start minikube cluster using Docker driver |
-| `minikube status` | Check status of minikube cluster and components |
-| `minikube dashboard` | Open Kubernetes dashboard in browser |
-| `minikube ssh` | SSH into the minikube VM/container |
-| `minikube addons list` | List all available minikube addons |
-| `minikube delete` | Delete the minikube cluster entirely |
-| `kubectl cluster-info` | Display cluster endpoint information |
-| `kubectl get nodes -o wide` | List all nodes with extra details (IPs, OS, runtime) |
-| `kubectl get pods -n kube-system` | List all control plane pods |
-| `kubectl describe node minikube` | Detailed info about a node (capacity, allocatable, conditions) |
-| `kubectl config view` | Display merged kubeconfig settings |
-| `kubectl config get-contexts` | List all configured contexts |
-| `kubectl config use-context <name>` | Switch to a different cluster context |
-| `kubectl config set-context --current --namespace=<ns>` | Set default namespace for current context |
-| `kubectl api-resources` | List all available API resources and their short names |
-| `kubectl explain pod.spec` | Show documentation for a resource field |
+### Top 20 Interview Questions
 
----
+**Basic:**
+1. What is Kubernetes and why do we need it?
+2. What are the main components of the Master Node?
+3. What is the role of `kubelet`?
+4. What is the difference between a Pod and a Container?
+5. Which component is the datastore of Kubernetes?
 
-## Troubleshooting Guide
+**Intermediate:**
+6. Explain the exact flow of what happens when you execute `kubectl create deployment`.
+7. What is `kube-proxy` and how does it work?
+8. What happens if the API Server goes down? Will the running pods crash?
+9. Explain the difference between `cordon` and `drain`.
+10. Why does ETCD need an odd number of nodes (3, 5)? (Ans: Quorum and split-brain prevention).
 
-| Issue | Possible Cause | Resolution |
-|---|---|---|
-| `minikube start` fails with "driver not found" | Docker not installed or not running | Start Docker Desktop, verify with `docker ps` |
-| `The connection to the server was refused` | API Server is down or kubeconfig incorrect | Run `minikube status`, restart with `minikube start` |
-| `Unable to connect to the server: dial tcp: lookup host: no such host` | DNS resolution failure or wrong cluster address in kubeconfig | Verify `~/.kube/config` has correct server address |
-| `etcdserver: request timed out` | etcd is overloaded or down | Check etcd pod logs: `kubectl logs etcd-minikube -n kube-system` |
-| `error: no configuration has been provided` | kubeconfig file missing or not set | Export KUBECONFIG or run `minikube update-context` |
-| `kubectl get nodes` shows `NotReady` | kubelet not running or CNI plugin not installed | SSH into node, check `systemctl status kubelet`, check `/var/log/kubelet.log` |
-| `scheduler error: 0/1 nodes are available` | Node has taints, insufficient resources, or pod affinity mismatch | Check taints: `kubectl describe node`, check resource requests vs allocatable |
-| `ImagePullBackOff` on kube-system pods | No internet or image registry unreachable | Check internet connectivity inside minikube: `minikube ssh -- curl google.com` |
+**Advanced / FAANG:**
+11. You have a pod that is in a `Pending` state for 30 minutes. Walk me through your entire debugging process.
+12. How does the Kube-Scheduler actually score and select a node?
+13. What is the difference between IPTables mode and IPVS mode in kube-proxy?
+14. Explain how a mutating admission webhook works in the API server pipeline.
+15. How would you backup and restore an ETCD cluster in a production disaster scenario?
 
----
+**Scenario Based:**
+16. A developer accidentally deleted a namespace containing production databases. How do you recover? *(Ans: ETCD restore, or GitOps/ArgoCD redeployment if stateless).*
+17. Your worker node is showing `NotReady`. How do you investigate? *(Ans: SSH into node, check `systemctl status kubelet`, check disk space, check certificates).*
+18. You need to upgrade your K8s cluster from 1.28 to 1.29. What is the correct upgrade order? *(Ans: Upgrade kubeadm -> upgrade master node components -> upgrade worker nodes one by one).*
+19. We are getting `OOMKilled` on our Java backend pod. How do we fix it? *(Ans: Increase memory limit in K8s, AND increase JVM max heap size `-Xmx` inside the container).*
+20. A pod can reach the internet, but cannot resolve DNS names like `google.com`. Where is the issue? *(Ans: CoreDNS pods might be crashing or blocked by network policies).*
 
-## Real-World Scenario
+**Top 10 Production Issues (FAANG/SRE Level):**
+1. ETCD database out of space (2GB quota exceeded by default).
+2. Expired cluster certificates (kubelet cannot talk to API server).
+3. Pod IP exhaustion (AWS EKS VPC CNI limits reached).
+4. CoreDNS bottlenecks during high traffic (Fix: NodeLocal DNSCache).
+5. Zombie pods stuck in `Terminating` state forever (Fix: `kubectl delete pod --force`).
+6. Kubelet CPU throttling causing performance drops.
+7. Node `DiskPressure` evicting critical pods.
+8. Unmatched Labels between Service and Pod causing 503 errors.
+9. Secrets exposed in environment variables instead of mounted files.
+10. HPA (Autoscaler) failing because Metrics Server is down.
 
-### Scenario: Production etcd Cluster Failure at a Fintech Startup
+**Microsoft / Azure AKS Style Questions:**
+- How do you integrate Azure Active Directory (Entra ID) with K8s RBAC?
+- Explain the role of the Azure CNI vs Kubenet.
 
-**Context:** A fintech company ran a 3-node Kubernetes cluster on bare metal. Their etcd cluster was co-located on the same machines as the control plane (stacked topology).
+**TCS / Infosys / Accenture Style Questions:**
+- What is a namespace?
+- How to list all nodes?
+- What is the difference between ReplicaSet and Deployment?
 
-**Incident:** During a routine OS upgrade, two etcd nodes rebooted simultaneously. With only 1 of 3 etcd members available, the cluster lost quorum (needs majority = 2 of 3).
-
-**Symptoms:**
-- `kubectl` commands timed out
-- New pods could not be scheduled
-- Existing running pods continued to run (kubelet works independently once pod is scheduled)
-- CI/CD pipelines failed because they could not deploy new versions
-
-**Resolution:**
-1. Restored one etcd node quickly to regain quorum (2 of 3)
-2. Verified cluster health: `etcdctl endpoint health`
-3. Performed etcd defragmentation after recovery
-4. Implemented staggered OS upgrade policy — never upgrade more than one etcd member at a time
-
-**Lessons:**
-- Always run etcd with odd number of members (3 or 5)
-- Keep etcd backups on external storage (S3, NFS)
-- Use external etcd topology for critical production clusters
-- Monitor etcd latency and disk IOPS — etcd is very sensitive to disk performance
-
-*Jaise bank ke teen lockers mein copies hoti hain — agar ek kho jaaye toh baaki se recover ho jaata hai. Lekin agar do ek saath kho jaayein toh mushkil ho jaati hai. Yahi quorum ka concept hai.*
+**Common Interview Mistakes:**
+- Saying "ETCD talks to kubelet". (Only API server talks to ETCD).
+- Not knowing the difference between `livenessProbe` and `readinessProbe`. (Liveness = restarts pod, Readiness = stops sending traffic to pod).
+- Thinking Kubernetes builds Docker images. (It only pulls and runs them).
 
 ---
-
-## Interview Questions
-
-### Q1: What happens when you run `kubectl apply -f pod.yaml`?
-**Answer:** The request flows through: kubectl → API Server (authentication → authorization → admission controllers → validation) → writes to etcd → Scheduler watches for unscheduled pods → assigns a node → kubelet on that node picks up the PodSpec → pulls image via container runtime → starts container → reports status back to API Server → status updated in etcd.
-
-### Q2: What is the difference between the control plane and the data plane in Kubernetes?
-**Answer:** The control plane (API Server, etcd, Scheduler, Controller Manager) makes decisions about the cluster — scheduling, scaling, state management. The data plane (worker nodes with kubelet, kube-proxy, container runtime) executes those decisions — actually running containers and routing traffic.
-
-### Q3: Why does etcd use an odd number of nodes?
-**Answer:** etcd uses the Raft consensus protocol which requires a majority (quorum) to agree on any state change. With 3 nodes, quorum is 2 — so 1 failure is tolerated. With 4 nodes, quorum is 3 — still only 1 failure tolerated, but more overhead. With 5 nodes, quorum is 3 — tolerates 2 failures. Odd numbers give the optimal fault-tolerance-to-resource ratio.
-
-### Q4: Can a Kubernetes cluster function if the API Server goes down?
-**Answer:** Existing workloads continue running because kubelet operates independently once pods are scheduled. However, no new operations can be performed — no new deployments, no scaling, no `kubectl` commands. This is why production clusters run multiple API Server replicas behind a load balancer.
-
-### Q5: What is the difference between a taint and a toleration?
-**Answer:** Taints are applied to nodes to repel pods (e.g., `kubectl taint nodes node1 key=value:NoSchedule`). Tolerations are applied to pods to allow them to be scheduled on tainted nodes. This mechanism ensures only specific workloads run on designated nodes (e.g., GPU nodes, dedicated infra nodes).
-
-### Q6: Explain the kubelet's role in pod lifecycle management.
-**Answer:** The kubelet watches the API Server for PodSpecs assigned to its node. It instructs the container runtime (containerd/CRI-O) to pull images and start containers. It continuously runs health probes (liveness, readiness, startup). If a liveness probe fails, kubelet restarts the container. It reports pod and node status back to the API Server at regular intervals.
-
-### Q7: What is the difference between minikube, kind, and k3s?
-**Answer:** Minikube creates a single/multi-node cluster in a VM or Docker container — best for learning and CKA prep. Kind (Kubernetes in Docker) runs cluster nodes as Docker containers — ideal for CI/CD testing and fast iteration. K3s is a lightweight certified K8s distribution by Rancher — designed for edge computing, IoT, and resource-constrained environments. Each targets a different use case.
-
----
-
-## Related Notes
-
-- [[K8S-02 Pods Deployments Services]] — Core workload objects that run on this architecture
-- [[K8S-03 ConfigMaps and Secrets]] — Configuration management within the cluster
-- [[Docker Fundamentals]] — Container basics that K8s orchestrates
-- [[Linux Networking]] — Understanding networking foundations for kube-proxy and CNI
-- [[CI-CD Pipelines]] — How deployments are triggered in production K8s clusters

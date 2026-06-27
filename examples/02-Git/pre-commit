@@ -1,0 +1,27 @@
+#!/bin/bash
+# Pre-commit hook to prevent committing AWS Keys or large files
+# Place this script in .git/hooks/pre-commit and make it executable (chmod +x)
+
+# 1. Check for AWS Access Keys
+if git diff --cached | grep -qE 'AKIA[0-9A-Z]{16}'; then
+    echo "❌ ERROR: You are attempting to commit an AWS Access Key!"
+    echo "Please remove the key and use environment variables or IAM roles instead."
+    exit 1
+fi
+
+# 2. Check for large files (> 5MB)
+# (In a real repo, git-lfs should be used for large files)
+MAX_SIZE=5242880 # 5MB in bytes
+for file in $(git diff --cached --name-only); do
+    if [ -f "$file" ]; then
+        SIZE=$(stat -c%s "$file" 2>/dev/null || stat -f%z "$file")
+        if [ "$SIZE" -gt "$MAX_SIZE" ]; then
+            echo "❌ ERROR: File $file is too large to commit ($SIZE bytes)."
+            echo "Please keep files under 5MB or use git-lfs."
+            exit 1
+        fi
+    fi
+done
+
+echo "✅ Pre-commit checks passed."
+exit 0

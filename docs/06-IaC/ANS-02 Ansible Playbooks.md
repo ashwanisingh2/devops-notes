@@ -9,90 +9,82 @@ cert-relevant: #none
 
 # ANS-02 Ansible Playbooks
 
-> [!abstract] Overview
-> While Ad-Hoc commands are great for quick fixes, they are not version-controlled or repeatable. True Infrastructure as Code requires Ansible Playbooks. A Playbook is a YAML file that orchestrates complex, multi-tier IT environments. It defines variables, tasks, conditionals, loops, and error-handling mechanisms, allowing DevOps engineers to bootstrap an entire web architecture—from installing packages to templating configuration files—with a single command.
+# Overview
+**Ansible Playbooks** ek YAML-based configuration, deployment aur orchestration language hai jisme hum apne remote servers ka desired state define karte hain. Agar Ad-Hoc commands "ek cup chai banane" ki tarah hain, toh Playbook ek proper "Recipe" hai jisme sequence me likha hota hai: paani ubalo, patti dalo, doodh dalo, aur usko low flame par 5 min rakho.
 
----
+**Kyu use hota hai?**
+Kyunki Ad-Hoc commands repeatable nahi hote aur version control (Git) mein store karne ke liye suitable nahi hote. Playbooks Infrastructure as Code (IaC) ka core concept implement karti hain, jisse configuration drift khatam ho jata hai. Ek Playbook aap kitni baar bhi run karo, result same hota hai (Idempotency).
 
-## Concept Overview
+**Real life example / Simple analogy:**
+Jaise ek restaurant ka head Chef ek standard recipe book follow karke har baar same taste ka khana banata hai, waise hi Playbook ensure karti hai ki aap 1 ya 1000 servers provision karo, sabka configuration exact same hoga.
 
-- **What it is** — Playbooks are Ansible’s configuration, deployment, and orchestration language. They are written in YAML and describe the policy you want your remote systems to enforce.
-- **Why DevOps engineers use it** — To automate complex workflows deterministically. A playbook ensures that every time a new web server is spun up, it receives the exact same Nginx version, the exact same firewall rules, and the exact same SSL certificates, eliminating configuration drift.
-- **Where you encounter this in a real job** — Writing a playbook to deploy a LAMP stack, using Jinja2 templates to generate dynamic HAProxy config files based on the number of backend servers, or orchestrating a zero-downtime rolling update.
-- **Responsibility Split:**
-  - **Junior DevOps**: Runs `ansible-playbook` commands and passes extra variables via CLI.
-  - **Mid DevOps**: Writes multi-task playbooks, implements Handlers for service restarts, and uses Jinja2 templating.
-  - **Senior/SRE**: Refactors messy playbooks using complex variable precedence, optimizes execution speed (strategy plugins), and handles robust error recovery using `block/rescue/always`.
+**Industry kaha use karti hai / Real production use-case:**
+- LAMP/LEMP stack ya Kubernetes clusters automatically deploy karne ke liye.
+- Zero-downtime rolling updates perform karne ke liye (Load balancer se node nikalo, patch karo, wapas dalo).
+- CI/CD pipelines mein infrastructure provision aur configure karne ke liye.
 
-*Seedha simple mein: Playbook ek recipe book hai. Ad-Hoc command matlab "Bhai ek chai bana de". Playbook matlab "Recipe: Pehle paani ubalo, phir patti dalo, phir doodh dalo". Ye recipe likhi hui hai, aap kisi ko bhi doge, same test wali chai banegi.*
+**Architecture / Mermaid diagram:**
+```mermaid
+graph TD
+    A[DevOps Engineer] -->|Writes YAML| B[Ansible Playbook]
+    B --> C[Ansible Control Node]
+    C -->|Parse YAML & SSH| D[Web Server 1]
+    C -->|Parse YAML & SSH| E[Web Server 2]
+    C -->|Parse YAML & SSH| F[Database Server]
+    D -.->|Tasks Executed| G[Idempotent Desired State]
+    E -.->|Tasks Executed| G
+    F -.->|Tasks Executed| H[Idempotent Desired State]
+```
 
----
+# Working
+Playbooks sequentially tasks ko execute karti hain.
+1. **Parsing:** Ansible Control node aapki YAML playbook ko parse karta hai.
+2. **Fact Gathering (Setup):** Target servers se information (OS, IP, memory) gather karta hai (`setup` module ke through). Yeh data Jinja2 templates mein use hota hai.
+3. **Task Execution:** Tasks top-to-bottom execute hote hain. Har task kisi particular module (e.g., `apt`, `yum`, `copy`, `service`) ko background mein invoke karta hai (Ansible Python scripts push karke run karta hai).
+4. **State Check (Idempotency):** Modules check karte hain ki required state pehle se achieve ho chuki hai ya nahi. Agar pehle se hi package installed hai, toh kuch nahi karega (status: `ok`), agar install karta hai toh (status: `changed`).
+5. **Handlers:** Agar kisi task mein change hua (`changed`), toh wo Handler ko trigger kar sakta hai. Handlers end mein execute hote hain, aur duplicates automatically ignore ho jate hain.
 
-## Technical Deep Dive
+# Installation
+Playbooks ke liye alag se kuch install nahi karna padta. Bas Ansible set up hona chahiye.
+**Prerequisites:**
+- Control node par Ansible installed hona chahiye (`pip install ansible` or `apt install ansible`).
+- Target hosts inventory file (`hosts` ya `inventory.ini`) mein declared hone chahiye.
+- Target nodes par SSH passwordless (Key-based) authentication or WinRM setup hona chahiye.
 
-### 1. Playbook Anatomy
-A playbook contains a list of **Plays**. A play targets a specific group of `hosts` and executes a list of `tasks`.
-Key elements of a Play:
-- `hosts`: Which servers to target from the inventory.
-- `become`: Boolean indicating if privilege escalation (sudo) is needed.
-- `vars`: Variables defined directly in the playbook.
-- `tasks`: The sequential list of Ansible modules to execute.
-- `handlers`: Special tasks that ONLY run if triggered by a previous task changing state.
+# Practical Lab
+**Scenario:** Ek dynamic Nginx Web Server deploy karna.
 
-### 2. Task Control (Loops and Conditionals)
-Playbooks are smart. You don't write 5 tasks to install 5 packages. You write 1 task and use a `loop` (or `with_items`). 
-You can use `when` to execute tasks conditionally based on Ansible Facts. For example: `when: ansible_os_family == "Debian"` ensures `apt` is only used on Ubuntu, not RedHat.
-
-### 3. Templating with Jinja2
-Often, a configuration file needs to be dynamic. For example, an Nginx config needs to know the server's specific IP address. Ansible uses the `template` module combined with Jinja2 (`.j2` files). When Ansible pushes the template to the server, it evaluates Jinja2 variables like `{{ ansible_default_ipv4.address }}` and replaces them with the actual data before saving the file on the remote host.
-
----
-
-## Step-by-Step Lab
-
-> [!warning] Pre-requisites
-> - Ansible installed on Control Node
-> - Inventory file (`hosts`) configured with at least one target server
-
-### Step 1: Write a Jinja2 Template
+**Step 1: Jinja2 Template Create karein (`index.html.j2`)**
+*Jinja2 use hota hai HTML/Config files ko dynamic banane ke liye. Variables inject hote hain execution time par.*
 ```jinja2
-# Create a file named index.html.j2
 <html>
-<head><title>Ansible Deployed</title></head>
+<head><title>Ansible Deployed App</title></head>
 <body>
     <h1>Welcome to {{ company_name }}</h1>
-    <p>This server's OS is: {{ ansible_distribution }} {{ ansible_distribution_version }}</p>
-    <p>Server IP: {{ ansible_default_ipv4.address }}</p>
+    <p>Deployed on OS: {{ ansible_distribution }} {{ ansible_distribution_version }}</p>
+    <p>Server Internal IP: {{ ansible_default_ipv4.address }}</p>
 </body>
 </html>
 ```
 
-### Step 2: Write the Playbook
+**Step 2: Ansible Playbook Likhein (`setup-web.yml`)**
 ```yaml
-# Create a file named setup-web.yml
 ---
 - name: Deploy Nginx Web Server
-  hosts: all
-  become: yes # Run as root
+  hosts: webservers # Target group defined in inventory
+  become: yes       # Privilege escalation (sudo/root)
 
-  # Define variables used in this play
+  # Playbook level variables
   vars:
-    company_name: "DevOps Vault Corporation"
-    http_port: 80
+    company_name: "God Mode DevOps Vault"
 
   tasks:
-    - name: Install Nginx (Debian/Ubuntu)
+    - name: Install Nginx on Ubuntu/Debian
       apt:
         name: nginx
-        state: latest
+        state: present
         update_cache: yes
       when: ansible_os_family == "Debian"
-
-    - name: Install Nginx (RedHat/CentOS)
-      yum:
-        name: nginx
-        state: latest
-      when: ansible_os_family == "RedHat"
 
     - name: Deploy dynamic HTML template
       template:
@@ -101,7 +93,7 @@ Often, a configuration file needs to be dynamic. For example, an Nginx config ne
         owner: www-data
         group: www-data
         mode: '0644'
-      # If this file changes, notify the handler to restart Nginx
+      # Notify triggers the handler ONLY if this file changed
       notify: Restart Nginx
 
     - name: Ensure Nginx is running and enabled on boot
@@ -110,7 +102,7 @@ Often, a configuration file needs to be dynamic. For example, an Nginx config ne
         state: started
         enabled: yes
 
-  # Handlers ONLY run if notified, and run at the very end of the play
+  # Handlers are executed at the end of the play
   handlers:
     - name: Restart Nginx
       service:
@@ -118,133 +110,124 @@ Often, a configuration file needs to be dynamic. For example, an Nginx config ne
         state: restarted
 ```
 
-### Step 3: Check Syntax and Dry Run
+**Step 3: Syntax Check & Dry-Run Karein**
 ```bash
-# Verify your YAML syntax is correct
 ansible-playbook setup-web.yml --syntax-check
-
-# Run a Dry-Run (Check Mode). It shows what WOULD change, without changing it.
-ansible-playbook setup-web.yml --check
+# Check mode shows what WOULD happen without actually making changes
+ansible-playbook setup-web.yml --check -i inventory.ini
 ```
 
-### Step 4: Execute the Playbook
+**Step 4: Execute Playbook**
 ```bash
-# Run the playbook for real
-ansible-playbook setup-web.yml -i hosts
-
-# Expected output:
-# PLAY [Deploy Nginx Web Server] ****************************************
-# TASK [Gathering Facts] ************************************************
-# ok: [192.168.1.10]
-# TASK [Install Nginx (Debian/Ubuntu)] **********************************
-# changed: [192.168.1.10]
-# ...
-# RUNNING HANDLER [Restart Nginx] ***************************************
-# changed: [192.168.1.10]
-# PLAY RECAP ************************************************************
-# 192.168.1.10 : ok=4 changed=2 unreachable=0 failed=0 skipped=1
+ansible-playbook setup-web.yml -i inventory.ini
 ```
 
-### Step 5: Verify Idempotency
-```bash
-# Run it again immediately
-ansible-playbook setup-web.yml -i hosts
+**Expected Output Verification:**
+Ansible output mein `PLAY RECAP` dikhayega. `changed=2` dikhega pehli baar run karne par. Agar wapas turant run karoge, toh `changed=0` aur `ok=3` aayega (ye idempotency proof karta hai, Handlers wapas trigger nahi honge).
 
-# Expected output:
-# All tasks will report 'ok'. The handler will NOT run because the template didn't change.
-# changed=0
+# Daily Engineer Tasks
+- **L1 Engineer:** Standard runbooks dekh kar Playbooks execute karna, jaise server scaling ya standard patching, aur CLI se `--extra-vars` pass karna.
+- **L2 Engineer:** Fail hue playbooks ko troubleshoot karna (kisi node par disk space issues ya unreachable node). Playbook mein naye tasks add karna.
+- **L3 / Senior Engineer:** Hardcoded scripts ko refactor karke Ansible roles banana, complex conditional blocks likhna, `block/rescue` se error handling karna.
+- **DevOps / Production Engineer:** AWX/Ansible Tower configure karna, CI/CD pipelines (e.g., GitHub Actions / Jenkins) ke through playbooks trigger karwana aur inventory ko AWS/Azure (Dynamic Inventory) se sync rakhna.
+
+# Real Industry Tasks
+- **Real Change Request (CR):** "We need to rotate SSH keys for the `deploy` user across 500 servers." Action: Write a playbook using the `authorized_key` module to remove the old key and add the new one.
+- **Hardening and Compliance:** CIS benchmark standards meet karne ke liye playbook likhna jo `/etc/ssh/sshd_config` me root login disable karde aur password authentication false karde.
+- **Migration & Backup:** DB server upgrade se pehle ek playbook run karna jo database dump le, AWS S3 bucket par send kare, aur uske baad DB engine upgrade start kare.
+
+# Troubleshooting
+- **Symptom:** `Syntax Error while loading YAML`
+  - **Root Cause:** YAML indentation (spaces) bahut strict hota hai. Aapne tabs use kiye honge ya `-` (list item) sahi se align nahi hoga.
+  - **Resolution:** Hamesha `ansible-playbook --syntax-check` ya IDE/VScode YAML extension use karein.
+- **Symptom:** Task fails with "Destination directory /etc/myapp does not exist".
+  - **Root Cause:** Aap template ya copy module run kar rahe ho ek path me jiska parent folder missing hai.
+  - **Resolution:** Aisa error fix karne ke liye copy/template se thik pehle ek task add karein: `file: path=/etc/myapp state=directory`.
+- **Symptom:** Changes kiye par Handler execute hi nahi hua!
+  - **Root Cause:** Handlers tabhi run hote hain jab target task `changed` state return karta hai. Agar file pehle hi server pe identical hai, task `ok` hoga aur notify invoke nahi hoga.
+  - **Resolution:** Testing ke liye remote server me file delete/modify karke wapas playbook chalayein, handler chalega.
+- **Symptom:** "UNREACHABLE" error on execution.
+  - **Root Cause:** SSH connection issue ya sudo/password authentication failure.
+  - **Resolution:** Verify by running simple Ad-Hoc ping: `ansible all -m ping -i hosts`. Connection theek karein.
+
+# Interview Preparation
+- **Basic:** Playbook aur Ad-Hoc command mein kya farq hai?
+  - **Answer:** Ad-Hoc ek-baar, command-line execution hai (jaise ek service restart karna). Playbooks YAML files hain jinhe hum version control mein rakhte hain complex, multi-task, repeatable configuration management ke liye.
+- **Intermediate:** Handler kya hota hai? Kab execute hota hai?
+  - **Answer:** Handler ek special task hai jo tabhi trigger hota hai jab use kisi doosre task se `notify` kiya jaye aur us task ne kuch "change" (modify) kiya ho. Handlers by default playbook execution ke end mein run hote hain.
+- **Scenario Based:** Agar beech me service restart karni ho handler se end ka wait nahi karna, toh kya karoge?
+  - **Answer:** Task level pe `meta: flush_handlers` use karenge. Yeh ensure karta hai ki pending handlers turant yahin execute ho jayen.
+- **Advanced / Production:** Aap ek shell script ko idempotency kaise doge Ansible Playbook mein?
+  - **Answer:** Main `shell` module ke saath `creates` ya `removes` parameter use karunga, jo script ko tabhi run hone dega jab koi specific file missing ho. Ya `register` use karke command output capture karke `changed_when` lagaunga.
+
+# Production Scenarios
+**Scenario: Website Down After Automated Config Deployment**
+- **Symptom:** Playbook run hui aur 2 minute baad alerts aane lage 502 Bad Gateway ke.
+- **How to think:** Zaroor playbook ne faulty nginx/haproxy conf push ki, restart kiya, aur process down ho gaya.
+- **Investigation:** Ansible execution logs check karein.
+- **Resolution:** `git revert` old commit (jisme config sahi thi) and run the CI pipeline again (Run playbook).
+- **Prevention:** Production engineer playbook mein ek validation task add karega: Config replace hone ke baad restart karne se pehle `command: nginx -t` ya `apache2ctl configtest` chalaye. Agar config invalid hogi, task wahi `fail` ho jayega aur restart trigger hi nahi hoga.
+
+# Commands
+| Command | Purpose | Syntax/Example | Danger Level |
+|---------|---------|----------------|--------------|
+| `ansible-playbook` | Executes the playbook tasks. | `ansible-playbook setup.yml -i hosts` | Medium to High (depending on tasks) |
+| `--syntax-check` | YAML aur logic mistakes dhundna before running. | `ansible-playbook site.yml --syntax-check` | Low (No execution happens) |
+| `--check` | Dry-run mode. Predicts what will change. | `ansible-playbook site.yml --check` | Low |
+| `--start-at-task` | Starts play from a specific task name. | `ansible-playbook site.yml --start-at-task="Install Git"` | Medium |
+| `-e` (`--extra-vars`) | Variable pass karna CLI se (highest priority). | `ansible-playbook site.yml -e "env=production"` | High (Galat var pass kiya to issues honge) |
+| `--tags` | Sirf specific tag wale tasks run karna. | `ansible-playbook site.yml --tags "web,db"` | Low |
+
+# Cheat Sheet
+- **Playbook Structure:** Top level pe `- hosts:` (Targets), `vars:` (Variables), aur `tasks:` hote hain.
+- **Indentation:** Hamesha 2 spaces use karein, YAML hates Tabs!
+- **Variable Precedence (Short):** Extra Vars (`-e`) overrides Playbook vars overrides Inventory vars.
+- **Idempotency Rule:** Sirf `shell` aur `command` modules by default idempotent nahi hote, baaki sab modules (`yum`, `copy`, `service`) Ansible internally handle karta hai.
+
+# SOP & Runbook & KB Article
+**SOP: Zero Downtime Rolling Update using Ansible**
+- **Purpose:** Ek baar mein saare web servers ko update/restart karne se downtime aayega, humein ek-ek (batch) karke update karna hai.
+- **Procedure:** Playbook level par `serial: 1` ya `serial: 20%` set karein. Ek host cluster par tasks execute honge:
+  1. Target node ko Load Balancer se drain karo (remove node from target group).
+  2. Updates install karo / App code deploy karo.
+  3. Service restart karo.
+  4. Health check karo (jaise `uri` module se `HTTP 200` return check karo).
+  5. Wapas Load Balancer me add karo.
+- **Validation:** Application health-check endpoint browser me open karke verify karein.
+
+# Best Practices & Beginner Mistakes
+- **Best Practice:** Use Fully Qualified Collection Names (FQCN) for modules. Example: Write `ansible.builtin.apt` badle mein sirf `apt`.
+- **Best Practice:** Apne variables and playbooks modularize karein (Roles use karein). Playbook file 200-300 lines se badi ho toh usko tod do.
+- **Beginner Mistake:** `command` ya `shell` module ka abuse karna jab uske liye dedicated module available ho (e.g. `shell: git clone` use karna bajaye `git` module use karne ke).
+- **Security Mistake:** Passwords plain text Playbooks mein likhna. Hamesha [[ANS-03 Ansible Roles and Vault|Ansible Vault]] ka use karein secrets encrypt karne ke liye.
+
+# Advanced Concepts
+- **Block, Rescue, and Always:** Playbook mein error handling ke liye Try-Catch mechanism jaisa hota hai.
+  - `block`: Main tasks yahan aayenge.
+  - `rescue`: Agar `block` fail hua, tabhi rescue chalega (jaise Slack pe error message bhejna).
+  - `always`: Har haal mein chalega (jaise temporary generated files clean karna).
+- **Strategy Plugins:** By default Ansible `linear` strategy (ek task saare servers pe karega, phir aage badhega) use karta hai. `free` strategy mein har server independent speed se task khatam karta hai bina doosre servers ka wait kiye.
+
+# Related Topics & Flashcards & Revision
+- **Prerequisites:** [[ANS-01 Ansible Fundamentals]]
+- **Next Topic:** [[ANS-03 Ansible Roles and Vault]]
+- **Revision Time:** 15 min focus daily.
+- **Flashcard 1:**
+  - *Q:* How do you bypass playbook vars dynamically while running?
+  - *A:* Using the CLI flag `-e` or `--extra-vars`.
+- **Flashcard 2:**
+  - *Q:* Which parameter lets a non-idempotent module act conditionally if a file already exists?
+  - *A:* `creates: /path/to/file` parameter in command/shell.
+
+# Real Production Logs & Commands & Decision Tree
+**Scenario Log:**
+```text
+TASK [Ensure apache is running] ****************************************************
+fatal: [web1.example.com]: FAILED! => {"changed": false, "msg": "Unable to start service apache2: Job for apache2.service failed because the control process exited with error code."}
 ```
-
-> [!tip] Pro Tip
-> Never use `command: systemctl restart nginx` inside your `tasks` section. It breaks idempotency because the command will execute every single time the playbook runs, interrupting traffic. Always use `notify: Restart Nginx` in your tasks and define the restart logic in the `handlers` section. Handlers only fire if the task actually changed something.
-
----
-
-## Common Commands Cheat Sheet
-
-| Command | What It Does | Real Example |
-|---------|-------------|--------------|
-| `ansible-playbook` | Executes a playbook | `ansible-playbook deploy.yml -i hosts` |
-| `--syntax-check` | Validates YAML and Ansible syntax | `ansible-playbook deploy.yml --syntax-check` |
-| `--check` (or `-C`) | Dry run: predicts changes without applying | `ansible-playbook deploy.yml --check` |
-| `--step` | Prompts for confirmation before each task | `ansible-playbook deploy.yml --step` |
-| `--start-at-task` | Starts execution at a specific task name | `ansible-playbook deploy.yml --start-at-task="Install Nginx"` |
-| `--tags` | Only runs tasks assigned a specific tag | `ansible-playbook deploy.yml --tags "db,config"` |
-| `-e` / `--extra-vars`| Passes variables overriding playbook vars | `ansible-playbook deploy.yml -e "version=1.5"` |
-
----
-
-## Troubleshooting Guide
-
-| Problem | Likely Cause | Step-by-Step Fix |
-|---------|-------------|------------------|
-| `Syntax Error while loading YAML` | Incorrect indentation | YAML relies strictly on spaces (not tabs). Ensure lists (`-`) and dictionaries are aligned properly. Use `--syntax-check`. |
-| Variable is undefined | Variable precedence / missing quote | Jinja2 variables must be double-quoted if starting a value: `name: "{{ my_var }}"`. Ensure `vars:` is declared at the play level. |
-| Handler didn't execute | Task didn't report 'changed' | Handlers ONLY fire if the notifying task's state is `changed`. If you ran the playbook twice, the second run won't trigger the handler. |
-| Task runs on Ubuntu but fails on CentOS | Package name mismatch | Apache is `apache2` on Debian, but `httpd` on RedHat. You must use `when:` conditionals to use the correct module/name based on `ansible_os_family`. |
-| `FAILED! => {"changed": false, "msg": "Destination directory /etc/myapp does not exist"}` | Missing prerequisite task | You tried to copy/template a file into a folder that doesn't exist. Add a `file: state=directory` task *before* the template task. |
-
----
-
-## Real-World Job Scenario
-
-> [!info] Scenario
-> **Situation:** "A Junior engineer wrote a playbook to download a database backup using `curl`, restore it, and start the app. The playbook fails halfway through because the database is locked. The engineer fixes the DB, reruns the playbook, and it downloads the 50GB backup file again, wasting 2 hours."
-
-**What Junior DevOps Does:**
-Uses the `shell` module for everything: `shell: wget url`, `shell: mysql < backup.sql`. Because `shell` isn't idempotent, every time the playbook is rerun, it blindly repeats all actions from step 1.
-
-**Escalation Trigger:**
-Deployments take 3 hours instead of 5 minutes because the playbook lacks state awareness and error handling.
-
-**Senior Engineer Resolution:**
-1. Refactors the `shell: wget` to use the `get_url` module, which checks if the file exists and matches the checksum before downloading.
-2. Wraps the dangerous database restore step in a `block/rescue` structure.
-3. Code change:
-```yaml
-- block:
-    - name: Restore Database
-      mysql_db:
-        state: import
-        target: /tmp/backup.sql
-  rescue:
-    - name: Alert Slack if DB restore fails
-      slack:
-        msg: "Database restore failed on {{ inventory_hostname }}"
-    - name: Fail the playbook gracefully
-      fail:
-        msg: "Cannot proceed without DB."
-```
-4. Now, if the playbook is rerun, it skips the 50GB download instantly (idempotency) and handles database errors gracefully by alerting the team instead of crashing silently.
-
-**Lesson Learned:**
-Writing a playbook isn't just about scripting bash commands in YAML. It's about designing state-aware, idempotent, and fault-tolerant infrastructure workflows.
-
----
-
-## Interview Questions
-
-**Q1 (Conceptual):** What is a Handler in Ansible, and how is it different from a standard Task?
-**A:** A Handler is a special task that is only executed if it is "notified" by another task. Furthermore, handlers always run at the very end of a play, and they only run once, even if notified by multiple tasks. This is perfectly suited for restarting services like Nginx only if the configuration files actually changed during the run.
-
-**Q2 (Practical):** You have a playbook that installs 15 different packages. How do you rewrite it to be efficient and readable?
-**A:** Instead of writing 15 separate `apt` tasks, I would write one task and use a `loop` (or pass a list directly to the module if supported). For example: 
-`- apt: name="{{ item }}" state=present`
-`  loop: [ 'nginx', 'git', 'curl', 'htop' ]`.
-
-**Q3 (Scenario-based):** You define a variable `port: 80` in your inventory file, `port: 8080` in your playbook `vars` section, and run the playbook with `-e "port=9090"`. Which port will the server actually use?
-**A:** It will use `9090`. Ansible has a strict variable precedence order (22 levels). Generally, Inventory variables are the weakest, Playbook variables are stronger, and Extra Vars passed via the CLI (`-e`) are the absolute strongest and will override everything else.
-
-**Q4 (Deep dive):** Explain how `register` and `changed_when` can be used to make a raw shell command idempotent in Ansible.
-**A:** Sometimes you must use the `command` module, which always reports `changed`. To make it idempotent, you use `register: my_output` to capture the command's stdout. Then, you add `changed_when: "'Successfully updated' in my_output.stdout"`. Now, Ansible will only report the task as changed (and trigger handlers) if the specific output string is detected, faking idempotency.
-
-**Q5 (Trick/Gotcha):** Can you use a Jinja2 template (`.j2`) to generate an Ansible playbook itself?
-**A:** No. Jinja2 templates are evaluated during the execution of a playbook to generate configuration files on the target nodes. Ansible parses the YAML structure of the playbook *before* any Jinja2 variables are evaluated, so you cannot dynamically generate the YAML syntax of the playbook itself using Jinja2 logic.
-
----
-
-## Related Notes
-
-[[00-MOC/Master-Index|Master Index]]
-[[06-IaC/ANS-01 Ansible Fundamentals|Ansible Fundamentals]]
-[[06-IaC/ANS-03 Ansible Roles and Vault|Ansible Roles and Vault]]
+**Decision Tree for this Error:**
+1. Is error due to Ansible connection or application issue? -> "exited with error code" = Application Issue.
+2. Manually SSH into `web1.example.com`.
+3. Check application logs via `journalctl -xeu apache2.service` and `cat /var/log/apache2/error.log`.
+4. Result: `Address already in use: make_sock: could not bind to address [::]:80`. (Nginx was already running on the same port!).
+5. Resolution Action: Stop Nginx (`systemctl stop nginx`) or fix the Playbook to uninstall Nginx before installing Apache. Run playbook again.

@@ -9,105 +9,100 @@ cert-relevant: #none
 
 # MON-03 Alerting and SLO-SLA-SLI
 
-> [!abstract] Overview
-> Having beautiful Grafana dashboards and Elasticsearch logs is useless if nobody is looking at them when a 3 AM outage occurs. Alerting bridges the gap between passive observation and active incident response. However, poorly configured alerts lead to "Alert Fatigue," where engineers ignore critical pages because they receive hundreds of useless emails a day. Mastering Service Level Objectives (SLOs) and intelligent alerting rules is the core of modern Site Reliability Engineering (SRE).
+# Overview
+**Ye kya hai?** 
+Alerting ek automated system hai jo metrics ko observe karta hai aur jab koi chiz galat hoti hai (threshold cross hota hai), to engineers ko notify karta hai (via Slack, PagerDuty, SMS, etc.). 
+**SLI/SLO/SLA** framework hain jo define karte hain ki system kitna reliable hona chahiye aur kab alert aana chahiye.
 
----
+**Kyu use hota hai?**
+Agar system down ho, to engineers ko manually check na karna pade. Automated monitoring aur alerting engineers ki neend aur system ki reliability dono bachata hai. Bina achhe alerting ke, "Alert Fatigue" ho jata hai jahan engineer hundreds of useless emails daily receive karke unhe ignore karna shuru kar deta hai.
 
-## Concept Overview
+**Simple Analogy:**
+- **SLA (Service Level Agreement):** Pizza store ka customer se waada: "30 minutes me delivery, warna free." (Ye business/legal contract hai)
+- **SLO (Service Level Objective):** Store manager ka internal target: "Hum 25 minutes me deliver karenge taaki traffic hone par bhi 30 min me pahunch jaye." (Tech team ka internal target)
+- **SLI (Service Level Indicator):** Actual time jo pizza deliver hone me laga, jaise 22 mins, 28 mins, ya 35 mins. (Actual metrics from Prometheus)
+- **Alerting:** Agar delivery time baar-baar 28 minutes cross kar raha hai, to manager ke paas phone ki ghanti bajni chahiye taaki action liya ja sake.
 
-- **What it is** — **Alerting** is the automated process of sending notifications (PagerDuty, Slack, SMS) when a metric crosses a threshold. **SLI/SLO/SLA** are the frameworks used to decide *what* thresholds actually matter to the business.
-- **Why DevOps engineers use it** — To guarantee system reliability without burning out humans. Instead of alerting every time CPU spikes to 90% (which might be normal during a backup), you alert when the *Customer Error Rate* breaches the agreed-upon SLO.
-- **Where you encounter this in a real job** — Writing a Prometheus `AlertRule` to trigger PagerDuty if the API latency exceeds 2 seconds for more than 5 minutes, or negotiating an Error Budget with the Product Manager.
-- **Responsibility Split:**
-  - **Junior DevOps**: Acknowledges alerts in PagerDuty and follows the runbook to mitigate the issue.
-  - **Mid DevOps**: Writes Prometheus alerting rules, configures Alertmanager routing (Slack for warnings, PagerDuty for criticals).
-  - **Senior/SRE**: Defines SLIs and SLOs with business stakeholders, calculates Error Budgets, and ruthlessly deletes noisy alerts to prevent alert fatigue.
+**Industry Kaha Use Karti Hai?**
+Google SRE, AWS, Azure, aur saari tech giants "Error Budgets" aur SLOs use karti hain taaki features deploy karne ki speed aur system stability me ek healthy balance banaya ja sake.
 
-*Seedha simple mein: SLA wo waada (contract) hai jo business customer se karta hai ("99.9% chalega"). SLO wo internal target hai jo tech team set karti hai taaki waada na tute ("Hume 99.95% maintain karna hai"). SLI wo actual metric hai jo hum napte hain ("Aaj kitne error aaye?"). Agar SLI, SLO ke paas pahunch raha hai, tabhi phone ki ghanti (Alert) bajni chahiye, choti-moti baaton pe nahi.*
+**Architecture / Mermaid Diagram:**
 
----
-
-## Technical Deep Dive
-
-### 1. The Three S's (SLI, SLO, SLA)
-- **SLI (Service Level Indicator)**: A quantitative measure of some aspect of the level of service that is provided. Typically expressed as a ratio. Example: `(Successful HTTP Requests / Total HTTP Requests) * 100`.
-- **SLO (Service Level Objective)**: A target value for the SLI. Example: "Our SLI for HTTP Success Rate will be **99.9%** over a 30-day rolling window." (This allows for 43 minutes of downtime a month).
-- **SLA (Service Level Agreement)**: An explicit or implicit contract with your users that includes consequences (financial penalties) if the SLO is missed. Engineers care about SLOs; Lawyers care about SLAs.
-
-### 2. Error Budgets
-If your SLO is 99.9% availability, that leaves 0.1% for failure. This 0.1% is your **Error Budget**.
-Error budgets bridge the gap between Devs (who want to push new features fast) and Ops (who want stability). If the Error Budget is full, developers can push risky code. If the Error Budget is empty (you had too many outages this month), all feature deployments are frozen, and the team must solely work on reliability and bug fixes until the budget recovers.
-
-### 3. Alerting Rules and The Four Golden Signals
-Google SRE dictates that you should alert on symptoms (what the user feels), not causes (what the server feels). You measure symptoms using the **Four Golden Signals**:
-1. **Latency**: Time it takes to serve a request.
-2. **Traffic**: Demand placed on the system (requests per second).
-3. **Errors**: Rate of requests that fail.
-4. **Saturation**: How "full" the service is (e.g., Disk 95% full).
-*Bad Alert*: CPU is > 90%. (Who cares? If latency is fine, the CPU is just doing its job efficiently).
-*Good Alert*: High Error Rate > 5% for 5 minutes. (Users are actively failing to checkout, wake someone up).
-
----
-
-## Step-by-Step Lab (Mental/Configuration Logic)
-
-> [!warning] Pre-requisites
-> - Understanding of Prometheus and PromQL
-
-### Step 1: Define the SLI
-We want to measure API Reliability.
-**SLI Equation:** `(Count of HTTP 2xx + 3xx) / (Total HTTP Requests)`
-**PromQL Implementation:**
-```promql
-sum(rate(http_requests_total{status=~"2..|3.."}[5m])) 
-/ 
-sum(rate(http_requests_total[5m]))
+```mermaid
+flowchart TD
+    User([Users]) --> App[Web Application]
+    App --> Prom[Prometheus Scrapes Metrics]
+    Prom -- Rules Evaluated --> AlertMgr[Alertmanager]
+    AlertMgr -- Warning Alerts --> Slack[Slack Channel]
+    AlertMgr -- Critical Alerts --> PD[PagerDuty]
+    PD -- Wakes up 3 AM --> Engineer((On-Call Engineer))
 ```
 
-### Step 2: Write the Prometheus Alerting Rule
-We will create an alert that fires if the Error Rate (the inverse of our SLI) exceeds 5% for 5 consecutive minutes.
+# Working
+**Internal Working & Data Flow:**
+1. **Metrics Scraping:** Prometheus har 15s me application (Target) se metrics pull karta hai (e.g., `http_requests_total`).
+2. **Rule Evaluation:** Prometheus apne `alerting_rules.yml` ko check karta hai (PromQL query run karke). Agar condition true milti hai (e.g., Error rate > 5% `for: 5m`), to ek alert generate hota hai.
+3. **Alertmanager:** Prometheus is alert ko Alertmanager ko bhejta hai.
+4. **Routing & Grouping:** Alertmanager decide karta hai ki alert kise bhejna hai (Slack, PagerDuty, Email) based on labels (`severity: critical`, `team: backend`). Ye multiple same alerts ko group/deduplicate bhi karta hai (taaki alert storm se bacha ja sake).
+
+**Dependencies:**
+- Prometheus (Metrics Generator & Evaluator)
+- Alertmanager (Router, Grouper & Notifier)
+- Notification Channels (Slack webhook, PagerDuty API, Email SMTP)
+
+# Installation
+*(Note: Alerting configuration mainly happens via Prometheus and Alertmanager config files)*
+**Prerequisites:** Running Prometheus & Alertmanager instances.
+
+**Configuration:**
+Prometheus me rules load karna zaroori hai. `prometheus.yml` me:
 ```yaml
-# rules.yml (Loaded by Prometheus)
+rule_files:
+  - "alert_rules.yml"
+```
+Alertmanager ki config `alertmanager.yml` me hoti hai jisme routes aur receivers define hote hain.
+
+# Practical Lab
+
+**Step-by-Step Implementation: Alert on High Error Rate**
+*Goal: Agar 5 minutes ke liye HTTP error rate 5% se zyada ho, to Alertmanager ko notify karo.*
+
+**Step 1: SLI Define Karo (PromQL)**
+Equation: (5xx Errors) / (Total Requests)
+```promql
+sum(rate(http_requests_total{status=~"5.."}[5m])) / sum(rate(http_requests_total[5m])) > 0.05
+```
+
+**Step 2: Prometheus Alert Rule Banao (`alert_rules.yml`)**
+```yaml
 groups:
 - name: SRE-SLO-Alerts
   rules:
   - alert: HighErrorRate
-    # The mathematical condition
-    expr: |
-      sum(rate(http_requests_total{status=~"5.."}[5m])) 
-      / 
-      sum(rate(http_requests_total[5m])) > 0.05
-    # How long the condition must be true before firing
+    expr: sum(rate(http_requests_total{status=~"5.."}[5m])) / sum(rate(http_requests_total[5m])) > 0.05
     for: 5m
     labels:
       severity: critical
-      team: backend-squad
+      team: backend
     annotations:
       summary: "High 5xx error rate detected"
-      description: "Error rate is {{ $value | humanizePercentage }} over 5m."
+      description: "Error rate has breached 5% over 5m."
       runbook_url: "https://wiki.company.com/runbooks/high-error-rate"
 ```
 
-### Step 3: Configure Alertmanager Routing
-Prometheus evaluates the rule and generates the alert. It sends it to **Alertmanager**, which decides *who* gets notified based on the labels.
+**Step 3: Alertmanager Routing Configure Karo (`alertmanager.yml`)**
 ```yaml
-# alertmanager.yml
 route:
   group_by: ['alertname', 'team']
   group_wait: 30s
   group_interval: 5m
   repeat_interval: 4h
-  # Default receiver
   receiver: 'slack-general'
   
   routes:
-    # Route CRITICAL alerts to PagerDuty to wake someone up
     - match:
         severity: critical
       receiver: 'pagerduty-oncall'
-    
-    # Route WARNING alerts to Slack (no waking up)
     - match:
         severity: warning
       receiver: 'slack-warnings'
@@ -121,86 +116,153 @@ receivers:
   - api_url: <SLACK_WEBHOOK_URL>
 ```
 
-### Step 4: Validate the `for` Clause (Dumb vs Smart Alerts)
-Notice the `for: 5m` in Step 2. This is crucial for preventing Alert Fatigue. 
-If there is a brief network blip and 10 requests fail in 5 seconds, the threshold is breached. But if the system auto-recovers immediately, the human shouldn't be woken up at 3 AM. The `for: 5m` tells Prometheus: "Wait 5 minutes. If it fixes itself, cancel the alert. Only page the human if the system is completely stuck and requires manual intervention."
+**Verification:**
+- Prometheus UI me `Alerts` tab pe jao aur check karo ki `HighErrorRate` ka state kya hai (Inactive, Pending, Firing).
+- CLI se test karo: `promtool check rules alert_rules.yml` se syntax aur config test hoti hai.
 
-> [!tip] Pro Tip
-> Every single critical alert MUST have a `runbook_url` in its annotations. When an engineer is woken up at 3 AM, their brain is barely functioning. They should be able to click the link and follow a simple, step-by-step guide to mitigate the issue, rather than trying to invent a solution while half-asleep.
+# Daily Engineer Tasks
 
----
+- **L1 Engineer:** PagerDuty alerts ko Acknowledge karta hai, runbook/SOP follow karke basic services restart ya scale up karta hai.
+- **L2 Engineer:** PagerDuty incidents ko deeply investigate karta hai, logs dekhta hai (e.g., Elasticsearch me), root cause analyze karke mitigation plan banata hai.
+- **L3 / Senior Engineer:** Naye Prometheus alerting rules likhta hai. Alertmanager me routing policies (escalation paths) define karta hai taaki proper alerts sahi team ko jayein.
+- **SRE / Cloud Engineer:** Business team ke saath SLIs, SLOs aur SLAs define karta hai. Error budgets calculate karta hai. Purane ya noisy useless alerts ko completely delete karta hai taaki on-call team aaram se kaam kar sake.
 
-## Common Commands Cheat Sheet
-*(Concepts translated to tool-specific CLI/UI actions)*
+# Real Industry Tasks
+- **Real Tickets:** "Too many alerts coming for API server CPU high". Action: Drop those CPU alerts, and replace them with "API Latency" alerts (shift towards symptom-based alerting).
+- **Maintenance Work:** Planned database upgrade ke dauran Alertmanager me "Silence" add karna taaki un-necessary on-call ghanti na baje.
+- **Error Budget Negotiation:** Agar backend team ka error budget is mahine exhaust ho gaya hai, to "Feature Freeze" lagana aur developers se sirf reliability aur bug fixes par kaam karwana.
 
-| Action / Concept | What It Does | Tool Used |
-|------------------|-------------|-----------|
-| `promtool check rules` | Validates YAML syntax of Prometheus rules | Prometheus CLI |
-| `amtool silence add` | Temporarily mutes an alert during maintenance | Alertmanager CLI |
-| `expr: up == 0` | The most basic Liveness alert (Target is down) | PromQL |
-| `for: 10m` | Duration threshold to prevent false-positives | Prometheus Rules |
-| `group_by: [cluster]` | Groups 50 server alerts into 1 single email | Alertmanager |
-| `Ack / Acknowledge` | Tells the team "I am working on this, stop paging" | PagerDuty / OpsGenie UI |
-| `Resolve` | Closes the incident and resets the alert | PagerDuty / OpsGenie UI |
+# Troubleshooting
 
----
+**Problem: Alert Fatigue (Din me 100+ fokat alerts aana)**
+- **Symptoms:** Engineer alerts ignore karne lagta hai. PagerDuty emails Trash folder me set kar di jati hain.
+- **Cause:** Alerting on "Causes" instead of "Symptoms". (e.g., CPU > 80% pe alert lagana, jabki app normal aur smoothly respond kar rahi ho).
+- **Resolution:** Delete "High CPU/RAM" alerts. Apni alerting strategy ko "Four Golden Signals" (Latency, Traffic, Errors, Saturation) par shift karo. Jaise "High API Response Time" ya "High HTTP Error Rate".
 
-## Troubleshooting Guide
+**Problem: 50 Server Reboot hue, aur 50 alag PagerDuty Calls aaye**
+- **Symptoms:** Raat me 50 baar phone baja aur engineer pareshaan ho gaya.
+- **Cause:** Alertmanager me `group_by` theek se configure nahi hai.
+- **Resolution:** `alertmanager.yml` me `group_by: ['alertname', 'cluster']` daalo, taaki un 50 similar alerts ko bundle karke sirf ek PagerDuty incident banaya jaye.
 
-| Problem | Likely Cause | Step-by-Step Fix |
-|---------|-------------|------------------|
-| Alert Fatigue (100+ emails a day) | Alerting on causes, not symptoms | Delete alerts for "High CPU" or "High RAM". Replace them with alerts for "High Response Time" or "High Error Rate". |
-| 50 servers reboot, you get 50 separate PagerDuty phone calls | Alertmanager grouping failed | Configure `group_by: ['alertname', 'datacenter']` in Alertmanager so it bundles all 50 identical alerts into a single, combined notification. |
-| Alert fires, but system is fine by the time you log in | Missing or too short `for` clause | Add `for: 5m` to the Prometheus rule to ensure the alert only fires if the issue persists and isn't just a momentary micro-burst. |
-| Engineer acknowledges alert but doesn't fix it | Escalation policy failure | Configure PagerDuty Escalation Policies. If the Primary on-call doesn't resolve it in 15 mins, page the Secondary. If they fail, page the Manager. |
-| Alert triggers, but nobody knows what to do | Missing Runbook | Mandate that no alert is allowed into production unless it has a documented `runbook_url` attached to it. |
+**Problem: Alert Firing par log-in kiya to system theek ho chuka tha**
+- **Cause:** Alerting rule me `for` clause missing hai ya bahut chhota (e.g., `for: 10s`) hai. Ek normal momentary load spike aya aur theek ho gaya, par alert fokat me chala gaya.
+- **Resolution:** Prometheus rule me `for: 5m` add karo taaki problem at least 5 minute persist kare tabhi human ko wake up kiya jaye.
 
----
+# Interview Preparation
 
-## Real-World Job Scenario
+- **Basic (L1/L2):** SLI, SLO, aur SLA mein kya fundamental difference hai?
+  - *Expected Answer:* SLI ek actual measurable metric hai (like 99.9% uptime). SLO internal engineering target hai (humara goal). SLA external legal agreement hai (jisme actual money / financial penalties shamil hoti hain agar target meet nahi hua).
+- **Intermediate (L2/L3):** Error budget kya hota hai aur kaise help karta hai?
+  - *Expected Answer:* Agar humara SLO 99.9% hai, toh jo 0.1% buffer bacha hai wo humara "Error Budget" hai. Ye Ops (stability) aur Devs (speed) ke beech balance banata hai. Agar budget bacha hai, toh devs rapidly naye features deploy kar sakte hain. Agar budget exhaust ho gaya, toh code freeze lag jata hai and sabki focus system stability theek karne me hoti hai.
+- **Advanced (Senior/SRE):** Four Golden Signals kya hain? Hum causes pe alert kyu nahi banate?
+  - *Expected Answer:* Four golden signals hain: Latency, Traffic, Errors, and Saturation. Hum directly causes (e.g., CPU usage) pe alert isliye nahi banate kyu ki high CPU always buri baat nahi hai (resource properly utilize ho rahi ho sakti hai). Hume user-experience (symptoms) par focus karna chahiye; alert tabhi baje jab end-user impact ho (like high error rate).
+- **Scenario Based:** Database disk 80% full ho chuki hai. Aap is par kab alert karenge?
+  - *Expected Answer:* Saturation signal ko measure karna chahiye. Par ek static alert jaise "Disk > 90%" ghatiya practice hai (10TB disk pe 90% matlab 1TB bacha hai). Main PromQL ka `predict_linear` function use karunga jo mathematical trend batayega ki agar disk agle 48 ghanto me 100% full hone wali hai tabhi muje alert aaye, otherwise disk kitni b bhari ho muje parwah nahi.
 
-> [!info] Scenario
-> **Situation:** "A Junior DevOps engineer configures an alert: `If CPU > 85%, send PagerDuty alert to the whole team.` At 2 AM, a cron job runs a database backup. The CPU hits 90% for 10 minutes. The entire team is woken up by phone calls."
+# Production Scenarios
 
-**What Junior DevOps Does:**
-Apologizes, changes the alert to `CPU > 95%`. The next night, a different cron job pushes it to 96%. The team is woken up again. The team starts ignoring PagerDuty calls, assuming they are false alarms.
+**Scenario: Website Down & The Boy Who Cried Wolf Syndrome**
+- **How to think:** Ek junior engineer ne `CPU > 85%` par PagerDuty alert laga diya. Raat 2 baje ek heavy Cron job (database backup) chali. CPU 90% gaya 10 mins ke liye. Pura team wake up hua, lekin actual outage kuch nahi thi. Next day fir wahi drama hua. Agle din se, engineers ne PagerDuty ignore karna shuru kar diya, samajh ke ki ye roz false alarm bajta hai. Us raat sacchi me database crash ho gaya aur fatigue ki wajah se kisine call attend hi nahi kiya. Twitter par complaint aane lagi. 2 ghante outage!
+- **Where to check:** Apna Prometheus Alerts review karo and on-call practices check karo.
+- **Root Cause:** Infrastructure (hardware stats) metrics par alerting lagana bina user experience dekhe.
+- **Resolution:** SRE philosophy apply karo -> Pura CPU alert permanently delete kardo. Uski jagah "99th percentile HTTP Latency > 2s for 5m" par alert lagao. Ab agle din backup chalega to CPU 95% jayega, par app ki latency thik (0.5s) hogi to koi Alert nahi aayega (Team araam se soyegi). Aur jab database sach me ruk jayega, to app latency 10s jayegi aur tab alert bajege - valid issue.
+- **Prevention:** Hamesha us chiz par pager bajao jisse user ro raha hai (Symptom), us chiz par nahi jisme machine ro rahi hai (Cause).
 
-**Escalation Trigger:**
-The "Boy Who Cried Wolf" syndrome. The next week, the database actually crashes. Because the team was ignoring alerts due to fatigue, a real 2-hour outage goes completely unnoticed until customers complain on Twitter.
+# Commands
 
-**Senior Engineer Resolution:**
-1. Deletes the CPU alert entirely.
-2. Explains Google SRE philosophy: "CPU is a resource, not a user experience. We only alert when the user is suffering."
-3. Replaces it with a Golden Signal alert: "Alert if 99th percentile HTTP Latency > 2 seconds for 5 minutes."
-4. Now, when the backup job runs and uses 95% CPU, the system still serves requests in 0.5 seconds, so no alert fires. The team sleeps.
-5. If the database actually locks up and latency spikes to 10 seconds, the alert fires, and the team knows it's a real, critical issue worth waking up for.
+| Command | Purpose | Syntax/Example | When to use | Danger Level |
+|---------|---------|----------------|-------------|--------------|
+| `promtool check rules` | Rules syntax ko locally validate karna | `promtool check rules alert_rules.yml` | Naye alerting rules ko deploy karne se pehle zaroor chalana chahiye. | Safe |
+| `amtool silence add` | Alertmanager me alert temporarily mute karna | `amtool silence add alertname="HighErrorRate" duration="2h"` | Jab planned maintenance, patching ya major database migration ho. | Medium |
+| `amtool alert` | Active firing alerts ko cli me list dekhna | `amtool alert --alertmanager.url=http://localhost:9093` | Alertmanager CLI pe turant current firing state verify karne ke liye. | Safe |
 
-**Lesson Learned:**
-Alerting on infrastructure metrics (CPU/RAM) is an anti-pattern. Alert on the Service Level Indicators (SLIs) that directly impact the user experience.
+# Cheat Sheet
 
----
+- **Four Golden Signals:** Latency, Traffic, Errors, Saturation.
+- **SLI (Indicator):** The exact real-world number (e.g., system had 99.95% uptime).
+- **SLO (Objective):** The internal goal to hit (e.g., target >= 99.9%).
+- **SLA (Agreement):** The legal/business contract (e.g., "if uptime < 99.9%, we refund 10% money").
+- **Error Budget:** `100% - SLO`. Budget left to fail. Controls feature release speed.
+- **Smart Alerting Rule:** Hamesha rule me `for: 5m` zarur ho. (No micro blips).
+- **On-Call Action:** Har critical alert me ek actionable `runbook_url` hona hi chahiye.
 
-## Interview Questions
+# SOP & Runbook & KB Article
 
-**Q1 (Conceptual):** What is the difference between an SLI and an SLO?
-**A:** An SLI (Service Level Indicator) is the actual mathematical metric we are measuring (e.g., HTTP 5xx Error Rate). An SLO (Service Level Objective) is the target goal we set for that indicator (e.g., Error rate must remain below 0.1% over a 30-day window).
+**SOP: Adding a New Alert Rule**
+- **Purpose:** Standardize the process of creating actionable alerts.
+- **Scope:** All DevOps & SRE engineers.
+- **Procedure:** 
+  1. Identify Golden Signal.
+  2. Write correct PromQL query as SLI.
+  3. Include `for: 5m` to ensure its persistent.
+  4. Ensure `runbook_url` is added in annotations.
+  5. Validate via `promtool`.
+  6. Commit to Git repository for GitOps deployment.
+- **Validation:** Alert ko intentionally fire kara k Alertmanager aur Slack routing test karo.
+- **Rollback:** Agar alert bahut noisy/spammy ho gaya to us alert PR ko turant revert karo.
 
-**Q2 (Practical):** Your database disk is slowly filling up. It will run out of space in 3 days. Do you alert on this? If so, how?
-**A:** Yes, this falls under the "Saturation" Golden Signal. However, a static alert like "Disk > 90%" is bad because 90% of a 10TB drive is still 1TB of free space. Instead, I would use Prometheus linear regression (`predict_linear(disk_free[1h], 48 * 3600) < 0`) to alert ONLY if the disk is mathematically predicted to fill up completely within the next 48 hours. This gives the team ample time to act during normal business hours without a 3 AM page.
+**Runbook: HighErrorRate Alert**
+- **Detection:** PagerDuty fires "High 5xx HTTP error rate detected".
+- **Investigation:** 
+  - Grafana API Dashboard open karo.
+  - Check karo ki errors ek specific API endpoint par hain ya saare.
+  - Elasticsearch / Kibana me 5xx requests ke stack traces search karo.
+- **Commands/Tools:** `kubectl logs -l app=backend --tail=100`, Kibana log query.
+- **Resolution:** Agar issue recent bad release se hai, to manually `kubectl rollout undo` run karke pichle version pe jao. Agar database slow hai toh connection pool limits check karo.
+- **Validation:** Grafana me check karo ki error rate wapis normal (zero) hua ya nahi.
 
-**Q3 (Scenario-based):** Developers want to release a massive new feature on Friday. The Ops team says no because the system has been unstable. How do you resolve this dispute objectively?
-**A:** I would look at the **Error Budget**. If our SLO is 99.9%, we are allowed 43 minutes of downtime this month. If we have only used 10 minutes (budget is healthy), the developers are allowed to push the feature. If we have used 50 minutes (budget is exhausted), policy dictates a strict deployment freeze, and all engineering effort must shift to stability and bug fixes. The data makes the decision, not emotions.
+**KB Article: Alertmanager Not Sending Slack Notifications**
+- **Problem:** Alerts Prometheus me Firing dikh rahe hain par Slack channel par messages nahi aa rahe.
+- **Environment:** Prometheus, Alertmanager v0.25, Slack.
+- **Symptoms:** Prometheus UI show alert as FIRING, lekin team is completely unaware on Slack.
+- **Cause:** Ya to Slack webhook URL rotate/expire ho gaya hai, ya `alertmanager.yml` me routing syntax galat match ho raha hai.
+- **Resolution:** 
+  - Valid webhook url curl command se verify karo. 
+  - `kubectl logs deploy/alertmanager` check karo errors ke liye (e.g., HTTP 403 forbidden on Slack API).
+- **Verification:** Test alert inject karke verify karo.
 
-**Q4 (Deep dive):** Explain how Alertmanager handles deduplication and grouping to prevent Alert Storms.
-**A:** If a core network switch goes down, 500 servers might become unreachable simultaneously. Prometheus will send 500 distinct alerts to Alertmanager. If configured with `group_by: ['datacenter']`, Alertmanager will recognize they all share the same datacenter label, hold them in a queue for the `group_wait` period (e.g., 30s), and then bundle all 500 alerts into a single Slack message or PagerDuty incident, saving the engineer from receiving 500 phone calls in a row.
+# Best Practices & Beginner Mistakes
 
-**Q5 (Trick/Gotcha):** Should you aim for 100% availability (SLA of 100%) for your services?
-**A:** Never. Reaching 100% availability is physically impossible due to external factors (ISP outages, cloud provider failures). More importantly, the cost of going from 99.9% to 99.99% is exponential (requiring active-active multi-region databases and extreme redundancy). Pushing for 100% slows down feature development to a halt. You should only aim for the level of reliability that keeps your users happy, and no higher.
+**Best Practices (Cross-platform):**
+- Apne `warning` alerts ko Slack jaise async chat medium par bhejo taaki team office hours me fix kar sake.
+- Apne `critical` alerts ko PagerDuty par bhejo (jisse sota hua on-call uth sake).
+- Koi bhi alert **actionable** hona chahiye. Padhke kya karna hai pata nahi ho toh us alert ka wajood bekar hai, use delete kardo.
+- Kubernetes aur microservices me Alertmanager me `group_by` function hamesha use karo to prevent catastrophic alert floods (cluster network partition par lakhon alert asakte hain).
 
----
+**Beginner Mistakes:**
+- **Mistake:** Disk space par direct 80% ya 90% par alert lagana.
+  - *Impact:* Badi disks me 90% space ka matlab 500GB free hai, engineer ko un-necessary raat ko pager bhej diya.
+  - *Correct approach:* `predict_linear` jaisi techniques use karo.
+- **Mistake:** Alerts me `for` missing.
+  - *Impact:* Network 3 seconds k lie choke hoga toh b pager bazega, auto recover pe b disturb karega.
+  - *Correct approach:* Use `for: 3m` ya 5m to observe steady state.
 
-## Related Notes
+# Advanced Concepts
 
-[[00-MOC/Master-Index|Master Index]]
-[[08-Monitoring-and-Observability/MON-01 Prometheus and Grafana|Prometheus (Metrics generation)]]
-[[10-SRE-Practices/SRE-01 SRE Fundamentals|SRE Fundamentals]]
+**Predictive Alerting (Linear Regression):**
+Prometheus apne advanced functions (jaise `predict_linear`) se past data ko use karke future bata sakta hai. Isse incident hone se pehle engineer ko inform kara jata hai (e.g., Disk 2 din me bhr jayegi toh abhi ticket bhej do, rat bhr jag kar space saaf krne k zarurat ni hai).
+
+**Multi-Window, Multi-Burn-Rate Alerts:**
+Modern SRE practice by Google. Sirf simple threshold error rate nahi dekha jata balki ye dekha jata hai ki aapka "Error budget" kitni tezi se khtam ho rha hai.
+Agar normal rate se 10 guna speed me errors arhe h (aaj budget khtm), to Critical Page on Pagerduty.
+Agar 1.5 guna rate pe hai (dhere dhere errors arhe h, shayd mahine ke end tk budget bhr jae), to just a warning ticket on Jira/Slack.
+
+# Related Topics & Flashcards & Revision
+
+**Related Topics:**
+- [[08-Monitoring-and-Observability/MON-01 Prometheus and Grafana|Prometheus (Metrics generation)]]
+- [[10-SRE-Practices/SRE-01 SRE Fundamentals|SRE Fundamentals]]
+- [[00-MOC/Master-Index|Master Index]]
+
+**Flashcards:**
+- **Q:** What are the Four Golden Signals? 
+  - **A:** Latency, Traffic, Errors, Saturation.
+- **Q:** SLO vs SLA me key farq kya hai? 
+  - **A:** SLO is our internal engineering goal to keep the system healthy. SLA is an external legal agreement that includes financial penalty if breached.
+- **Q:** What is Alert Fatigue? 
+  - **A:** Too many un-actionable, useless alerts leading engineers to ignore them completely.
+
+**Revision:**
+- **5 min:** Revise Cheat Sheet and Four Golden Signals.
+- **15 min:** Review Alertmanager routing config syntax aur `group_by` + `for` clauses importance.
+- **Interview Revision:** You must comfortably explain "How I reduced alert fatigue in my last project" by focusing on Symptom-based alerting, implementing proper error budgets, using `for` clauses, and routing warnings to Slack while keeping PagerDuty strictly for critical user-facing outages.

@@ -1,71 +1,86 @@
 ---
 tags: [devops, image-building, packer, immutable-infrastructure]
-aliases: [Packer]
+aliases: [Packer, HashiCorp Packer]
 created: 2025-06-27
+updated: 2026-06-27
 status: #complete
 difficulty: #intermediate
 cert-relevant: #none
 ---
 
-# Packer
+# Overview
+**Packer kya hai?**
+Packer ek open-source tool hai jo HashiCorp ne banaya hai. Ye ek hi source configuration file se multiple platforms (AWS AMI, Azure VHD, Docker image, VMware VMDK) ke liye identical (same) machine images create karta hai. Ye "Immutable Infrastructure" pattern ka core hai, jahan hum running servers ko patch ya update nahi karte, balki nayi image banakar purane servers ko replace kar dete hain.
 
-> [!abstract] Overview
-> Packer is an open-source tool by HashiCorp used to create identical machine images for multiple platforms (AWS, Azure, Docker, VMware) from a single source configuration. It is the cornerstone of the "Immutable Infrastructure" pattern, where servers are never patched or updated in place; instead, a new Golden Image is built via Packer and deployed to replace the old ones.
+**Kyu use hota hai?**
+Bina Packer ke, hume manually VM banana padta, usme login karke Nginx/Apache install karna padta, fir snapshot lekar image banani padti. Ye slow aur manual hai. Packer is puri process ko HCL (HashiCorp Configuration Language) code ke through automate kar deta hai. 
 
-## Concept Overview (What/Why/Where/Responsibility Split)
+**Real-life Analogy:**
+Jese car factory me ek 'mould' (saancha) hota hai jisse hazaro identical cars banti hain. Packer wo mould banane ka automation tool hai. Aap script me likhte ho ki OS konsa hoga aur usme kya software chahiye. Packer cloud me jayega, VM banayega, sab install karega, uska 'Snapshot' ya 'AMI' (Golden Image) banayega, aur fir VM delete kar dega. Ab aap is image se kitne bhi identical servers launch kar sakte ho seconds me.
 
-**What is it?**
-Instead of manually creating an EC2 instance, logging in, installing Nginx, running security patches, and then clicking "Create Image (AMI)", Packer automates this entire process using code (HCL - HashiCorp Configuration Language).
+**Industry kaha use karti hai?**
+CI/CD pipelines me Golden AMIs banane ke liye jisme application code, security agents (Splunk, CrowdStrike), aur OS patches pre-installed hote hain. Terraform ya Auto Scaling Groups (ASG) in AMIs ka use karke fast servers launch karte hain.
 
-*Hindi Explanation:*
-*Jese car factory me ek 'mould' (saancha) hota hai jisse hazaro identical cars banti hain. Packer wo mould banane ka automation tool hai. Aap script me likhte ho ki OS konsa hoga aur usme kya software chahiye. Packer cloud me jayega, VM banayega, sab install karega, uska 'Snapshot' ya 'AMI' (Golden Image) banayega, aur fir VM delete kar dega. Ab aap is image se kitne bhi identical servers launch kar sakte ho.*
+**Architecture Diagram:**
 
-**Why use it?**
-*   **Speed:** Booting a pre-baked image takes seconds. Running a configuration script on boot (like UserData) takes minutes.
-*   **Consistency:** The image tested in Dev is the exact byte-for-byte image deployed in Prod.
-*   **Multi-Cloud:** Write one template, build an AMI for AWS and a VHD for Azure simultaneously.
+```mermaid
+flowchart LR
+    A[Packer HCL Code] --> B[Packer CLI]
+    B --> C{Builders}
+    C -->|amazon-ebs| D[AWS EC2 Temp Instance]
+    C -->|azure-arm| E[Azure Temp VM]
+    D --> F{Provisioners}
+    E --> F
+    F -->|Shell/Ansible| G[Install Nginx, Security Agents]
+    G --> H[Create Snapshot/AMI]
+    H --> I[Terminate Temp Instance]
+    I --> J[Golden Image Ready]
+```
 
-**Where is it used?**
-Packer is used in CI/CD pipelines to bake application code, security agents, and OS patches into "Golden AMIs" before Terraform or Auto Scaling Groups deploy them.
+# Working
+**Internal Working:**
+1. **Initialize:** Packer required plugins (like AWS, Azure) ko download karta hai.
+2. **Build:** Ek temporary VM launch karta hai (jaise AWS me `t2.micro`).
+3. **Provision:** Temporary VM me SSH/WinRM se connect karke scripts ya Ansible playbook run karta hai.
+4. **Image Creation:** VM ka snapshot/image create karta hai.
+5. **Cleanup:** Temporary VM ko delete kar deta hai.
 
-**Responsibility Split**
-*   **SecOps Team:** Defines the base OS hardening in Packer.
-*   **DevOps Engineer:** Writes the Packer templates to bake applications into the hardened base image and triggers this via Jenkins/GitHub Actions.
+**Components:**
+- **Builders:** Ye decide karte hain ki image KAHAN banegi (AWS, Azure, Docker).
+- **Provisioners:** Ye decide karte hain ki image ke ANDAR KYA install hoga (Shell, Ansible, Chef).
+- **Post-Processors:** Image banne ke baad ke tasks (e.g., Image ko kisi specific region me copy karna ya Docker image ko registry me push karna).
 
-## Technical Deep Dive
+# Installation
 
-### 1. Packer Architecture and Builders
-Packer relies on **Builders** to generate images for specific platforms. An AWS builder creates an EBS-backed AMI; a Docker builder creates a Docker image; a VMware builder creates a VMDK.
-The process: Packer creates a temporary instance on the target platform, connects to it, runs provisioners, creates the machine image, and terminates the temporary instance.
+**Prerequisites:**
+- AWS Account and IAM User with EC2 full access.
+- Local machine (Windows/Linux/Mac).
 
-### 2. Provisioners
-Just like Vagrant, Packer uses **Provisioners** to install software inside the temporary machine before it becomes an image. You can use:
-*   `shell`: To run bash scripts.
-*   `ansible`: To run Ansible playbooks (very common combo: Packer + Ansible).
-*   `file`: To upload config files from your local machine to the image.
+**Installation:**
+1. Download from [HashiCorp Website](https://developer.hashicorp.com/packer/downloads).
+2. Extract the binary and add it to your System PATH.
+3. For Linux/macOS using Brew: `brew tap hashicorp/tap && brew install hashicorp/tap/packer`
 
-### 3. HCL2 Templates
-Modern Packer uses HCL2 (HashiCorp Configuration Language), identical to Terraform syntax. A template consists of:
-*   `packer {}`: Block defining required plugins.
-*   `source "builder_type" "name" {}`: Defines *where* and *how* to build the base instance (e.g., source AMI, instance type).
-*   `build {}`: Defines the sequence of provisioning steps to run on the source.
-
-## Step-by-Step Lab
-
-**Scenario:** Automate the creation of a custom Ubuntu AMI that comes with Nginx pre-installed.
-
-**Step 1: Install Packer**
-Download from HashiCorp and add to PATH. Verify with `packer version`.
-
-**Step 2: Set AWS Credentials**
-Ensure your shell has AWS access:
+**Configuration (AWS Credentials):**
+Set environment variables taaki Packer AWS se connect kar sake.
 ```bash
 export AWS_ACCESS_KEY_ID="your_key"
 export AWS_SECRET_ACCESS_KEY="your_secret"
 export AWS_DEFAULT_REGION="us-east-1"
 ```
 
-**Step 3: Create the Packer Template (`nginx-ami.pkr.hcl`)**
+**Verification:**
+```bash
+packer version
+```
+
+**Rollback:**
+Simply delete the packer binary from your PATH.
+
+# Practical Lab
+**Scenario:** Automate creation of a custom Ubuntu AMI with Nginx pre-installed.
+
+**Step 1: Create Packer Template (`nginx-ami.pkr.hcl`)**
 ```hcl
 packer {
   required_plugins {
@@ -87,7 +102,7 @@ source "amazon-ebs" "ubuntu" {
       virtualization-type = "hvm"
     }
     most_recent = true
-    owners      = ["099720109477"] # Canonical owner ID
+    owners      = ["099720109477"] # Canonical
   }
   ssh_username = "ubuntu"
 }
@@ -110,67 +125,135 @@ build {
 }
 ```
 
-**Step 4: Initialize and Format**
+**Step 2: Initialize & Format**
 ```bash
 packer init nginx-ami.pkr.hcl
-# Installs the amazon plugin
 packer fmt nginx-ami.pkr.hcl
-# Formats the HCL code nicely
 ```
 
-**Step 5: Build the Image**
+**Step 3: Validate & Build**
 ```bash
+packer validate nginx-ami.pkr.hcl
 packer build nginx-ami.pkr.hcl
-# Output: 
-# amazon-ebs.ubuntu: output will be in this color.
-# amazon-ebs.ubuntu: Creating temporary keypair...
-# ... (Creates instance, runs apt-get, stops instance, creates AMI) ...
-# Build 'learn-packer.amazon-ebs.ubuntu' finished after 4 minutes.
-# AMIs were created: us-east-1: ami-0123456789abcdef0
 ```
 
-## Common Commands Cheat Sheet
+**Expected Output:** Packer output dikhayega ki usne EC2 banaya, Nginx install kiya, AMI banayi aur EC2 delete kar diya. End me AMI ID print hogi (e.g., `ami-0123456789abcdef0`).
 
-| Command | What It Does | Real Example |
-| :--- | :--- | :--- |
-| `packer init` | Downloads required plugins defined in config | `packer init app.pkr.hcl` |
-| `packer fmt` | Formats the HCL template to standard style | `packer fmt .` |
-| `packer validate` | Checks template syntax and configuration | `packer validate app.pkr.hcl` |
-| `packer build` | Executes the build process to create image | `packer build app.pkr.hcl` |
-| `packer inspect` | Shows components (sources, provisioners) of a template | `packer inspect app.pkr.hcl` |
-| `packer console` | Opens interactive console to evaluate HCL variables | `packer console` |
+**Verification:** AWS Console me jaakar AMIs section me check karo, nayi image waha dikhegi.
 
-## Troubleshooting Guide
+# Daily Engineer Tasks
+- **L1/L2 Engineer:** Existing Packer builds ko monitor karna, pipeline failures (jaise timeout) par basic troubleshooting karna, aur failed temp instances ko manual clean karna agar wo atak jaye.
+- **L3/Senior Engineer:** Base images ko secure karna, nayi tools/agents add karna packer HCL me, aur multi-region replication set up karna. Packer aur Ansible ka integration sambhalna.
+- **DevOps/Cloud Engineer:** CI/CD pipeline (Jenkins/GitHub Actions) banana jisme code commit hote hi Packer automatically Golden AMI banaye.
 
-| Problem | Likely Cause | Step-by-Step Fix |
-| :--- | :--- | :--- |
-| SSH timeout waiting for instance | Security group or network issue | 1. Ensure default VPC allows SSH (port 22).<br>2. Add `associate_public_ip_address = true` in source block if using a public subnet. |
-| Provisioner fails with `apt-get: lock error` | Instance boot process (cloud-init) is still running | 1. Add a `sleep 30` at the start of your shell provisioner to let cloud-init finish before running `apt`. |
-| AWS authentication error | Missing or invalid AWS credentials | 1. Verify `AWS_ACCESS_KEY_ID` is set in terminal.<br>2. Check if the IAM user has EC2/AMI creation permissions. |
-| AMI name already exists | Hardcoded AMI name | 1. Use the `timestamp()` function in `ami_name` to make it unique every run. |
-| Build stuck on "Stopping instance" | Provisioner left a lingering background process | 1. Ensure scripts don't start blocking foreground services. Use systemd to enable services instead of running them directly in the script. |
+# Real Industry Tasks
+- **Security Patching:** Har mahine OS patch update hoti hai. Security team bolti hai "Critical vulnerabilities fix karni hain". DevOps engineer nayi Packer build trigger karta hai latest OS base image ke sath aur nayi AMI release karta hai.
+- **Agent Upgrades:** Splunk ya CrowdStrike ka naya version aaya hai. Packer template me provisioner script change karke AMI update ki jaati hai.
+- **Migration:** AWS se Azure jana hai? Same provisioner script use hogi, bas builder AWS ke jagah `azure-arm` daalna padega.
 
-## Real-World Job Scenario
+# Troubleshooting
 
-**Scenario:** The company scales instances up and down using an AWS Auto Scaling Group (ASG). Currently, instances take 10 minutes to become healthy because they download code, install dependencies, and compile assets on boot (using EC2 UserData).
+| Problem | Symptoms | Possible Root Causes | Investigation / Resolution |
+| :--- | :--- | :--- | :--- |
+| **SSH Timeout** | "Timeout waiting for SSH" error. | Security Group port 22 allow nahi kar raha, ya VPC internet connected nahi hai. | AWS Console me temp instance ka SG check karo. Agar private subnet hai, toh VPN/Bastion via connect karna padega. |
+| **Apt-get lock error** | `Could not get lock /var/lib/dpkg/lock` | Cloud-init (OS boot process) abhi chal raha hai jab Packer apna apt-get start karta hai. | Provisioner shell script me sabse upar `sleep 30` add karo taaki OS boot complete ho jaye. |
+| **AMI Name Conflict** | `AMI Name already exists` | Hardcoded AMI name use kiya hai. | `timestamp()` function use karo: `ami_name = "my-ami-${timestamp()}"` |
+| **Build Stuck** | Stopping instance pe hang ho jata hai | Script me koi foreground process chal raha hai jo exit nahi ho raha (jaise `nginx` bina `-d`). | Background processes properly daemonize hone chahiye. Service ko `systemctl start` mat karo build phase me, sirf `enable` karo. |
 
-*   **Junior Engineer's Action:** Tries to optimize the bash script in UserData, making it multi-threaded, saving maybe 2 minutes. The scaling event still takes too long, causing user requests to drop during traffic spikes.
-*   **Senior Engineer's Action:** Implements Packer. Writes a Packer pipeline that runs on every git push. Packer bakes the application code and all dependencies into an AMI. The ASG is updated to use this new AMI. When a scaling event occurs, the instance boots in 45 seconds because everything is pre-installed. This is the **Immutable Infrastructure** approach.
+# Interview Preparation
 
-## Interview Questions
+**Basic:**
+- **Q:** What is Packer?
+  - **A:** Open-source tool for automating the creation of identical machine images across multiple platforms (AWS, Azure, Docker) from a single code base.
 
-1.  **Q: What is Immutable Infrastructure?**
-    *   **A:** It's an approach where infrastructure (like servers) is never modified after it is deployed. If an update is needed (e.g., a new code version or OS patch), a new image is built, new servers are provisioned from it, and the old servers are destroyed. Packer enables this by automating image creation.
-2.  **Q: How do Packer and Terraform work together?**
-    *   **A:** They are complementary. Packer is used to *build* the machine images (AMIs). Terraform is used to *provision* infrastructure (VPCs, Load Balancers, ASGs) using the AMIs created by Packer.
-3.  **Q: Why would you use Ansible with Packer?**
-    *   **A:** While Packer has a shell provisioner, shell scripts get messy for complex configurations. Ansible provides idempotent, declarative configuration management. You can use the Packer `ansible` provisioner to run an existing Ansible playbook to configure the image perfectly before Packer saves it.
-4.  **Q: How does Packer connect to the temporary AWS instance it creates?**
-    *   **A:** Packer temporarily creates an SSH keypair (or uses a provided one), injects the public key into the temporary EC2 instance, and connects via SSH using the private key. Once the AMI is built, the temporary keypair is deleted.
-5.  **Q: What is a Packer builder?**
-    *   **A:** A builder is a component of Packer that translates the template configuration into an actual machine image for a specific platform (e.g., `amazon-ebs` for AWS AMIs, `docker` for Docker images).
+**Intermediate:**
+- **Q:** What are Builders and Provisioners in Packer?
+  - **A:** Builder creates the VM on a specific platform (e.g., `amazon-ebs`). Provisioner installs software inside that VM (e.g., `shell`, `ansible`).
 
-## Related Notes
-- [[Master Index]]
-- [[TERRAFORM-01 Terraform Basics]]
-- [[AWS-02 EC2 and Auto Scaling]]
+**Advanced / Production:**
+- **Q:** How do Packer and Terraform work together?
+  - **A:** They are complementary. Packer *builds* the Golden AMI with all software pre-installed. Terraform *deploys* the infrastructure (VPC, ASG, Load Balancer) using that Golden AMI.
+- **Q:** Why use Ansible with Packer instead of shell scripts?
+  - **A:** Shell scripts complex scenarios me messy ho jate hain. Ansible declarative aur idempotent hai. Hum Ansible roles ko directly Packer me call kar sakte hain via `ansible` provisioner, making the build code clean and reusable.
+
+**Scenario Based:**
+- **Q:** Developer says scaling instances takes 15 minutes because UserData script downloads and installs everything on boot. How to fix?
+  - **A:** Move all installation logic to Packer. Bake everything into a Golden AMI. Instances boot up fast because everything is already installed. Sirf configuration inject karne ke liye chhota UserData use karenge.
+
+# Production Scenarios
+
+**Scenario:** Pipeline failed because Packer couldn't authenticate to AWS.
+- **How to think:** Check how pipeline passes AWS credentials. Are they expired? Does the IAM role have `ec2:CreateImage` permissions?
+- **Investigation:** Check CI/CD logs. Verify IAM Policy attached to the Jenkins worker/GitHub Runner.
+- **Resolution:** Attach proper policy `AmazonEC2FullAccess` (or least privilege custom policy) to the role.
+
+**Scenario:** Temporary instances created by Packer are not getting deleted when build fails.
+- **How to think:** Cloud cost is increasing due to dangling resources. 
+- **Resolution:** Use AWS tag policies. Add a tag `created-by: packer` in the builder block. Write a Lambda function or simple cron script that deletes any running instance with this tag older than 2 hours.
+
+# Commands
+
+| Command | Purpose | Syntax | Danger Level |
+| :--- | :--- | :--- | :--- |
+| `packer init` | Required plugins download karta hai | `packer init file.pkr.hcl` | Low |
+| `packer fmt` | HCL code ki formatting fix karta hai | `packer fmt .` | Low |
+| `packer validate` | Syntax and logic errors check karta hai | `packer validate template.pkr.hcl` | Low |
+| `packer build` | AMI/Image banata hai | `packer build template.pkr.hcl` | High (creates cloud resources) |
+| `packer inspect` | Template ke components (builders/provisioners) dikhata hai | `packer inspect template.pkr.hcl` | Low |
+
+# Cheat Sheet
+- **Immutable Infrastructure:** Server replace karo, patch mat karo.
+- **Builder:** `amazon-ebs`, `azure-arm`, `docker`.
+- **Provisioner:** `shell`, `ansible`, `file`, `powershell`.
+- **HCL2:** Modern syntax, like Terraform.
+- **`timestamp()`:** Hamesha unique AMI name dene ke liye use karo.
+- **Most common combo:** Packer + Ansible (to build) -> Terraform (to deploy).
+
+# SOP & Runbook & KB Article
+
+**SOP: Creating a new Golden AMI Release**
+- **Purpose:** Securely create and publish new base images.
+- **Procedure:** 
+  1. Create feature branch. 
+  2. Update software versions in Ansible/Shell provisioners. 
+  3. Run `packer validate`. 
+  4. Raise PR. 
+  5. Merge triggers Jenkins job which runs `packer build`.
+- **Validation:** Deploy a test EC2 from the new AMI and verify Nginx service status.
+
+**Runbook: Dangling Packer Resources**
+- **Detection:** AWS Cost Explorer shows unattached EBS volumes or stray EC2s.
+- **Investigation:** Check instances starting with `packer-builder`.
+- **Resolution:** Manually terminate EC2 and delete associated Snapshots/AMIs. Fix CI/CD pipeline to ensure cleanup on failure (using `-force` or cleanup scripts).
+
+**KB Article: SSH Timeout during Packer Build**
+- **Problem:** Packer build fails with "Timeout waiting for SSH".
+- **Environment:** AWS, private subnets.
+- **Cause:** No route to the instance or port 22 blocked by SG.
+- **Resolution:** Attach a Security Group that allows port 22 from the Packer runner's IP. Alternatively, configure SSM Agent to connect without SSH.
+
+# Best Practices & Beginner Mistakes
+
+**Best Practices:**
+- Use `timestamp()` for unique AMI names.
+- Always use `packer fmt` before committing code.
+- Prefer Ansible over large, complex Shell scripts.
+- Only include what is strictly necessary in the Golden Image to keep size small and boot time fast.
+- Run security scans (like Trivy or Inspector) on the created AMI before tagging it as 'Production-Ready'.
+
+**Beginner Mistakes:**
+- **Putting secrets in AMIs:** Never bake AWS Keys or DB passwords into an image! Use AWS Secrets Manager or Parameter Store at runtime.
+- **Forgetting `sleep`:** Not giving cloud-init time to finish before running `apt-get`, causing lock errors.
+- **Bloated Images:** Installing massive unnecessary packages making the AMI 20GB+.
+
+# Advanced Concepts
+**Sysprep on Windows:** If you use Packer for Windows Server AMIs, you MUST run Sysprep as the last step in your provisioner to generalize the image, otherwise new instances will have identical SIDs and fail to join domains properly.
+
+**Packer vs Docker:** Packer VM/cloud images (AMI, VHD) ke liye primary use hota hai. Docker images ke liye log generally `Dockerfile` use karte hain, halanki Packer me Docker builder bhi hota hai.
+
+**Packer Plugins:** Packer modular hai. Agar aapko koi custom cloud provider chahiye, toh aap Go language me apna custom plugin (builder) likh sakte ho.
+
+# Related Topics & Flashcards & Revision
+- **Related:** [[TERRAFORM-01 Terraform Basics]], [[AWS-02 EC2 and Auto Scaling]], [[Ansible-01 Overview]], [[Master Index]]
+- **Flashcard:** `Packer Provisioner vs Builder` -> Builder cloud me temp VM banata hai (AWS EBS). Provisioner andar software install karta hai (Shell/Ansible).
+- **Revision Schedule:** 5 min (Commands), 15 min (Architecture/Working), Interview Prep (Night before).

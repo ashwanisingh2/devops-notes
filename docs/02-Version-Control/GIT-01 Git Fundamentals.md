@@ -1,6 +1,6 @@
 ---
-tags: [devops, git, fundamentals]
-aliases: [Git Basics]
+tags: [devops, git, fundamentals, vcs]
+aliases: [Git Basics, Version Control]
 created: 2025-06-27
 status: #complete
 difficulty: #beginner
@@ -9,388 +9,305 @@ cert-relevant: #none
 
 # Git Fundamentals
 
-> [!abstract] Overview
-> Git is the distributed version control system that underpins every modern DevOps workflow — from local code commits to CI/CD pipelines, infrastructure-as-code repositories, and Kubernetes manifest management. Understanding Git internals, the staging area, and the commit lifecycle is not optional for a DevOps engineer; it is the foundation upon which branching strategies, pull request workflows, and automated deployments are built. This note covers everything from how Git stores data internally to daily commands you'll use on the job.
+> [!abstract] 
+> Git is the distributed version control system that underpins every modern DevOps workflow. From source code and Kubernetes manifests to Terraform states, everything starts with Git. This note covers Git internally, practically, and at a production level suitable for FAANG interviews and real-world DevOps tasks.
 
----
+# Overview
 
-## Concept Overview
+**Ye kya hai?**
+Git ek Distributed Version Control System (DVCS) hai. Ye aapke project files ka history track karta hai. Har change ka snapshot banta hai. Distributed ka matlab hai ki har developer ke laptop pe poore code history ki ek full local copy hoti hai. 
 
-- **What it is** — Git is a distributed version control system (DVCS) that tracks changes in files by creating snapshots (not diffs) of your entire project at each commit. Every developer has a full copy of the repository history locally.
-  *Git ek version control system hai jo aapke code ke har change ka snapshot rakhta hai — jaise ek diary mein har page pe date daalke likho ki aaj kya kiya.*
+**Kyu use hota hai?**
+Multi-developer collaboration ke liye. Agar code fat gaya ya galat deploy ho gaya, toh aap easily purane working version pe rollback (revert) kar sakte ho.
 
-- **Why DevOps engineers use it** — Every CI/CD pipeline starts with a `git push`. Infrastructure-as-code (Terraform, Ansible) lives in Git repos. Kubernetes manifests are version-controlled. Without Git fluency, you cannot debug pipelines, manage releases, or collaborate effectively.
-  *Bina Git ke DevOps engineer woh hai jaise bina steering ke gaadi — pipeline trigger hoti hai git push se, IaC code Git mein rehta hai, sab kuch Git se shuru hota hai.*
+**Real life example:**
+Samjho aap ek book likh rahe ho. Aapne Chapter 1 likha aur "Save" kiya. Phir kal Chapter 2 add kiya aur phir "Save" kiya. Git aapki book ke har save (commit) ki photo le leta hai, taaki agar Chapter 2 bekar lage, toh aap wapas Chapter 1 pe bina kisi loss ke jaa sako.
 
-- **Where it fits in the DevOps lifecycle** — Git is the **Source** stage — the very first block in the CI/CD pipeline. Code → Git → Build → Test → Deploy.
+**Industry kaha use karti hai?**
+- Application Code versioning (Java, Node.js, Python).
+- Infrastructure as Code (Terraform, Ansible) tracking.
+- GitOps (Kubernetes manifests manage karne ke liye, e.g., ArgoCD).
 
-- **Responsibility Split** —
-  | Role | Git Responsibility |
-  |---|---|
-  | Developer | Write code, create branches, make commits, raise PRs |
-  | DevOps/SRE | Manage branching strategy, set up hooks, integrate with CI/CD, manage credentials |
-  | Lead/Architect | Define Git workflow (Git Flow/Trunk-Based), enforce branch protection |
-
----
-
-## Technical Deep Dive
-
-### 1. Git Internals — The Four Objects
-
-Git stores everything in the `.git/objects` directory using four types of objects:
-
-| Object | Purpose | Analogy |
-|---|---|---|
-| **Blob** | Stores file content (no filename, just data) | *Ek dabba jisme sirf saamaan hai, label nahi* |
-| **Tree** | Stores directory structure — maps filenames to blobs | *Dabbon ki list jisme likha hai kaunsa dabba kahan rakhna hai* |
-| **Commit** | Points to a tree + stores author, message, parent commit | *Diary ka ek page — date, author, aur kya hua sab likha hai* |
-| **Tag** | Named pointer to a specific commit (usually a release) | *Bookmark jo aap important page pe lagate ho* |
-
-Every object is identified by a **SHA-1 hash** (40-character hex string). When you run `git add`, Git creates blob objects. When you run `git commit`, Git creates a tree and a commit object.
-
-```bash
-# Inspect Git objects
-git cat-file -t <hash>    # Show object type
-git cat-file -p <hash>    # Pretty-print object content
-ls .git/objects/           # See stored objects
-```
-
-The `.git` directory structure:
-
-```
-.git/
-├── HEAD              # Points to current branch ref
-├── config            # Repo-level config
-├── objects/          # All blobs, trees, commits, tags
-├── refs/
-│   ├── heads/        # Branch pointers
-│   └── tags/         # Tag pointers
-├── index             # The staging area (binary file)
-└── hooks/            # Client-side hook scripts
-```
-
-### 2. Core Workflow — The Three Areas
-
-Git has three working areas that every command interacts with:
-
-```
-Working Directory  →  Staging Area (Index)  →  Local Repository  →  Remote Repository
-     (edit)              (git add)               (git commit)          (git push)
-```
-
-*Socho ki Working Directory tumhara kitchen hai jahan tum khana bana rahe ho. Staging Area thali hai jisme tum serve karne wale items rakh rahe ho. Commit matlab thali table pe rakh di — ab finalized hai. Push matlab thali customer ke paas bhej di.*
-
-**Essential commands in the workflow:**
-
-```bash
-# Initialize or clone
-git init my-project                    # Create new repo
-git clone https://github.com/user/repo.git  # Clone existing
-
-# Daily workflow
-git status                             # Check what's changed
-git add file.txt                       # Stage specific file
-git add .                              # Stage everything
-git commit -m "feat: add login page"   # Commit with message
-git push origin main                   # Push to remote
-git pull origin main                   # Fetch + merge from remote
-git fetch origin                       # Download without merging
-```
-
-**Understanding HEAD:**
-- `HEAD` is a pointer to the current branch's latest commit
-- `HEAD~1` means "one commit before HEAD"
-- Detached HEAD = HEAD points directly to a commit instead of a branch
-
-### 3. History, Inspection & Configuration
-
-**Viewing history:**
-
-```bash
-git log --oneline --graph --all --decorate
-# Output:
-# * 3a1f2b4 (HEAD -> main) feat: add auth module
-# * 9c8d7e6 fix: resolve null pointer
-# * 1b2c3d4 (origin/main) initial commit
-```
-
-**Diff & Stash:**
-
-```bash
-git diff                    # Working dir vs staging
-git diff --staged           # Staging vs last commit
-git diff HEAD~2..HEAD       # Compare last 2 commits
-
-git stash                   # Temporarily shelve changes
-git stash list              # List stashed changes
-git stash pop               # Restore and remove stash
-git stash apply stash@{1}   # Restore specific stash without removing
-```
-
-*Stash ko samjho jaise tum kuch kaam kar rahe ho aur suddenly boss bole "ye pehle kar do" — tum apna kaam ek drawer mein rakh do (stash), boss ka kaam karo, phir drawer se wapas nikaal lo (pop).*
-
-**Tags:**
-
-```bash
-git tag v1.0.0                         # Lightweight tag
-git tag -a v1.0.0 -m "First release"   # Annotated tag (recommended)
-git push origin v1.0.0                 # Push specific tag
-git push origin --tags                 # Push all tags
-```
-
-**.gitignore patterns:**
-
-```gitignore
-# .gitignore
-*.log                  # Ignore all log files
-node_modules/          # Ignore node_modules directory
-.env                   # Ignore environment files
-!important.log         # Exception — track this specific log
-build/                 # Ignore build output
-**/*.tmp               # Ignore .tmp files in any subdirectory
-```
-
-**Credential management:**
-
-```bash
-# Cache credentials for 1 hour
-git config --global credential.helper 'cache --timeout=3600'
-
-# Store credentials permanently (plain text — use on trusted machines only)
-git config --global credential.helper store
-
-# Use OS-level credential manager (recommended)
-git config --global credential.helper manager   # Windows
-git config --global credential.helper osxkeychain  # macOS
+**Mermaid Diagram: Git Data Flow**
+```mermaid
+flowchart LR
+    A[Working Directory] -->|git add| B[Staging Area / Index]
+    B -->|git commit| C[Local Repository]
+    C -->|git push| D[Remote Repository GitHub/GitLab]
+    D -->|git pull / fetch| C
+    C -->|git checkout| A
 ```
 
 ---
 
-## Step-by-Step Lab
+# Working
 
-### Lab: Create Repo, Commit, Rollback, and Resolve Merge Conflict
+Git internally **diffs** save nahi karta, balki **snapshots** save karta hai. 
 
-**Step 1 — Initialize a repository and make commits**
+**Core Areas (Three Trees):**
+1. **Working Directory:** Tumhara current workspace jaha tum code edit karte ho. (Kitchen)
+2. **Staging Area (Index):** Woh jagah jaha tum changes ko "prep" karte ho commit ke liye. (Serving plate)
+3. **Local Repo (.git folder):** Jaha Git permanently tumhare snapshots store karta hai. (Fridge)
 
+**Git Internals (4 Objects):**
+Git is essentially a Key-Value data store. Data is hashed using SHA-1 (40 character string).
+- **Blob:** File ka actual data (no filename).
+- **Tree:** Directory structure aur file names (pointers to blobs).
+- **Commit:** Ek snapshot ka metadata (author, timestamp, pointer to Tree, pointer to parent commit).
+- **Tag:** Ek human-readable pointer ek specific commit par (e.g., `v1.0`).
+
+---
+
+# Installation
+
+**Prerequisites:**
+Bas terminal access chahiye.
+
+**Installation:**
+- **Ubuntu/Debian:** `sudo apt install git`
+- **RHEL/CentOS:** `sudo yum install git`
+- **macOS:** `brew install git`
+- **Windows:** Download Git Bash installer from git-scm.com.
+
+**Configuration (One-time setup):**
 ```bash
-mkdir git-lab && cd git-lab
+git config --global user.name "Aapka Naam"
+git config --global user.email "aapka@email.com"
+git config --global init.defaultBranch main
+git config --global core.editor vim
+```
+*Tip: `--global` settings `~/.gitconfig` mein save hoti hain, aur repo-level `.git/config` mein.*
+
+**Verification:**
+```bash
+git --version
+```
+
+---
+
+# Practical Lab
+
+*Bina practice ke Git aayega nahi, chalo lab karte hain!*
+
+**Pre-requisite: Lab Templates**
+Aapke environment ko clean rakhne ke liye, main vault ke examples folder mein ready-made templates diye gaye hain:
+- Standard `.gitignore`: [examples/02-Git/.gitignore](file:///C:/Users/SPTL/Documents/devops/devops/examples/02-Git/.gitignore)
+- AWS Key Leak Prevention: [examples/02-Git/pre-commit](file:///C:/Users/SPTL/Documents/devops/devops/examples/02-Git/pre-commit)
+
+**Step 1: Init & Add**
+```bash
+mkdir my-devops-project && cd my-devops-project
 git init
-echo "# My DevOps Project" > README.md
-git add README.md
-git commit -m "initial commit: add README"
+# Ek .git hidden folder ban gaya hoga
+
+# Standard practice: Pehle din hi .gitignore add karo
+cp ../../examples/02-Git/.gitignore ./.gitignore
+
+echo "# My Project" > README.md
+git status # Dikhega ki README.md aur .gitignore untracked hain
+git add .
+# Ab files Staging area mein aa gayi
 ```
 
-Expected output:
-```
-Initialized empty Git repository in /home/user/git-lab/.git/
-[main (root-commit) a1b2c3d] initial commit: add README
- 1 file changed, 1 insertion(+)
- create mode 100644 README.md
-```
-
-**Step 2 — Make multiple commits to build history**
-
+**Step 2: Commit & Hook Setup**
 ```bash
-echo "app_port=8080" > config.env
-git add config.env
-git commit -m "feat: add config file"
+# Set up pre-commit hook to block AWS keys
+cp ../../examples/02-Git/pre-commit .git/hooks/pre-commit
+chmod +x .git/hooks/pre-commit
 
-echo "*.log" > .gitignore
-git add .gitignore
-git commit -m "chore: add gitignore"
-
-echo "print('hello')" > app.py
-git add app.py
-git commit -m "feat: add main application"
-```
-
-Verify with:
-```bash
+git commit -m "feat: initial commit with readme and gitignore"
+# Ab local repo me save ho gaya
 git log --oneline
-# d4e5f6a (HEAD -> main) feat: add main application
-# b2c3d4e chore: add gitignore
-# 9a8b7c6 feat: add config file
-# a1b2c3d initial commit: add README
 ```
 
-**Step 3 — Rollback with `git reset` (rewrites history)**
-
+**Step 3: Branching & Merging**
 ```bash
-# Soft reset — undo commit but keep changes staged
-git reset --soft HEAD~1
-git status
-# Changes to be committed: app.py
+git checkout -b feature/auth
+echo "def login(): pass" > auth.py
+git add auth.py
+git commit -m "feat: add login function"
 
-# Hard reset — undo commit AND discard changes (DANGEROUS)
-git reset --hard HEAD~1
-git log --oneline
-# 9a8b7c6 (HEAD -> main) feat: add config file
-# a1b2c3d initial commit: add README
-```
-
-*Reset ka matlab hai time machine — tum past mein chale gaye aur future delete ho gaya. `--soft` mein saamaan bacha rehta hai, `--hard` mein sab saaf.*
-
-**Step 4 — Rollback with `git revert` (safe, creates new commit)**
-
-```bash
-# First, recreate commits
-echo "print('hello')" > app.py && git add app.py && git commit -m "feat: add app"
-
-# Revert the config commit (keeps history intact)
-git revert HEAD~1 --no-edit
-git log --oneline
-# f7g8h9i Revert "feat: add config file"
-# e5f6g7h feat: add app
-# 9a8b7c6 feat: add config file
-# a1b2c3d initial commit: add README
-```
-
-*Revert ka matlab — galti hui toh ek naya commit bana ke galti fix kar do, lekin purani history mein koi chheda-chhaadi nahi. Production mein hamesha revert use karo, reset nahi.*
-
-**Step 5 — Create and resolve a merge conflict**
-
-```bash
-# Create a feature branch
-git checkout -b feature/login
-
-# Edit README on feature branch
-echo "## Login Feature" >> README.md
-git add README.md
-git commit -m "feat: add login section to README"
-
-# Switch to main and make conflicting change
 git checkout main
-echo "## Dashboard Feature" >> README.md
-git add README.md
-git commit -m "feat: add dashboard section to README"
-
-# Merge feature branch into main
-git merge feature/login
+git merge feature/auth
 ```
 
-Expected conflict output:
-```
-Auto-merging README.md
-CONFLICT (content): Merge conflict in README.md
-Automatic merge failed; fix conflicts and then commit the result.
-```
-
-Resolve the conflict:
+**Step 4: Remote Push**
 ```bash
-# Open README.md — you'll see:
-# <<<<<<< HEAD
-# ## Dashboard Feature
-# =======
-# ## Login Feature
-# >>>>>>> feature/login
-
-# Edit to keep both:
-cat > README.md << 'EOF'
-# My DevOps Project
-## Dashboard Feature
-## Login Feature
-EOF
-
-git add README.md
-git commit -m "merge: resolve conflict, keep both features"
+git remote add origin https://github.com/user/my-devops-project.git
+git push -u origin main
 ```
 
 ---
 
-## Common Commands Cheat Sheet
+# Daily Engineer Tasks
 
-| Command | What It Does | Real Example |
-|---|---|---|
-| `git init` | Initialize new Git repository | `git init my-project` |
-| `git clone <url>` | Copy remote repository locally | `git clone https://github.com/org/app.git` |
-| `git add .` | Stage all changes | `git add .` |
-| `git commit -m "msg"` | Create a commit with message | `git commit -m "fix: resolve timeout bug"` |
-| `git push origin main` | Push commits to remote branch | `git push origin main` |
-| `git pull origin main` | Fetch and merge remote changes | `git pull origin main` |
-| `git log --oneline --graph` | View commit history as graph | `git log --oneline --graph --all` |
-| `git diff --staged` | Show staged changes | `git diff --staged` |
-| `git stash` | Temporarily shelve uncommitted work | `git stash` → do urgent fix → `git stash pop` |
-| `git reset --hard HEAD~1` | Undo last commit and discard changes | `git reset --hard HEAD~1` (use with caution!) |
-| `git revert HEAD` | Create new commit that undoes last commit | `git revert HEAD --no-edit` |
-| `git tag -a v1.0 -m "msg"` | Create annotated tag | `git tag -a v2.1.0 -m "Release 2.1.0"` |
+- **L1/L2 Engineer:** Code clone karna, naya branch banana, code commit karke Pull Request (PR) raise karna. Basic merge conflicts resolve karna.
+- **Senior/DevOps Engineer:** Branch protection rules set karna, `.gitignore` maintain karna, CI/CD triggers setup karna, git hooks (pre-commit) likhna, rebase aur complex history rewrites handle karna.
 
 ---
 
-## Troubleshooting Guide
+# Real Industry Tasks
 
-| Problem | Likely Cause | Step-by-Step Fix |
-|---|---|---|
-| `fatal: not a git repository (or any of the parent directories): .git` | You're not inside a Git repo directory | `cd` into the correct project folder, or run `git init` if it's a new project |
-| `error: failed to push some refs to 'origin/main'` | Remote has commits you don't have locally | Run `git pull origin main --rebase` first, resolve any conflicts, then `git push` again |
-| `CONFLICT (content): Merge conflict in file.txt` | Two branches modified the same lines | Open the file, look for `<<<<<<<` markers, manually edit to keep correct content, then `git add file.txt && git commit` |
-| `fatal: refusing to merge unrelated histories` | Trying to merge two repos with no common ancestor | Add `--allow-unrelated-histories` flag: `git merge origin/main --allow-unrelated-histories` |
-| `error: Your local changes to the following files would be overwritten by merge` | Uncommitted changes conflict with incoming changes | Either `git stash` your changes first, or `git commit` them before pulling |
-| `warning: LF will be replaced by CRLF` | Line ending mismatch (Windows vs Linux) | `git config --global core.autocrlf true` (Windows) or `input` (Mac/Linux) |
-| `remote: Permission to user/repo.git denied` | Authentication failure or wrong credentials | Check SSH keys with `ssh -T git@github.com` or reconfigure credential helper |
+**Task 1: Hotfix in Production**
+Production me bug mila. Aap `main` branch se `hotfix/bug-123` branch banate ho. Fix karte ho, commit karke PR merge karte ho. Phir `git tag v1.0.1` lagake release trigger karte ho.
+
+**Task 2: Cherry-Picking**
+Aapne `develop` branch me ek feature banaya, but boss ne bola "Sirf woh specific commit `main` me dalo abhi". Aap us commit ki SHA id lete ho aur `main` branch me jaake `git cherry-pick <commit-hash>` run karte ho.
 
 ---
 
-## Real-World Job Scenario
+# Troubleshooting
 
-> **Scenario:** A junior DevOps engineer accidentally committed AWS credentials (`.env` file with `AWS_SECRET_ACCESS_KEY`) to the shared repository and pushed it to `main`.
+**1. Merge Conflicts**
+- **Symptoms:** `CONFLICT (content): Merge conflict in file.txt`
+- **Root Cause:** Do alag logo ne same file ki same line ko edit kiya.
+- **Resolution:**
+  1. File open karo, conflict markers (`<<<<<<<`, `=======`, `>>>>>>>`) dhundo.
+  2. Decide karo kiska code rakhna hai, markers delete karo.
+  3. `git add file.txt`
+  4. `git commit`
 
-### Junior Action ❌
-- Panics and deletes the file, makes a new commit: `git rm .env && git commit -m "remove secrets"`
-- Thinks the secret is safe now
-- **Problem:** The secret is still visible in Git history. Anyone can run `git log -p` and see it.
-
-### Senior Action ✅
-1. **Immediately rotates the compromised AWS credentials** in the AWS Console — this is the #1 priority
-2. Removes the file and adds it to `.gitignore`:
-   ```bash
-   echo ".env" >> .gitignore
-   git rm --cached .env
-   git commit -m "security: remove leaked credentials, add to gitignore"
-   ```
-3. Uses `git filter-branch` or **BFG Repo Cleaner** to purge the secret from entire Git history:
-   ```bash
-   # Using BFG (faster and simpler)
-   java -jar bfg.jar --delete-files .env
-   git reflog expire --expire=now --all
-   git gc --prune=now --aggressive
-   git push --force
-   ```
-4. Notifies the security team and documents the incident
-5. Sets up a **pre-commit hook** or **git-secrets** to prevent future credential leaks:
-   ```bash
-   # Install git-secrets
-   git secrets --install
-   git secrets --register-aws
-   ```
-
-*Senior engineer pehle credentials rotate karta hai — kyunki agar koi already credentials dekh chuka hai toh file delete karne se kuch nahi hoga. Pehle taala badlo, phir safai karo.*
+**2. Detached HEAD State**
+- **Symptoms:** You are in 'detached HEAD' state.
+- **Root Cause:** Aapne kisi branch ke badle ek specific commit id ya tag ko `git checkout` kar liya. HEAD direct commit point kar raha hai.
+- **Resolution:** Agar us state me koi kaam kiya hai toh naya branch bana lo: `git checkout -b new-recovery-branch`. Agar galti se aaye the, toh wapas jao: `git checkout main`.
 
 ---
 
-## Interview Questions
+# Interview Preparation
 
-### Q1: What is the difference between `git merge` and `git rebase`?
-**Answer:** `git merge` creates a new "merge commit" that combines two branches, preserving the complete history of both branches. `git rebase` replays your branch's commits on top of the target branch, creating a linear history. Use merge for shared/public branches (main, develop) to preserve context. Use rebase for local feature branches before pushing to keep history clean. Never rebase commits that have been pushed and shared with others — it rewrites history and causes conflicts for teammates.
+### Top Interview Questions (Basic to FAANG Level)
 
-### Q2: What happens internally when you run `git add file.txt`?
-**Answer:** Git computes the SHA-1 hash of the file content, creates a **blob object** in `.git/objects/`, and updates the **index** (staging area in `.git/index`) to map the filename to this blob hash. The working directory file is unchanged. At this point, the change is staged but not committed.
+**Basic (L1):**
+1. **`git pull` aur `git fetch` me kya difference hai?**
+   *Expected Answer:* `git fetch` sirf remote changes download karta hai (safe). `git pull` fetch karke aapke current branch ke sath automatically merge bhi kar deta hai (`pull = fetch + merge`).
+2. **`git clone` vs `git fork`?**
+   *Expected Answer:* `clone` ek git operation hai jo remote repo ko local machine pe copy karta hai. `fork` GitHub/GitLab ka concept hai jo server par ek repo ki copy aapke account me banata hai (cross-organization contributions ke liye).
 
-### Q3: Explain the difference between `git reset --soft`, `--mixed`, and `--hard`.
-**Answer:**
-- `--soft`: Moves HEAD to the specified commit. Changes remain **staged** (in index). Use when you want to redo a commit message or combine commits.
-- `--mixed` (default): Moves HEAD and **unstages** changes. Changes remain in working directory. Use when you want to re-stage selectively.
-- `--hard`: Moves HEAD, clears staging area, AND **discards working directory changes**. This is destructive — use only when you want to completely abandon recent work.
+**Intermediate (L2/L3):**
+3. **`git merge` aur `git rebase` kab use kare?**
+   *Expected Answer:* `merge` history preserve karta hai (creates merge commit). `rebase` history ko linear aur clean banata hai. *Golden rule: Kabhi bhi public/shared branch ko rebase mat karo, hamesha local branch ko main par rebase karke push karo.*
+4. **Agar galti se wrong branch pe commit kar diya, toh kaise theek karoge?**
+   *Expected Answer:* `git log` se commit hash lunga. Apni current branch se commit hatane ke liye `git reset --hard HEAD~1` (agar push nahi kiya hai). Phir sahi branch par jaunga `git checkout correct-branch` aur `git cherry-pick <commit-hash>` karunga.
+5. **Dangling commit kya hota hai?**
+   *Expected Answer:* Ek commit jiska koi reference (branch ya tag) nahi hai. Ye tab banta hai jab aap branch delete karte ho ya rebase/amend karte ho. Inhe `git gc` clean karta hai.
 
-### Q4: How do you undo a commit that has already been pushed to a shared remote branch?
-**Answer:** Use `git revert`, not `git reset`. `git revert HEAD` creates a new commit that undoes the changes from the specified commit without rewriting history. This is safe for shared branches because it doesn't change existing commit hashes. Example: `git revert abc1234 --no-edit && git push origin main`. Never use `git reset --hard && git push --force` on shared branches — it will break every teammate's local repo.
+**Advanced/FAANG Scenario:**
+6. **How does Git detect file changes internally? Does it check timestamps?**
+   *Expected Answer:* Git file timestamps use karta hai as a heuristic in the `index` (staging area) speed ke liye, but exactly changes detect karne ke liye woh file ke content ka SHA-1 hash calculate karke purane blob hash se compare karta hai.
+7. **What is the DAG in Git?**
+   *Expected Answer:* Git history is a Directed Acyclic Graph (DAG) of commits. Commits hamesha apne parents point karte hain, backward. Branches are just lightweight movable pointers to these commits.
+8. **Git-ops workflow mein, ArgoCD sync fail ho raha hai due to "diverged branches". Iska root cause kya ho sakta hai?**
+   *Expected Answer:* Kisi ne remote repo pe `git push --force` kiya hai (sha badal gaya), jabki ArgoCD ki local cache purani history point kar rahi hai. ArgoCD ko hard refresh/sync karna padega.
 
-### Q5: What is a detached HEAD state and how do you fix it?
-**Answer:** Detached HEAD occurs when HEAD points directly to a commit instead of a branch reference — typically happens when you `git checkout <commit-hash>` or checkout a tag. Any new commits made in this state are "orphaned" (not on any branch) and can be garbage-collected. To fix: create a branch from the current position with `git checkout -b my-branch`, or switch back to an existing branch with `git checkout main`. If you already made commits in detached HEAD, use `git reflog` to find the commit hash and `git cherry-pick` it onto your branch.
+**Top Production Issues:**
+- **Leaked Secrets:** Galti se `.env` file push hona. Requires `git filter-repo` to rewrite history.
+- **Merge Hell:** Do lambe-lived branches (e.g., `feature-A` aur `main`) jo mahino baad merge ho rahe hain. Solution: Frequent rebasing and Trunk Based Development.
+- **Large Files Bloating Repo:** Kisi ne 500MB ki log file push kar di. Repository size itna badh gaya ki Jenkins clone timeout ho raha hai. Solution: `git-lfs` (Large File Storage) and BFG Repo-Cleaner.
 
 ---
 
-## Related Notes
+# Production Scenarios
 
+> [!CAUTION] Scenario: AWS Keys Leaked to GitHub
+> **Situation:** Junior engineer ne galti se `.env` file push kar di jisme `AWS_ACCESS_KEY_ID` tha.
+> **How to think:** GitHub delete kar dene se commit history se key nahi jati.
+> **Action Plan:**
+> 1. **Immediate:** AWS Console me jao aur us IAM user ki Access Key ko turant Inactivate/Delete karo. (Always kill the key first).
+> 2. `.env` ko `.gitignore` me daalo.
+> 3. Repo history se key delete karne ke liye `git filter-repo` ya `BFG Repo-Cleaner` use karo.
+>    `java -jar bfg.jar --delete-files .env`
+> 4. Repo ko force push karo: `git push origin --force --all`.
+> 5. Security incident raise karo aur team ko bolo naya fresh clone lene.
+
+---
+
+# Commands
+
+| Command | Purpose | Danger Level | Example |
+|---|---|---|---|
+| `git diff` | Working dir aur staging ke beech ka diff dikhata hai | Low | `git diff` |
+| `git reset --soft` | Commit undo karta hai, changes Staging me rakhta hai | Medium | `git reset --soft HEAD~1` |
+| `git reset --hard` | Commit undo karta hai + working dir ke changes UDA deta hai! | **High** | `git reset --hard HEAD~1` |
+| `git revert` | Ek naya commit banata hai jo purane commit ko negate karta hai | Low | `git revert <commit-hash>` |
+| `git stash` | Uncommitted kaam ko temporarily chhupa/save kar deta hai | Low | `git stash` aur baad me `git stash pop` |
+| `git log --graph` | Visual representation of branches and commits | Low | `git log --oneline --graph --all` |
+
+---
+
+# Cheat Sheet
+
+- **Stage all changes:** `git add .`
+- **Commit with message:** `git commit -m "msg"`
+- **Amend last commit:** `git commit --amend -m "new msg"` (Agar last commit me file add karna bhul gaye the).
+- **Check commit history:** `git reflog` (Tumhara Git ka rescue plan. Har action track hota hai, git reset --hard bhi undo kar sakte ho yaha se).
+- **Remove file from git tracking but keep locally:** `git rm --cached <file>`
+
+---
+
+# SOP & Runbook & KB Article
+
+**SOP: Creating a Hotfix**
+- **Purpose:** Resolve critical prod bug.
+- **Procedure:**
+  1. `git checkout main && git pull`
+  2. `git checkout -b hotfix/issue-description`
+  3. Fix bug & `git commit -m "fix: resolve issue"`
+  4. Push and create PR to `main`.
+- **Validation:** CI pipeline must pass tests.
+
+**KB Article: Un-committing a mistake**
+- **Problem:** Committed to wrong branch locally.
+- **Resolution:**
+  1. `git log` to verify.
+  2. `git reset --soft HEAD~1` (Brings changes back to staging).
+  3. `git stash`
+  4. `git checkout correct-branch`
+  5. `git stash pop`
+  6. `git commit -m "correct msg"`
+
+---
+
+# Best Practices & Beginner Mistakes
+
+**Best Practices:**
+- Commits chhote aur logical (atomic) hone chahiye.
+- Commit messages clear likho (Conventional Commits: `feat:`, `fix:`, `docs:`, `chore:`).
+- Kabhi bhi secrets commit mat karo (Use Git-secrets pre-commit hooks or Trivy scanner).
+- `.gitignore` day 1 par banalo (`node_modules`, `.env`, `.tfstate` must be ignored).
+
+**Beginner Mistakes:**
+- ❌ Direct `main` branch me push karna (Avoid this, always use PRs).
+- ❌ Bade changes ek sath ek `git add .` aur `git commit -m "updates"` me daal dena.
+- ❌ Merge conflicts darr ke repo ko delete karke dobara clone karna! (Instead, learn to use VSCode merge tool).
+
+---
+
+# Advanced Concepts
+
+**Git Reflog:**
+Time machine of Git. Normal `git log` aapko current branch ki history dikhata hai. But `git reflog` HEAD ke saare movements track karta hai. Agar aapne `git reset --hard` maar diya by mistake, reflog check karo, waha purana commit hash mil jayega, us hash pe dobara checkout kar lo. 
+
+**Garbage Collection (`git gc`):**
+Jab aap loose objects banate ho (detached states, deleted branches), Git unhe turant delete nahi karta. Time ke sath repo size badh sakta hai. `git gc` compress karta hai file objects ko into "packfiles" aur orphan objects ko delete karta hai (optimization).
+
+---
+
+# Related Topics & Flashcards & Revision
+
+**Wiki Links:**
 - [[00 DevOps Master Index]]
 - [[GIT-02 Branching Strategies]]
 - [[GIT-03 GitHub Advanced]]
+- [[CI-01 Continuous Integration Concepts]]
+
+**Flashcards:**
+- *Q: What is the command to undo the last commit without losing changes?*
+- *A: `git reset --soft HEAD~1`*
+- *Q: Difference between git rm and git rm --cached?*
+- *A: `git rm` deletes from disk and git tracking. `--cached` removes from tracking but keeps on disk.*
+
+**Revision Schedule:**
+- **5 Min:** Review Architecture and 3 Working areas.
+- **15 Min:** Review `git revert` vs `git reset`, `merge` vs `rebase`.
+- **Interview Prep:** Read the "Production Scenarios" and "Advanced Concepts" right before the DevOps interview.

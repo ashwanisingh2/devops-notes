@@ -9,217 +9,180 @@ cert-relevant: #terraform-associate
 
 # TF-02 Terraform Modules
 
-> [!abstract] Overview
-> Writing all your Terraform code in a single `main.tf` file is like writing an entire enterprise application in a single Python script. It quickly becomes unreadable, unmanageable, and impossible to reuse. Terraform Modules allow you to package resources together into reusable building blocks. By abstracting complex infrastructure into simple modules, DevOps teams can enforce best practices, reduce code duplication, and allow developers to deploy infrastructure safely without knowing the underlying AWS complexities.
+# Overview
+Ye kya hai? Terraform modules ek collection of `.tf` files hai jo ek single directory mein hote hain. Inhe aap ek "saancha" (template) samajh sakte ho. 
+Kyu use hota hai? DRY (Don't Repeat Yourself) principle ko enforce karne ke liye. Agar aapko 10 alag-alag environments mein VPC banana hai, toh aap code ko 10 baar nahi likhte. Ek VPC module bana kar use 10 baar alag-alag variables ke sath call karte ho.
+Real life example: Car manufacturing factory mein ek car ka basic frame design ek template (module) hai. Usme colour aur engine (variables) change karke alag-alag car models banaye jaate hain.
+Real production use-case: Ek standard, secure S3 bucket module banaya jata hai jisme encryption aur logging by default enabled hote hain, aur developers bas is module ko use karke buckets banate hain bina directly S3 resource likhe.
+Architecture:
 
----
-
-## Concept Overview
-
-- **What it is** — A Terraform Module is simply a folder containing a set of `.tf` files. Every Terraform configuration is technically a module (the "root module"). You can call "child modules" from your root module to reuse code.
-- **Why DevOps engineers use it** — To enforce the DRY (Don't Repeat Yourself) principle. Instead of writing 100 lines of complex VPC configuration for Dev, Staging, and Prod, you write a VPC module once. Then you call that module three times, passing different variables (like CIDR blocks) for each environment.
-- **Where you encounter this in a real job** — Consuming public modules from the Terraform Registry (like the official `terraform-aws-modules/vpc/aws`), or building a custom private module for your company's standard "Web Server + Load Balancer" pattern.
-- **Responsibility Split:**
-  - **Junior DevOps**: Uses existing modules by filling in the required `variables` in the root module.
-  - **Mid DevOps**: Refactors flat, monolithic Terraform code into local child modules to clean up the repository.
-  - **Senior/SRE**: Architects public-facing or company-wide standard modules, enforces semantic versioning (git tags), and writes automated tests for the modules using Terratest.
-
-*Seedha simple mein: Module ek factory template (saancha) hai. Agar aapko 10 car banani hain, toh har car ka design bar-bar zero se mat banao. Ek template bana lo, aur usme bas color (variables) change karke nayi car (infrastructure) banate jao.*
-
----
-
-## Technical Deep Dive
-
-### 1. Module Structure
-A standard, professional module directory looks like this:
-- `main.tf`: The actual resources being created.
-- `variables.tf`: The input parameters the user must provide to use the module.
-- `outputs.tf`: The return values the module gives back to the user (like generated IDs or IPs).
-- `README.md`: Documentation on how to use it.
-
-### 2. Calling a Module (Source and Version)
-To use a module, you define a `module {}` block in your code.
-The `source` argument is mandatory. It tells Terraform where to find the module. It can be:
-- A local path: `source = "./modules/vpc"`
-- A GitHub repo: `source = "github.com/myorg/tf-vpc-module"`
-- The Public Registry: `source = "terraform-aws-modules/vpc/aws"`
-When using Git or the Registry, ALWAYS use the `version` or `ref` argument to pin to a specific release. If you don't, an upstream update might break your production infrastructure unexpectedly.
-
-### 3. Inputs and Outputs (The Interface)
-A module is a black box. You cannot reference a resource inside a module directly from the outside.
-- You pass data IN using variables.
-- You get data OUT using outputs.
-If your Root Module needs the Subnet ID created by the VPC Module, the VPC Module *must* explicitly export it in `outputs.tf`. The Root Module can then reference it using `module.my_vpc.subnet_id`.
-
----
-
-## Step-by-Step Lab
-
-> [!warning] Pre-requisites
-> - Terraform CLI installed
-> - AWS account configured
-
-### Step 1: Create the Module Directory Structure
-```bash
-# We will create a root directory, and a 'modules/ec2' subdirectory
-mkdir -p terraform-lab/modules/ec2
-cd terraform-lab
+```mermaid
+graph TD
+    Root[Root Module - main.tf] -->|Calls| ModuleVPC[VPC Module]
+    Root -->|Calls| ModuleEC2[EC2 Module]
+    ModuleVPC -->|Creates| VPC[AWS VPC]
+    ModuleVPC -->|Creates| Subnets[AWS Subnets]
+    ModuleEC2 -->|Creates| EC2[AWS EC2 Instances]
+    ModuleVPC -- Outputs Subnet IDs --> Root
+    Root -- Passes Subnet IDs as Variables --> ModuleEC2
 ```
 
-### Step 2: Write the Reusable Child Module
-We will create a module that spins up an EC2 instance and guarantees it gets a standardized "Company" tag.
+# Working
+Internal working: 
+Ek module ek self-contained package hota hai. Iski apni `variables.tf` (inputs) aur `outputs.tf` (returns) hoti hai. Root module jo module ko call karta hai, wo variables ke through data pass karta hai aur module se outputs fetch karke dusre modules me pass kar sakta hai.
+- **Variables**: Inputs of the module (e.g., instance type, VPC CIDR).
+- **Resources**: The actual infrastructure configuration (e.g., AWS EC2, AWS VPC).
+- **Outputs**: Return values from the module (e.g., Instance ID, VPC ID).
+Data flow: Root Module -> pass variables -> Child Module -> create resources -> generate outputs -> Root Module.
+Dependencies: Modules explicitly ek dusre se data share karte hain (e.g., VPC module ka output EC2 module ka input banta hai, which creates an implicit dependency).
+
+# Installation
+Prerequisites:
+- Terraform CLI installed.
+- Cloud Provider CLI (e.g., AWS CLI) configured aur authenticated.
+Installation: 
+Modules ko externally install nahi kiya jata jaise traditional software mein. Jab aap kisi source (jaise public registry, GitHub, ya local path) se module define karte ho, tab `terraform init` run karne se Terraform automatically modules ko download karke `.terraform/modules` directory me cache kar leta hai.
+Configuration:
 ```hcl
-# In modules/ec2/variables.tf
-variable "server_name" {
-  type        = string
-  description = "The name of the server"
-}
-
-variable "instance_type" {
-  type    = string
-  default = "t2.micro"
-}
-
-# In modules/ec2/main.tf
-data "aws_ami" "ubuntu" {
-  most_recent = true
-  owners      = ["099720109477"] # Canonical
-  filter {
-    name   = "name"
-    values = ["ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*"]
-  }
-}
-
-resource "aws_instance" "web" {
-  ami           = data.aws_ami.ubuntu.id
-  instance_type = var.instance_type
+module "my_vpc" {
+  source = "terraform-aws-modules/vpc/aws"
+  version = "5.0.0"
   
-  tags = {
-    Name    = var.server_name
-    Company = "GlobalTechCorp" # Enforced by the module!
-  }
-}
-
-# In modules/ec2/outputs.tf
-output "instance_id" {
-  value = aws_instance.web.id
+  name = "production-vpc"
+  cidr = "10.0.0.0/16"
 }
 ```
 
-### Step 3: Write the Root Module to Call It
-```hcl
-# Go back to the root directory (terraform-lab)
-# In main.tf
-provider "aws" {
-  region = "us-east-1"
-}
+# Practical Lab
+Step-by-step implementation.
 
-# Call the module for the Dev server
-module "dev_server" {
-  source        = "./modules/ec2"
-  server_name   = "dev-app-01"
-  # instance_type is omitted, so it uses the default t2.micro
-}
+Bajaaye scratch se folders banane ke, aap vault ki `examples/` directory me module scaffolding script ya pre-built structure use kar sakte hain:
+- Terraform Modules Structure: [examples/06-IaC/terraform-modules/](file:///C:/Users/SPTL/Documents/devops/devops/examples/06-IaC/terraform-modules)
 
-# Call the exact same module for the Prod server
-module "prod_server" {
-  source        = "./modules/ec2"
-  server_name   = "prod-app-01"
-  instance_type = "t3.medium" # Override the default
-}
-
-# Output the IDs passed back from the modules
-output "dev_instance" {
-  value = module.dev_server.instance_id
-}
-```
-
-### Step 4: Apply the Code
+**Execution:**
+1. Navigate to the examples directory and run the scaffold script (if needed):
 ```bash
-# Initialize (this also installs the local modules)
-terraform init
-
-# Expected output: Initializing modules... - dev_server in modules/ec2 ...
-
-# Plan and Apply
-terraform apply -auto-approve
-
-# Notice how it creates TWO servers using ONE template!
+cd ../../examples/06-IaC/
+chmod +x setup-terraform-modules.sh
+./setup-terraform-modules.sh
 ```
+2. Navigate into the root module directory:
+```bash
+cd terraform-modules/
+```
+3. Read the `main.tf` to see how the local `web_server` module is invoked.
+4. **Verification:**
+```bash
+terraform init
+terraform plan
+```
+Expected Output: Terraform initializes the local module and outputs a plan to create one EC2 instance using the `web_server` template.
 
-> [!tip] Pro Tip
-> Never hardcode Provider configurations (like AWS region or credentials) *inside* a child module. Providers should only be defined in the Root module. The child modules will automatically inherit the provider configurations from the parent.
+# Daily Engineer Tasks
+- **L1 Engineer**: Existing module blocks mein naye variables provide karna (e.g., naya security group ID add karna in module call).
+- **L2 Engineer**: Terraform registry (public) se naye verified modules find karna, test karna, aur infrastructure as code mein unhe integrate karna.
+- **L3/Senior Engineer**: Company-specific internal modules likhna (like a standard EKS cluster module with all security guardrails), module versioning (Git tags) maintain karna, aur Terratest se automated unit testing karna.
 
----
+# Real Industry Tasks
+- **Standardization**: Har team apna Terraform code scratch se na likhe, isliye Central DevOps (Platform) team modules banati hai. Isse security standards enforce hote hain.
+- **Refactoring & Migration**: Purane, massive (monolithic) `main.tf` files ko refactor karke reusable modules mein split karna. Is process mein `moved` blocks use hote hain taaki existing production infrastructure destroy na ho.
+- **Patch Management**: Centralized custom module mein AMI ID update karna aur Git par naya version tag karna. Phir saari teams apna `version` argument update karti hain to get the new AMI gracefully.
 
-## Common Commands Cheat Sheet
+# Troubleshooting
+- **Module not found (`Error: Module not installed`)**: 
+  - *Symptoms*: Run `terraform plan` immediately after adding a `module {}` block. 
+  - *Root cause*: `terraform init` run nahi kiya gaya hai module include karne ke baad. 
+  - *Resolution*: Run `terraform init`.
+- **Unsupported argument (`Error: Unsupported argument`)**: 
+  - *Symptoms*: Error jab hum variable pass karte hain jo module mein nahi hai.
+  - *Root cause*: Child module ki `variables.tf` mein us variable ko define nahi kiya gaya hai. 
+  - *Fix*: Add variable block in child module.
+- **Module output not accessible**: 
+  - *Symptoms*: Root module is complaining it can't find an attribute of a resource in the module.
+  - *Fix*: Root se child resource seedhe access nahi hota. Define `output "my_val" { value = aws_resource.name.id }` in child's `outputs.tf`.
+- **Provider conflicts**: 
+  - *Symptoms*: `Error: Multiple provider blocks` or auth issues specific to the module.
+  - *Fix*: Child modules mein se `provider "aws" {}` block hamesha hata dein. Unhe root module se inherit karne dein.
 
-| Command | What It Does | Real Example |
-|---------|-------------|--------------|
-| `terraform init` | Downloads/updates modules defined in source | `terraform init -upgrade` |
-| `terraform get` | Explicitly downloads and updates modules | `terraform get -update` |
-| `module {}` | HCL block used to call a child module | `module "vpc" { source = "./vpc" }` |
-| `terraform taint` | (Legacy) Force recreate a module resource | `terraform taint module.dev_server.aws_instance.web` |
-| `terraform apply -target`| Apply changes to only one specific module | `terraform apply -target=module.dev_server` |
+# Interview Preparation
+- **Basic (L1/L2)**: Root module aur child module me kya difference hai? 
+  *Expected Answer*: Root module main directory hai jahan se `terraform apply` execute kiya jata hai. Child module external ya local reusable codebase hai jise root module se `module {}` construct ke through invoke kiya jata hai.
+- **Intermediate (L2/L3)**: Agar aap apne `main.tf` se kisi `module {}` block ko comment out kar dein aur `terraform apply` karein, toh kya hoga? 
+  *Expected Answer*: Terraform state ko check karega aur detect karega ki ab is module ki zarurat nahi hai, aur us module se bane huye saare resources ko DESTROY kar dega. Declarative system mein code hatana matlab resource delete karna.
+- **Advanced (Senior/FAANG)**: Public module registry versus Private Git source mein internal modules host karne ka kya difference hai? 
+  *Expected Answer*: Private module registry (like Terraform Cloud) proper semantic versioning, module discovery UI, aur granular access control provide karti hai. Git repository thoda simple approach hai par versioning maintain karne ke liye explicit Git tags (`?ref=v1.2.0`) maintain karna padta hai.
+- **Scenario Based**: Aapke paas ek VPC module hai jo subnets banata hai, aur ek EC2 module jo unn subnets mein instances deploy karega. Aap subnet IDs ko VPC module se EC2 module mein kaise bhejeinge?
+  *Expected Answer*: VPC module ki `outputs.tf` mein ek output variable (jaise `subnet_ids`) define karenge. EC2 module ki `variables.tf` mein ek input variable (jaise `vpc_subnet_ids`) banayenge. Root module mein, hum explicitly link karenge: `vpc_subnet_ids = module.vpc.subnet_ids` in the EC2 module call.
 
----
+# Production Scenarios
+Scenario: "Production Terraform apply chalne pe naya infrastructure wrong account ya region me ban raha hai, jabki code sahi lag raha hai."
+- **How to think**: Kya child module hardcoded provider use kar raha hai?
+- **Investigation**: Check the child module source files. Are there hardcoded `provider` blocks?
+- **Root Cause**: Kabhi-kabhi engineers copy-paste karte waqt provider block child module mein chhod dete hain, jisse wo unexpected profile ya region override kar deta hai.
+- **Resolution**: Child module se `provider {}` hatao. Root module hi solely provider configuration manage karega. Rollback invalid infrastructure and apply again.
 
-## Troubleshooting Guide
+# Commands
+| Command | Purpose |
+|---|---|
+| `terraform init` | Modules ko download/update karta hai jo root me defined hain. |
+| `terraform init -upgrade` | Modules aur providers ke latest allowed versions ko fetch karta hai. |
+| `terraform get -update` | Explicitly update only modules without touching provider plugins. |
+| `terraform apply -target=module.web` | Sirf specific module ke resources par apply karta hai (Use carefully!). |
 
-| Problem | Likely Cause | Step-by-Step Fix |
-|---------|-------------|------------------|
-| `Module not installed` error | Added a new module block but didn't initialize | Every time you add a new `module` block or change the `source` URL, you must run `terraform init` again to download it. |
-| `Unsupported argument` in module call | Passing a variable the module doesn't accept | Check the module's `variables.tf`. If you pass `env="prod"` in the root, the module MUST have a `variable "env" {}` defined. |
-| Cannot access output `module.vpc.subnet_id` | Missing output in child module | The child module must explicitly declare `output "subnet_id" { value = aws_subnet.main.id }` for the root to see it. |
-| Error fetching module from Git | SSH key / Access rights | If using a private GitHub repo as a source, your local machine (or CI runner) must have SSH keys configured to read that repo. |
-| Provider error from inside module | Module has its own provider block | Remove `provider "aws" {}` from the child module. Let it inherit from the root module. |
+# Cheat Sheet
+- **Call a local module**: `source = "./modules/vpc"`
+- **Call a git repo module**: `source = "git::https://github.com/my-org/my-repo.git?ref=v1.0.0"`
+- **Call public registry module**: `source = "terraform-aws-modules/vpc/aws"`
+- **Pass variables**: `module "my_module" { source = "...", environment = "prod" }`
+- **Use module output**: `module.<MODULE_NAME>.<OUTPUT_NAME>`
 
----
+# SOP & Runbook & KB Article
+- **SOP: Safely Updating a Module Version**
+  - **Purpose**: Securely update a module dependency in production.
+  - **Procedure**: 
+    1. Git branch banayein. Update the `version` argument in the `module` block (e.g. from `"2.0"` to `"2.1"`).
+    2. Run `terraform init -upgrade` to download the new version.
+    3. Run `terraform plan`.
+    4. Validate carefully if resources are being destroyed and recreated unexpectedly (Danger zone).
+    5. Peer review & Approve PR.
+    6. Run `terraform apply`.
+  - **Validation**: Check actual infrastructure if it reflects the new module changes.
+  - **Rollback**: Revert code to older version string, re-run `init` and `apply`.
 
-## Real-World Job Scenario
+# Best Practices & Beginner Mistakes
+- **Best Practice (Pinning)**: Hamesha external/public modules ko version pin karein (jaise `version = "5.1.1"`). Latest unstable version fetch ho gaya toh prod break ho jayega.
+- **Best Practice**: Root module should be completely abstracted. Maximum code should live in modularized forms, keeping root module extremely simple and clean.
+- **Beginner Mistake**: Monolithic `main.tf` banana of 1000+ lines. It becomes impossible to maintain.
+- **Beginner Mistake**: Trying to access nested resource attributes. Output unhe step-by-step export karna sikhna zaroori hai.
 
-> [!info] Scenario
-> **Situation:** "We have 5 different development teams. Every time a team needs an S3 bucket, they write their own Terraform code. Half of them forget to enable Encryption at Rest, failing security audits."
+# Advanced Concepts
+- **`count` & `for_each` on Modules**: Terraform 0.13+ se aap seedhe `module {}` block pe bhi iteration laga sakte hain, enabling deployments of entire module stacks across multiple AZs dynamically.
+- **Module nesting**: A module can call another module (Child -> Grandchild). While allowed, it's generally recommended to keep it shallow to avoid "spaghetti infrastructure".
 
-**What Junior DevOps Does:**
-Manually reviews every single Pull Request from all 5 teams, looking for `server_side_encryption_configuration`. Misses one, and the company fails a compliance audit.
+# Related Topics & Flashcards & Revision
+- [[06-IaC/TF-01 Terraform Fundamentals|Terraform Fundamentals]]
+- [[06-IaC/TF-03 Terraform State Management|Terraform State Management]]
+- [[AWS VPC Architecture]]
 
-**Escalation Trigger:**
-Security mandates that NO unencrypted buckets can ever be provisioned, but reviewing code manually doesn't scale.
+**Flashcards**: 
+- Q: Kya Terraform modules mein explicit loops (`for_each`) use kar sakte hain? A: Haan, Terraform 0.13+ mein possible hai.
+- Q: Child module ke outputs default mein kidhar visible hote hain? A: Sirf directly calling parent/root module mein. Global nahi hote.
 
-**Senior Engineer Resolution:**
-1. Creates a private Terraform Module repo called `tf-secure-s3-bucket`.
-2. Inside the module, writes the S3 resource code, hardcoding the strict KMS encryption and public-access block configurations.
-3. Exposes only safe variables (like `bucket_name` and `cost_center_tag`).
-4. Updates the company's CI/CD pipeline (using tools like OPA/Checkov) to enforce a rule: "Developers cannot use the `aws_s3_bucket` resource directly. They MUST use `module "secure_bucket" { source = "git::ssh://repo..." }`".
-5. Now, developers get their buckets easily, and security is guaranteed because the complexity is abstracted away into a certified module.
+# Real Production Logs & Commands & Decision Tree
+**Log Example**:
+```text
+Initializing modules...
+- my_vpc in modules/vpc
+- my_vpc.subnets in modules/vpc/modules/subnets
+```
+*Explanation*: `terraform init` run hone pe console me dikh raha hai ki Terraform pehle `vpc` module resolve kar raha hai, aur phir uske andar ek nested `subnets` module cache kar raha hai.
 
-**Lesson Learned:**
-Modules are not just for code reuse; they are the primary mechanism for enforcing compliance, security guardrails, and company standards at scale.
-
----
-
-## Interview Questions
-
-**Q1 (Conceptual):** What is the difference between a Root Module and a Child Module?
-**A:** The Root Module is the working directory where you run `terraform apply` (it contains your main `.tf` files). A Child Module is a separate collection of Terraform configurations called by the Root Module (or another module) using the `module {}` block to provision a specific set of reusable resources.
-
-**Q2 (Practical):** You are using a public Terraform module from GitHub. How do you ensure your infrastructure doesn't break if the module author pushes a breaking change to the main branch?
-**A:** When defining the module `source`, I must pin it to a specific version or Git tag/commit hash. For example, instead of `source = "github.com/org/repo"`, I would use `source = "github.com/org/repo?ref=v1.2.0"`.
-
-**Q3 (Scenario-based):** You have a VPC module that creates subnets, and an EC2 module that needs to launch servers inside those subnets. Both modules are called from the same root `main.tf`. How do you pass the subnet ID from the VPC module to the EC2 module?
-**A:** First, the VPC module must export the ID in its `outputs.tf` (e.g., `output "subnet_id"`). Second, the EC2 module must accept it in its `variables.tf` (e.g., `variable "subnet_id"`). Finally, in the root `main.tf`, when calling the EC2 module, I pass the value like this: `subnet_id = module.vpc.subnet_id`.
-
-**Q4 (Deep dive):** Can you use a `count` or `for_each` loop directly on a `module` block?
-**A:** Yes, since Terraform 0.13, you can use `count` and `for_each` on module blocks. For example, if I have a list of three regions, I can use `for_each` on the module to deploy the entire stack of resources defined in that module across all three regions simultaneously.
-
-**Q5 (Trick/Gotcha):** If you delete a `module {}` block from your code and run `terraform apply`, what happens to the resources that were created by that module?
-**A:** Terraform will detect that the module is no longer in the configuration and will DESTROY all the AWS resources that were managed by that module. Removing code in a declarative tool means "I no longer want this to exist."
-
----
-
-## Related Notes
-
-[[00-MOC/Master-Index|Master Index]]
-[[06-IaC/TF-01 Terraform Fundamentals|Terraform Fundamentals]]
-[[06-IaC/TF-03 Terraform State Management|Terraform State Management]]
+**Decision Tree for Troubleshooting Module Error**:
+```mermaid
+graph TD
+    Error[Terraform Module Error] --> Check1{What is the Error?}
+    Check1 -->|Error: Module not installed| A[Run 'terraform init']
+    Check1 -->|Error: Unsupported argument| B[Check variables.tf in child module]
+    Check1 -->|Cannot access output| C[Check outputs.tf in child module]
+    Check1 -->|Provider configuration error| D[Remove provider blocks from child module]
+```
