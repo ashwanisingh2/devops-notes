@@ -41,6 +41,41 @@ Docker revolutionised packaging applications, but running containers at scale wi
 
 ---
 
+---
+
+### Architecture Diagram
+
+```mermaid
+graph TD
+    subgraph "Control Plane (Master Node)"
+        API[kube-apiserver]
+        ETCD[(etcd)]
+        SCHED[kube-scheduler]
+        CM[kube-controller-manager]
+        
+        API <--> ETCD
+        API <--> SCHED
+        API <--> CM
+    end
+
+    subgraph "Worker Node"
+        KLET[kubelet]
+        KPROXY[kube-proxy]
+        CRI[Container Runtime]
+        POD1((Pod))
+        POD2((Pod))
+        
+        KLET <--> CRI
+        CRI --> POD1
+        CRI --> POD2
+    end
+    
+    API <-->|REST| KLET
+    API <-->|REST| KPROXY
+    
+    USER([User / kubectl]) -->|HTTPS| API
+```
+
 ## Technical Deep Dive
 
 ### Control Plane Components

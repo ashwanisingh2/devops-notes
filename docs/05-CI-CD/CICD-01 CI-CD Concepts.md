@@ -39,6 +39,19 @@ A robust pipeline flows linearly through specific gates:
 5. **Push/Store**: The artifact (Docker Image or `.jar` file) is pushed to an immutable registry (like GHCR or AWS ECR).
 6. **Deploy**: The artifact is pulled and deployed to Staging or Production infrastructure.
 
+```mermaid
+flowchart LR
+    A[Code Commit] -->|Webhook| B(Build)
+    B --> C{Unit Tests}
+    C -->|Pass| D[Security Scan]
+    C -->|Fail| Z[Alert Developer]
+    D --> E[Push Artifact to Registry]
+    E --> F[Deploy to Staging]
+    F --> G{Integration Tests}
+    G -->|Pass| H[Deploy to Production]
+    G -->|Fail| Z
+```
+
 ### 2. Continuous Delivery vs. Continuous Deployment
 This is the most commonly confused concept in interviews.
 - **Continuous Delivery**: The pipeline fully automates building, testing, and staging the code. The code is *ready* to go to production at any moment, but a human must click a manual "Approve" button to trigger the final prod deployment.

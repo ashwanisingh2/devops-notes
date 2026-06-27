@@ -1,0 +1,26 @@
+name: Markdown Lint
+
+on:
+  push:
+    paths:
+      - '**.md'
+  pull_request:
+    paths:
+      - '**.md'
+
+jobs:
+  markdown-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run markdown lint
+        uses: DavidAnson/markdownlint-cli2-action@v15
+        with:
+          globs: '**/*.md'
+          # Ignore some noisy rules for Obsidian files
+          config: |
+            {
+              "MD013": false,
+              "MD033": false,
+              "MD041": false
+            }

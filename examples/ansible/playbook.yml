@@ -1,0 +1,33 @@
+---
+- name: Configure Web Server
+  hosts: all
+  become: yes
+  vars:
+    http_port: 80
+    server_name: devops-vault-demo
+
+  tasks:
+    - name: Ensure Apache is installed
+      apt:
+        name: apache2
+        state: present
+        update_cache: yes
+      when: ansible_os_family == "Debian"
+
+    - name: Ensure Apache is installed (RHEL)
+      yum:
+        name: httpd
+        state: present
+      when: ansible_os_family == "RedHat"
+
+    - name: Start and enable Apache
+      service:
+        name: "{{ 'apache2' if ansible_os_family == 'Debian' else 'httpd' }}"
+        state: started
+        enabled: yes
+
+    - name: Deploy custom index.html
+      copy:
+        content: "<h1>Welcome to DevOps Vault Hands-on Example</h1>"
+        dest: /var/www/html/index.html
+        mode: 0644

@@ -1,0 +1,129 @@
+site_name: God Mode DevOps Vault
+site_description: A production-grade, bilingual (English + Hindi) DevOps knowledge base.
+site_author: Ashwani Singh (DevOps Community)
+repo_url: https://github.com/ashwanisingh2/devops-notes
+repo_name: ashwanisingh2/devops-notes
+
+theme:
+  name: material
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.code.annotate
+  palette:
+    # Palette toggle for light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    # Palette toggle for dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.tasklist:
+      custom_checkbox: true
+
+plugins:
+  - search
+
+nav:
+  - Home: 
+    - Master Index: 00-MOC/Master-Index.md
+    - Cheat Sheet: 00-MOC/REF-01 DevOps Command Cheat Sheet.md
+    - Interview Q&A: 00-MOC/REF-02 DevOps Interview Q&A Bank.md
+    - Roadmap 2025: 00-MOC/REF-03 DevOps Roadmap 2025.md
+  - Phase 0 - Pre-Foundations:
+    - Python for DevOps: 00-Pre-Foundations/PRG-01 Python for DevOps.md
+    - Go Basics: 00-Pre-Foundations/PRG-02 Go Basics for DevOps.md
+  - Phase 1 - Linux Foundation:
+    - Linux for DevOps: 01-Linux-Foundation/LX-01 Linux for DevOps.md
+    - Shell Scripting: 01-Linux-Foundation/LX-02 Shell Scripting for DevOps.md
+    - Process Management: 01-Linux-Foundation/LX-03 Process and System Management.md
+    - OS Concepts: 01-Linux-Foundation/LX-04 OS Concepts for DevOps.md
+    - Networking: 01-Linux-Foundation/LX-05 Networking for DevOps.md
+  - Phase 2 - Version Control:
+    - Git Fundamentals: 02-Version-Control/GIT-01 Git Fundamentals.md
+    - Branching Strategies: 02-Version-Control/GIT-02 Branching Strategies.md
+    - GitHub Advanced: 02-Version-Control/GIT-03 GitHub Advanced.md
+  - Phase 3 - Containerization:
+    - Docker Fundamentals: 03-Containerization/DOC-01 Docker Fundamentals.md
+    - Dockerfile & Optimization: 03-Containerization/DOC-02 Dockerfile and Image Optimization.md
+    - Docker Compose: 03-Containerization/DOC-03 Docker Compose.md
+    - Docker Networking: 03-Containerization/DOC-04 Docker Networking and Volumes.md
+  - Phase 4 - Orchestration:
+    - K8s Architecture: 04-Orchestration/K8S-01 Kubernetes Architecture.md
+    - Pods, Deployments, Services: 04-Orchestration/K8S-02 Pods Deployments Services.md
+    - ConfigMaps & Secrets: 04-Orchestration/K8S-03 ConfigMaps and Secrets.md
+    - Volumes & Storage: 04-Orchestration/K8S-04 Persistent Volumes and Storage.md
+    - Ingress & Networking: 04-Orchestration/K8S-05 Ingress and Networking.md
+    - RBAC & Security: 04-Orchestration/K8S-06 RBAC and Security.md
+    - Helm Package Manager: 04-Orchestration/K8S-07 Helm Package Manager.md
+    - Service Mesh: 04-Orchestration/K8S-08 Service Mesh.md
+    - Operators & CRDs: 04-Orchestration/K8S-09 Kubernetes Operators and CRDs.md
+    - Autoscaling: 04-Orchestration/K8S-10 Kubernetes Autoscaling.md
+  - Phase 5 - CI/CD:
+    - CI/CD Concepts: 05-CI-CD/CICD-01 CI-CD Concepts.md
+    - Jenkins: 05-CI-CD/CICD-02 Jenkins.md
+    - GitHub Actions: 05-CI-CD/CICD-03 GitHub Actions.md
+    - GitLab CI: 05-CI-CD/CICD-04 GitLab CI.md
+    - ArgoCD & GitOps: 05-CI-CD/CICD-05 ArgoCD and GitOps.md
+  - Phase 6 - IaC:
+    - Terraform Fundamentals: 06-IaC/TF-01 Terraform Fundamentals.md
+    - Terraform Modules: 06-IaC/TF-02 Terraform Modules.md
+    - Terraform State: 06-IaC/TF-03 Terraform State Management.md
+    - Ansible Fundamentals: 06-IaC/ANS-01 Ansible Fundamentals.md
+    - Ansible Playbooks: 06-IaC/ANS-02 Ansible Playbooks.md
+    - Ansible Roles & Vault: 06-IaC/ANS-03 Ansible Roles and Vault.md
+  - Phase 7 - Cloud:
+    - AWS Core Services: 07-Cloud/AWS-01 AWS Core Services for DevOps.md
+    - AWS DevOps Tools: 07-Cloud/AWS-02 AWS DevOps Tools.md
+  - Phase 8 - Monitoring:
+    - Prometheus & Grafana: 08-Monitoring-and-Observability/MON-01 Prometheus and Grafana.md
+    - ELK Stack: 08-Monitoring-and-Observability/MON-02 ELK Stack - Log Management.md
+    - Alerting & SLOs: 08-Monitoring-and-Observability/MON-03 Alerting and SLO-SLA-SLI.md
+    - Distributed Tracing: 08-Monitoring-and-Observability/MON-04 Distributed Tracing.md
+  - Phase 9 - DevSecOps:
+    - DevSecOps Fundamentals: 09-Security-DevSecOps/SEC-01 DevSecOps Fundamentals.md
+    - SAST, DAST, Scanning: 09-Security-DevSecOps/SEC-02 SAST DAST and Container Scanning.md
+    - Secrets Management: 09-Security-DevSecOps/SEC-03 Secrets Management.md
+    - Container & K8s Security: 09-Security-DevSecOps/SEC-04 Container and Kubernetes Security.md
+    - Supply Chain Security: 09-Security-DevSecOps/SEC-05 Supply Chain Security.md
+    - Network Security: 09-Security-DevSecOps/SEC-06 Network Security for DevOps.md
+  - Phase 10 - SRE Practices:
+    - SRE Fundamentals: 10-SRE-Practices/SRE-01 SRE Fundamentals.md
+    - Incident Management: 10-SRE-Practices/SRE-02 Incident Management.md
+    - Chaos Engineering: 10-SRE-Practices/SRE-03 Chaos Engineering.md
+  - Phase 11 - Additional Tools:
+    - Docker Swarm: 11-Additional-Tools/TOOLS-01 Docker Swarm vs Kubernetes.md
+    - Vagrant: 11-Additional-Tools/TOOLS-02 Vagrant.md
+    - Packer: 11-Additional-Tools/TOOLS-03 Packer.md
+    - Consul: 11-Additional-Tools/TOOLS-04 Consul.md
+    - Vault Advanced: 11-Additional-Tools/TOOLS-05 Vault Advanced - PKI and Dynamic Secrets.md
+  - Phase 12 - Miscellaneous:
+    - GitOps Flux vs ArgoCD: 12-Miscellaneous/MISC-01 GitOps Flux vs ArgoCD.md
+    - Serverless and FaaS: 12-Miscellaneous/MISC-02 Serverless and FaaS.md
+    - Infrastructure Testing: 12-Miscellaneous/MISC-03 Infrastructure Testing.md
+    - FinOps: 12-Miscellaneous/MISC-04 FinOps Cloud Cost Management.md
