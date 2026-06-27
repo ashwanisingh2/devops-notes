@@ -1,0 +1,284 @@
+{
+  "main": {
+    "id": "73fc5a8c47b55c76",
+    "type": "split",
+    "children": [
+      {
+        "id": "982d9c8856431eec",
+        "type": "split",
+        "children": [
+          {
+            "id": "b6496152b60b3b29",
+            "type": "tabs",
+            "dimension": 64.95132127955495,
+            "children": [
+              {
+                "id": "95202c59ecdc124d",
+                "type": "leaf",
+                "state": {
+                  "type": "markdown",
+                  "state": {
+                    "file": "01-Linux-Foundation/LX-01 Linux for DevOps.md",
+                    "mode": "source",
+                    "source": false
+                  },
+                  "icon": "lucide-file",
+                  "title": "LX-01 Linux for DevOps"
+                }
+              }
+            ]
+          },
+          {
+            "id": "481d213e73da9048",
+            "type": "tabs",
+            "dimension": 35.04867872044507,
+            "children": [
+              {
+                "id": "58755715a7681894",
+                "type": "leaf",
+                "pinned": true,
+                "state": {
+                  "type": "terminal:terminal",
+                  "state": {
+                    "terminal:terminal": {
+                      "cwd": "C:\\Users\\SPTL\\Documents\\devops\\devops",
+                      "focus": false,
+                      "profile": {
+                        "args": [],
+                        "environment": [],
+                        "executable": "C:\\Windows\\System32\\cmd.exe",
+                        "followTheme": true,
+                        "name": "",
+                        "platforms": {
+                          "win32": true
+                        },
+                        "pythonExecutable": "python3",
+                        "restoreHistory": false,
+                        "rightClickAction": "copyPaste",
+                        "successExitCodes": [
+                          "0",
+                          "SIGINT",
+                          "SIGTERM"
+                        ],
+                        "terminalOptions": {
+                          "documentOverride": null
+                        },
+                        "type": "integrated",
+                        "useWin32Conhost": true
+                      },
+                      "profileSourceId": "win32IntegratedDefault",
+                      "serial": null,
+                      "userTitle": ""
+                    }
+                  },
+                  "pinned": true,
+                  "icon": "terminal",
+                  "title": "Terminal: C:\\Windows\\System32\\conhost.exe - agy"
+                }
+              }
+            ]
+          }
+        ],
+        "direction": "horizontal"
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "dcaf380eb5e9e757",
+    "type": "split",
+    "children": [
+      {
+        "id": "106dfb4778e8266f",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "0f5d87c82e34158c",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false
+              },
+              "icon": "lucide-folder-closed",
+              "title": "Files"
+            }
+          },
+          {
+            "id": "da2a0af04e20eb3a",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "Search"
+            }
+          },
+          {
+            "id": "f46617475f954ce2",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {},
+              "icon": "lucide-bookmark",
+              "title": "Bookmarks"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "b5dbb9beaa6f1bdf",
+    "type": "split",
+    "children": [
+      {
+        "id": "ec4ac0a77f7be774",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "fbc1c335099fcb64",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "01-Linux-Foundation/LX-01 Linux for DevOps.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "Backlinks for LX-01 Linux for DevOps"
+            }
+          },
+          {
+            "id": "02b1f28ea7d29429",
+            "type": "leaf",
+            "state": {
+              "type": "outgoing-link",
+              "state": {
+                "file": "01-Linux-Foundation/LX-01 Linux for DevOps.md",
+                "linksCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-going-out",
+              "title": "Outgoing links from LX-01 Linux for DevOps"
+            }
+          },
+          {
+            "id": "a81762496793e235",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "Tags"
+            }
+          },
+          {
+            "id": "b33b5f6b5729c4db",
+            "type": "leaf",
+            "state": {
+              "type": "all-properties",
+              "state": {
+                "sortOrder": "frequency",
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-archive",
+              "title": "All properties"
+            }
+          },
+          {
+            "id": "7d47fc6179d2f3c8",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "file": "01-Linux-Foundation/LX-01 Linux for DevOps.md",
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "Outline of LX-01 Linux for DevOps"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:Open quick switcher": false,
+      "graph:Open graph view": false,
+      "canvas:Create new canvas": false,
+      "daily-notes:Open today's daily note": false,
+      "templates:Insert template": false,
+      "command-palette:Open command palette": false,
+      "bases:Create new base": false,
+      "terminal:Open terminal": false
+    }
+  },
+  "active": "95202c59ecdc124d",
+  "lastOpenFiles": [
+    "04-Orchestration/K8S-10 Kubernetes Autoscaling.md",
+    "04-Orchestration/K8S-09 Kubernetes Operators and CRDs.md",
+    "04-Orchestration/K8S-08 Service Mesh.md",
+    "12-Miscellaneous/MISC-02 Serverless and FaaS.md",
+    "11-Additional-Tools/TOOLS-05 Vault Advanced - PKI and Dynamic Secrets.md",
+    "11-Additional-Tools/TOOLS-04 Consul.md",
+    "11-Additional-Tools/TOOLS-03 Packer.md",
+    "07-Cloud/AWS-02 AWS DevOps Tools.md",
+    "11-Additional-Tools/TOOLS-02 Vagrant.md",
+    "07-Cloud/AWS-01 AWS Core Services for DevOps.md",
+    "07-Cloud",
+    "01-Linux-Foundation/LX-05 Networking for DevOps.md",
+    "01-Linux-Foundation/LX-04 OS Concepts for DevOps.md",
+    "00-Pre-Foundations/PRG-02 Go Basics for DevOps.md",
+    "11-Additional-Tools/TOOLS-01 Docker Swarm vs Kubernetes.md",
+    "11-Additional-Tools",
+    "00-Pre-Foundations/PRG-01 Python for DevOps.md",
+    "00-Pre-Foundations",
+    "12-Miscellaneous/MISC-01 GitOps Flux vs ArgoCD.md",
+    "12-Miscellaneous",
+    "09-Security-DevSecOps/SEC-06 Network Security for DevOps.md",
+    "09-Security-DevSecOps/SEC-05 Supply Chain Security.md",
+    "00-MOC/Master-Index.md",
+    "01-Linux-Foundation/LX-01 Linux for DevOps.md",
+    "00-MOC/REF-02 DevOps Interview Q&A Bank.md",
+    "00-MOC/REF-03 DevOps Roadmap 2025.md",
+    "03-Containerization/DOC-01 Docker Fundamentals.md",
+    "00-MOC/REF-01 DevOps Command Cheat Sheet.md",
+    "Untitled.base",
+    "00-MOC",
+    "10-SRE-Practices/SRE-02 Incident Management.md",
+    "Welcome.md",
+    "10-SRE-Practices",
+    "09-Security-DevSecOps",
+    "08-Monitoring-and-Observability",
+    "06-IaC"
+  ]
+}
