@@ -1,0 +1,3574 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="A production-grade, bilingual (English + Hindi) DevOps knowledge base.">
+      
+      
+        <meta name="author" content="Ashwani Singh (DevOps Community)">
+      
+      
+      
+        <link rel="prev" href="../SEC-01%20DevSecOps%20Fundamentals/">
+      
+      
+        <link rel="next" href="../SEC-03%20Secrets%20Management/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>SAST, DAST, Scanning - God Mode DevOps Vault</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#sec-02-sast-dast-sca-and-container-scanning" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="God Mode DevOps Vault" class="md-header__button md-logo" aria-label="God Mode DevOps Vault" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            God Mode DevOps Vault
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              SAST, DAST, Scanning
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/ashwanisingh2/devops-notes" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    ashwanisingh2/devops-notes
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../00-MOC/Master-Index/" class="md-tabs__link">
+          
+  
+  
+  Home
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../00-Pre-Foundations/PRG-01%20Python%20for%20DevOps/" class="md-tabs__link">
+          
+  
+  
+  Phase 0 - Pre-Foundations
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../01-Linux-Foundation/LX-01%20Linux%20for%20DevOps/" class="md-tabs__link">
+          
+  
+  
+  Phase 1 - Linux Foundation
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../02-Version-Control/GIT-01%20Git%20Fundamentals/" class="md-tabs__link">
+          
+  
+  
+  Phase 2 - Version Control
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../03-Containerization/DOC-01%20Docker%20Fundamentals/" class="md-tabs__link">
+          
+  
+  
+  Phase 3 - Containerization
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../04-Orchestration/K8S-01%20Kubernetes%20Architecture/" class="md-tabs__link">
+          
+  
+  
+  Phase 4 - Orchestration
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../05-CI-CD/CICD-01%20CI-CD%20Concepts/" class="md-tabs__link">
+          
+  
+  
+  Phase 5 - CI/CD
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../06-IaC/TF-01%20Terraform%20Fundamentals/" class="md-tabs__link">
+          
+  
+  
+  Phase 6 - IaC
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../07-Cloud/AWS-01%20AWS%20Core%20Services%20for%20DevOps/" class="md-tabs__link">
+          
+  
+  
+  Phase 7 - Cloud
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../08-Monitoring-and-Observability/MON-01%20Prometheus%20and%20Grafana/" class="md-tabs__link">
+          
+  
+  
+  Phase 8 - Monitoring
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../SEC-01%20DevSecOps%20Fundamentals/" class="md-tabs__link">
+          
+  
+  
+  Phase 9 - DevSecOps
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../10-SRE-Practices/SRE-01%20SRE%20Fundamentals/" class="md-tabs__link">
+          
+  
+  
+  Phase 10 - SRE Practices
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../11-Additional-Tools/TOOLS-01%20Docker%20Swarm%20vs%20Kubernetes/" class="md-tabs__link">
+          
+  
+  
+  Phase 11 - Additional Tools
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../12-Miscellaneous/MISC-01%20GitOps%20Flux%20vs%20ArgoCD/" class="md-tabs__link">
+          
+  
+  
+  Phase 12 - Miscellaneous
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="God Mode DevOps Vault" class="md-nav__button md-logo" aria-label="God Mode DevOps Vault" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    God Mode DevOps Vault
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/ashwanisingh2/devops-notes" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    ashwanisingh2/devops-notes
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" >
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Home
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../00-MOC/Master-Index/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Master Index
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../00-MOC/REF-01%20DevOps%20Command%20Cheat%20Sheet/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cheat Sheet
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../00-MOC/REF-02%20DevOps%20Interview%20Q%26A%20Bank/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Interview Q&A
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../00-MOC/REF-03%20DevOps%20Roadmap%202025/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Roadmap 2025
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 0 - Pre-Foundations
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Phase 0 - Pre-Foundations
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../00-Pre-Foundations/PRG-01%20Python%20for%20DevOps/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Python for DevOps
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../00-Pre-Foundations/PRG-02%20Go%20Basics%20for%20DevOps/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Go Basics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 1 - Linux Foundation
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Phase 1 - Linux Foundation
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../01-Linux-Foundation/LX-01%20Linux%20for%20DevOps/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Linux for DevOps
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--#complete"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../01-Linux-Foundation/LX-02%20Shell%20Scripting%20for%20DevOps/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Shell Scripting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../01-Linux-Foundation/LX-03%20Process%20and%20System%20Management/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Process Management
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../01-Linux-Foundation/LX-04%20OS%20Concepts%20for%20DevOps/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OS Concepts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../01-Linux-Foundation/LX-05%20Networking%20for%20DevOps/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Networking
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 2 - Version Control
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Phase 2 - Version Control
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../02-Version-Control/GIT-01%20Git%20Fundamentals/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Git Fundamentals
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../02-Version-Control/GIT-02%20Branching%20Strategies/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Branching Strategies
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../02-Version-Control/GIT-03%20GitHub%20Advanced/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GitHub Advanced
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 3 - Containerization
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Phase 3 - Containerization
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../03-Containerization/DOC-01%20Docker%20Fundamentals/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Docker Fundamentals
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../03-Containerization/DOC-02%20Dockerfile%20and%20Image%20Optimization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Dockerfile & Optimization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../03-Containerization/DOC-03%20Docker%20Compose/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Docker Compose
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../03-Containerization/DOC-04%20Docker%20Networking%20and%20Volumes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Docker Networking
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 4 - Orchestration
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Phase 4 - Orchestration
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../04-Orchestration/K8S-01%20Kubernetes%20Architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    K8s Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../04-Orchestration/K8S-02%20Pods%20Deployments%20Services/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pods, Deployments, Services
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../04-Orchestration/K8S-03%20ConfigMaps%20and%20Secrets/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ConfigMaps & Secrets
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../04-Orchestration/K8S-04%20Persistent%20Volumes%20and%20Storage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Volumes & Storage
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--#complete"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../04-Orchestration/K8S-05%20Ingress%20and%20Networking/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ingress & Networking
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../04-Orchestration/K8S-06%20RBAC%20and%20Security/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    RBAC & Security
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--#complete"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../04-Orchestration/K8S-07%20Helm%20Package%20Manager/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Helm Package Manager
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--#complete"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../04-Orchestration/K8S-08%20Service%20Mesh/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Service Mesh
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../04-Orchestration/K8S-09%20Kubernetes%20Operators%20and%20CRDs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Operators & CRDs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../04-Orchestration/K8S-10%20Kubernetes%20Autoscaling/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Autoscaling
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 5 - CI/CD
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Phase 5 - CI/CD
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../05-CI-CD/CICD-01%20CI-CD%20Concepts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CI/CD Concepts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../05-CI-CD/CICD-02%20Jenkins/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Jenkins
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../05-CI-CD/CICD-03%20GitHub%20Actions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GitHub Actions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../05-CI-CD/CICD-04%20GitLab%20CI/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GitLab CI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../05-CI-CD/CICD-05%20ArgoCD%20and%20GitOps/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ArgoCD & GitOps
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 6 - IaC
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Phase 6 - IaC
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../06-IaC/TF-01%20Terraform%20Fundamentals/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Terraform Fundamentals
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../06-IaC/TF-02%20Terraform%20Modules/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Terraform Modules
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../06-IaC/TF-03%20Terraform%20State%20Management/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Terraform State
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../06-IaC/ANS-01%20Ansible%20Fundamentals/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ansible Fundamentals
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../06-IaC/ANS-02%20Ansible%20Playbooks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ansible Playbooks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../06-IaC/ANS-03%20Ansible%20Roles%20and%20Vault/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ansible Roles & Vault
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9" >
+        
+          
+          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 7 - Cloud
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Phase 7 - Cloud
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../07-Cloud/AWS-01%20AWS%20Core%20Services%20for%20DevOps/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AWS Core Services
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../07-Cloud/AWS-02%20AWS%20DevOps%20Tools/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AWS DevOps Tools
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_10" >
+        
+          
+          <label class="md-nav__link" for="__nav_10" id="__nav_10_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 8 - Monitoring
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_10_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_10">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Phase 8 - Monitoring
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../08-Monitoring-and-Observability/MON-01%20Prometheus%20and%20Grafana/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Prometheus & Grafana
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../08-Monitoring-and-Observability/MON-02%20ELK%20Stack%20-%20Log%20Management/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ELK Stack
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../08-Monitoring-and-Observability/MON-03%20Alerting%20and%20SLO-SLA-SLI/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Alerting & SLOs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../08-Monitoring-and-Observability/MON-04%20Distributed%20Tracing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Distributed Tracing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_11" id="__nav_11_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 9 - DevSecOps
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_11_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_11">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Phase 9 - DevSecOps
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../SEC-01%20DevSecOps%20Fundamentals/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DevSecOps Fundamentals
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SAST, DAST, Scanning
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../SEC-03%20Secrets%20Management/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Secrets Management
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../SEC-04%20Container%20and%20Kubernetes%20Security/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Container & K8s Security
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../SEC-05%20Supply%20Chain%20Security/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Supply Chain Security
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../SEC-06%20Network%20Security%20for%20DevOps/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Network Security
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_12" >
+        
+          
+          <label class="md-nav__link" for="__nav_12" id="__nav_12_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 10 - SRE Practices
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_12_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_12">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Phase 10 - SRE Practices
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../10-SRE-Practices/SRE-01%20SRE%20Fundamentals/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SRE Fundamentals
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../10-SRE-Practices/SRE-02%20Incident%20Management/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Incident Management
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../10-SRE-Practices/SRE-03%20Chaos%20Engineering/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chaos Engineering
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_13" >
+        
+          
+          <label class="md-nav__link" for="__nav_13" id="__nav_13_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 11 - Additional Tools
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_13_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_13">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Phase 11 - Additional Tools
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../11-Additional-Tools/TOOLS-01%20Docker%20Swarm%20vs%20Kubernetes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Docker Swarm
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../11-Additional-Tools/TOOLS-02%20Vagrant/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Vagrant
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../11-Additional-Tools/TOOLS-03%20Packer/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Packer
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../11-Additional-Tools/TOOLS-04%20Consul/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Consul
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../11-Additional-Tools/TOOLS-05%20Vault%20Advanced%20-%20PKI%20and%20Dynamic%20Secrets/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Vault Advanced
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_14" >
+        
+          
+          <label class="md-nav__link" for="__nav_14" id="__nav_14_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 12 - Miscellaneous
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_14_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_14">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Phase 12 - Miscellaneous
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../12-Miscellaneous/MISC-01%20GitOps%20Flux%20vs%20ArgoCD/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GitOps Flux vs ArgoCD
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../12-Miscellaneous/MISC-02%20Serverless%20and%20FaaS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Serverless and FaaS
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../12-Miscellaneous/MISC-03%20Infrastructure%20Testing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Infrastructure Testing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../12-Miscellaneous/MISC-04%20FinOps%20Cloud%20Cost%20Management/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FinOps
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="sec-02-sast-dast-sca-and-container-scanning">SEC-02 SAST, DAST, SCA and Container Scanning</h1>
+<h1 id="overview">Overview</h1>
+<p>Ye kya hai? SAST, DAST, SCA, aur Container Scanning automated security tools hain jo aapke source code, third-party dependencies, running applications, aur infrastructure (Docker images) ko scan karke vulnerabilities find karte hain. 
+Kyu use hota hai? Pehle security testing development ke end mein hoti thi (Penetration Testing). Ab DevSecOps mein hum "Shift-Left" approach use karte hain, jiska matlab hai security checks ko CI/CD pipeline ke andar daalna taaki issues (e.g. SQL injection, outdated libraries) development phase mein hi turant pakde jayein, before going to production.
+Real life example (Analogy): 
+- <strong>SAST</strong> ek proofreader hai jo book padh ke dekhta hai ki grammar galat toh nahi hai. 
+- <strong>DAST</strong> ek chor (burglar) hai jo bahar se ghar ke darwaze ko dhakka maar ke dekhta hai ki lock mazboot hai ya khula hai. 
+- <strong>SCA</strong> ek building inspector hai jo check karta hai ki aapne jo third-party eent (bricks/libraries) use ki hai, unme pehle se koi crack (vulnerability) toh nahi hai.
+Industry kaha use karti hai? Har modern software company (FAANG se leke agile startups tak) in tools ko Jenkins, GitLab CI, ya GitHub Actions pipelines mein integrate karti hai taaki vulnerable code ya insecure Docker images automatically block ho jayein aur production tak na pahuchein.</p>
+<h1 id="working">Working</h1>
+<p>Internal working and Data flow:
+1. <strong>SAST (Static Application Security Testing - White-box)</strong>: Code ko execute kiye bina usko text ya Abstract Syntax Tree (AST) mein convert karke analyze karta hai. Control-flow aur data-flow ko trace karta hai (e.g., checking user input directly going to DB without sanitization).
+2. <strong>DAST (Dynamic Application Security Testing - Black-box)</strong>: Running application pe HTTP requests/attacks (like SQL injection payloads, XSS strings) bhejta hai. App running in Staging environment par DAST tool attack karta hai aur application ke response se vulnerabilities identify karta hai.
+3. <strong>SCA (Software Composition Analysis)</strong>: Package manifests (<code>pom.xml</code>, <code>package.json</code>, <code>requirements.txt</code>) parse karta hai aur dependencies ko publicly known CVE (Common Vulnerabilities and Exposures) databases (jaise NVD) se compare karta hai.
+4. <strong>Container Scanning</strong>: Docker image ki OS layers scan karta hai. Image tarball ko extract karke <code>/var/lib/dpkg/status</code> (Debian) ya <code>/etc/apk</code> (Alpine) read karta hai aur OS packages (like <code>apt</code>, <code>curl</code>, <code>glibc</code>) mein CVEs find karta hai.</p>
+<h1 id="installation">Installation</h1>
+<p>Prerequisites: Docker, CI/CD environment (Jenkins/GitHub Actions), aur Linux/Mac OS.
+Trivy (Container, SCA &amp; IaC Scanner) Installation:
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># Ubuntu/Debian</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>wget<span class="w"> </span>https://github.com/aquasecurity/trivy/releases/download/v0.44.1/trivy_0.44.1_Linux-64bit.deb
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>sudo<span class="w"> </span>dpkg<span class="w"> </span>-i<span class="w"> </span>trivy_0.44.1_Linux-64bit.deb
+</span></code></pre></div>
+Semgrep (SAST) Installation:
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># Python pip required</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>python3<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>semgrep
+</span></code></pre></div>
+Verification:
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>trivy<span class="w"> </span>--version
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>semgrep<span class="w"> </span>--version
+</span></code></pre></div>
+Rollback: <code>sudo dpkg -r trivy</code>, <code>pip uninstall semgrep</code>.</p>
+<h1 id="practical-lab">Practical Lab</h1>
+<p>Step-by-step implementation. CLI Method for DevSecOps pipeline simulation.</p>
+<p>Bajaaye CI/CD commands ko manually likhne ke, vault ki <code>examples/</code> directory me ek production-ready scanner script available hai:
+- Scanner Script: <a href="file:///C:/Users/SPTL/Documents/devops/devops/examples/09-Security/trivy-scan.sh">examples/09-Security/trivy-scan.sh</a></p>
+<p><strong>Step 1: Container Scanning with Trivy (Pipeline Gate)</strong>
+Hum ek purposely vulnerable image scan karenge taaki security gate usko block kare.
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nb">cd</span><span class="w"> </span>../../examples/09-Security/
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>chmod<span class="w"> </span>+x<span class="w"> </span>trivy-scan.sh
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="c1"># Run the scan pipeline simulation</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>./trivy-scan.sh<span class="w"> </span>nginx:1.18.0
+</span></code></pre></div>
+Expected Output: Script CRITICAL vulnerabilities detect karegi jinpe patches available hain. Script <code>exit code 1</code> return karegi (Gate Failed), jisse CI pipeline ruk jayegi aur insecure image production me nahi jayegi.</p>
+<p><strong>Step 3: SAST Scanning with Semgrep</strong>
+Ek bad code file banayein <code>app.py</code>:
+<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">execute_cmd</span><span class="p">(</span><span class="n">user_input</span><span class="p">):</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>    <span class="c1"># DANGEROUS: Command Injection!</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>    <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="n">user_input</span><span class="p">)</span> 
+</span></code></pre></div>
+Command:
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>semgrep<span class="w"> </span>--config<span class="w"> </span><span class="s2">&quot;p/default&quot;</span><span class="w"> </span>app.py
+</span></code></pre></div>
+Expected Output: Semgrep flag karega: <code>Security Warning: Detected the use of os.system().</code></p>
+<p><strong>Step 4: IaC Scanning (Terraform)</strong>
+Trivy cloud resources ki misconfigurations (like open S3 buckets) bhi pakad sakta hai.
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="nb">echo</span><span class="w"> </span><span class="s1">&#39;resource &quot;aws_s3_bucket&quot; &quot;b&quot; { bucket = &quot;my-bucket&quot; }&#39;</span><span class="w"> </span>&gt;<span class="w"> </span>main.tf
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>trivy<span class="w"> </span>config<span class="w"> </span>./
+</span></code></pre></div>
+Expected Output: Warnings missing encryption and lack of access logging on the S3 bucket.</p>
+<h1 id="daily-engineer-tasks">Daily Engineer Tasks</h1>
+<ul>
+<li><strong>L1 Engineer</strong>: Trivy, Semgrep, ya SonarQube ke dashboards check karna. False positives aur real issues ko alag karna, aur appropriate dev teams ke naam par Jira tickets raise karna.</li>
+<li><strong>L2 Engineer</strong>: GitLab CI, Jenkins, ya GitHub Actions pipelines mein scanners integrate karna. Trivy ko configure karna taaki build tabhi fail ho jab fix available ho (<code>--ignore-unfixed</code>).</li>
+<li><strong>L3 / Senior Engineer</strong>: Security gating rules set karna. Custom Semgrep rules likhna company specific patterns ke liye. Central vulnerability dashboard (e.g., DefectDojo) setup aur maintain karna taaki sab scans ka data ek jagah aaye.</li>
+<li><strong>DevSecOps / Security Engineer</strong>: Developers ko secure coding sikhana. SBOM (Software Bill of Materials) automate karke generate karna aur zero-day vulnerabilities ke time company ka attack surface jaldi assess karna.</li>
+</ul>
+<h1 id="real-industry-tasks">Real Industry Tasks</h1>
+<ul>
+<li><strong>GitHub PR Security Gates</strong>: Har pull request pe Trivy container scan aur Semgrep SAST trigger karna. Code merge hone se pehle security checks pass hona mandatory (branch protection rules).</li>
+<li><strong>Base Image Migration</strong>: Docker images mein attack surface kam karne ke liye bulky OS base images (jaise <code>ubuntu</code> ya <code>node:18</code>) se scratch ya <code>distroless</code> (e.g., <code>gcr.io/distroless/nodejs</code>) images pe migrate karna.</li>
+<li><strong>DAST via ZAP in Pipeline</strong>: CI pipeline mein code staging mein deploy hone ke baad OWASP ZAP API baseline scan run karna (takes 2 mins). Full aggressive spider crawl weekends pe chalana taaki pipeline slow na ho.</li>
+<li><strong>SBOM Generation</strong>: Compliance ke liye <code>trivy sbom</code> use karke exact dependency list customers ya security audit team ko DORA metrics/SLAs ke sath provide karna.</li>
+</ul>
+<h1 id="troubleshooting">Troubleshooting</h1>
+<table>
+<thead>
+<tr>
+<th>Symptom / Problem</th>
+<th>Possible Root Cause</th>
+<th>Resolution</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SAST scanner flags 10,000 issues on first run.</td>
+<td>Scanning test files ya third-party vendor folders (<code>node_modules</code>, <code>venv</code>).</td>
+<td>Configure the scanner's ignore file (e.g., <code>.semgrepignore</code> or <code>.sonarignore</code>) to exclude everything except <code>src/</code>.</td>
+</tr>
+<tr>
+<td>CI Pipeline consistently fails due to "Fix not available" CVEs.</td>
+<td>Too strict gating rules. OS maintainers ne patch abhi tak release nahi kiya hai.</td>
+<td>Run Trivy with <code>--ignore-unfixed</code>. Ye un CVEs ko ignore karega jinka abhi koi patch exist nahi karta, preventing developer frustration.</td>
+</tr>
+<tr>
+<td>DAST scan takes 4+ hours and times out the CI job.</td>
+<td>Full spider crawl mode enabled in CI pipeline.</td>
+<td>Pipeline mein ZAP ko "API Baseline Scan" ke liye configure karein ya targeted endpoints pe chalayein. Full crawl raat mein ya weekends pe schedule karein.</td>
+</tr>
+<tr>
+<td>Trivy fails with "unauthorized" error pulling from ECR/ACR.</td>
+<td>Scanner pod or runner doesn't have permissions to pull private image.</td>
+<td>Set environment variables <code>TRIVY_USERNAME</code> and <code>TRIVY_PASSWORD</code>, ya AWS CLI/IAM roles se properly authenticate karein before running <code>trivy image</code>.</td>
+</tr>
+</tbody>
+</table>
+<h1 id="interview-preparation">Interview Preparation</h1>
+<p><strong>Basic Level</strong>
+Q: SAST aur DAST mein main difference kya hai?
+<em>Answer</em>: SAST (Static) source code read karta hai bina chalaye (white-box). DAST (Dynamic) chalte hue application par network ke through attack karta hai bugs nikaalne ke liye (black-box).</p>
+<p><strong>Intermediate Level</strong>
+Q: Trivy scan ne tumhari image mein 50 CRITICAL vulnerabilities dikhayi <code>wget</code>, <code>curl</code>, aur <code>bash</code> mein. Tumhara node app inko use nahi karta. Kaise solve karoge permanently?
+<em>Answer</em>: Main Dockerfile mein base image change kar dunga. <code>ubuntu</code> ya full <code>node</code> image ki jagah main <code>node:alpine</code> ya distroless (<code>gcr.io/distroless/nodejs</code>) use karunga jisme ye OS packages hote hi nahi hain. Surface attack area minimize ho jayega.</p>
+<p><strong>Advanced / FAANG Level</strong>
+Q: SARIF kya hai aur DevSecOps pipeline mein kyu zaroori hai?
+<em>Answer</em>: SARIF (Static Analysis Results Interchange Format) ek standard JSON format hai security tools ki output ke liye. Industry mein hum multiple tools (Trivy, Semgrep, SonarQube) use karte hain. Agar sabka format alag hoga to automation aur reporting mushkil hogi. SARIF use karke hum saara data GitHub Advanced Security ya DefectDojo jaise central dashboards mein bhej sakte hain.</p>
+<p><strong>Scenario Based</strong>
+Q: Developer bolta hai ki uski app completely private subnet (VPC) mein hai aur usme internet access nahi hai, isliye SQL Injection (SAST flag) theek karne ki zaroorat nahi. Response?
+<em>Answer</em>: Security follows "Defense in Depth". Agar network perimeter compromise hua (e.g., kisi employee ke VPN/laptop pe phishing attack) toh attacker directly VPC ke andar aa jayega. Tab internal SQL injection bahot easily data breach kar dega. Perimeter security insecure app code ka excuse nahi hai.</p>
+<p>Q: Kya SCA tools (like Snyk/Dependabot) zero-day vulnerabilities (e.g., log4j jis din nikla tha) find kar sakte hain?
+<em>Answer</em>: No. SCA tools dependencies ko publicly known CVE databases (NVD) se compare karte hain. Zero-day DB mein nahi hoti jab wo first time exploit hoti hai. Isliye zero-day mitigation ke liye WAF, runtime security, aur secure coding practices lagti hain.</p>
+<h1 id="production-scenarios">Production Scenarios</h1>
+<p><strong>Scenario: Critical Log4j vulnerability announced globally.</strong>
+- <strong>How to think</strong>: Pata lagana padega hamare 500 microservices mein se kisne log4j version 2.x use kiya hai. Manual check is impossible.
+- <strong>Where to check</strong>: Check centralized SBOM (Software Bill of Materials) database ya SCA tools dashboard (like Snyk).
+- <strong>Resolution Steps</strong>:
+  1. Identifed affected repositories.
+  2. Developers update <code>pom.xml</code> ya <code>gradle.build</code> mein version to patched release (e.g. 2.15.0).
+  3. Commit code -&gt; CI pipeline runs SAST and SCA -&gt; Trivy scan clears the image.
+  4. Build green, image deployed to prod.
+- <strong>Verification</strong>: Run a manual container scan <code>trivy image prod-api-service</code> to confirm CRITICAL count is zero for log4j.</p>
+<p><strong>Scenario: CI Pipeline becomes incredibly slow, Trivy takes 10 minutes to run.</strong>
+- <strong>Root Cause</strong>: CI runner ephemeral hai aur har job mein Trivy apna 100MB+ vulnerability database internet se download kar raha hai.
+- <strong>Resolution</strong>: Trivy ko "Client/Server mode" mein run karein. Ek dedicated Trivy server pod K8s mein chalayein jo DB ek baar download kare aur cache kare. CI pipelines (clients) us server se queries puchen.</p>
+<h1 id="commands">Commands</h1>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th>Purpose</th>
+<th>When to use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>trivy image python:3.9-alpine</code></td>
+<td>Scans a container image for OS &amp; app CVEs</td>
+<td>Build step ke baad CI pipeline mein.</td>
+</tr>
+<tr>
+<td><code>trivy config ./k8s-manifests</code></td>
+<td>Scans IaC files (Terraform/YAML) for misconfigurations</td>
+<td>PR creation ke time infra changes validate karne ke liye.</td>
+</tr>
+<tr>
+<td><code>semgrep --config "p/security-audit" .</code></td>
+<td>Runs fast open-source SAST scan</td>
+<td>Developer laptop ya CI pe code analysis ke liye.</td>
+</tr>
+<tr>
+<td><code>npm audit --production</code></td>
+<td>Node.js SCA scanner</td>
+<td>Package management vulnerabilities check karne ke liye.</td>
+</tr>
+<tr>
+<td><code>checkov -d ./terraform-code</code></td>
+<td>Deep IaC scanning, specially for AWS/Azure/GCP</td>
+<td>Terraform code push karne se pehle.</td>
+</tr>
+<tr>
+<td><code>trivy image --format sarif -o report.sarif nginx</code></td>
+<td>Outputs scan in standard SARIF format</td>
+<td>GitHub/GitLab UI mein direct annotations dikhane ke liye.</td>
+</tr>
+</tbody>
+</table>
+<h1 id="cheat-sheet">Cheat Sheet</h1>
+<ul>
+<li><strong>SAST (Code)</strong>: Semgrep, SonarQube, Checkmarx. (Shift-left, offline, code grammar).</li>
+<li><strong>DAST (App)</strong>: OWASP ZAP, Burp Suite, Acunetix. (Running app, slow, real attacks).</li>
+<li><strong>SCA (Deps)</strong>: Snyk, Dependabot, npm audit. (3rd party libraries, checking CVE DBs).</li>
+<li><strong>Container (OS)</strong>: Trivy, Clair, Grype. (Docker layers, apt/apk packages).</li>
+<li><strong>SBOM</strong>: Software Bill of Materials. Aapke software ki "ingredients" list.</li>
+<li><strong>Pipeline Blocking</strong>: <code>--exit-code 1 --severity CRITICAL,HIGH --ignore-unfixed</code></li>
+</ul>
+<h1 id="sop-runbook-kb-article">SOP &amp; Runbook &amp; KB Article</h1>
+<p><strong>SOP: Implementing Security Scans in CI Pipelines</strong>
+- <strong>Purpose</strong>: Prevent vulnerable code and images from reaching production environments.
+- <strong>Procedure</strong>: Add SAST stage before build. Add Container scan stage after docker build. Configure both tools to output SARIF. Upload SARIF artifact to central dashboard.
+- <strong>Validation</strong>: Open a test PR with vulnerable code to ensure the pipeline turns red and blocks merge.</p>
+<p><strong>Runbook: Critical Vulnerability Detected in Production Image</strong>
+- <strong>Detection</strong>: Central dashboard (e.g. AWS Inspector or Trivy operator) raises P1 alert.
+- <strong>Investigation</strong>: Find the source Git repo. Identify base image or library causing the issue.
+- <strong>Resolution</strong>: Raise urgent ticket. Dev updates <code>Dockerfile</code> or package. Merge PR. Deploy hotfix.
+- <strong>Rollback</strong>: Usually N/A. Only roll forward with the patched image version.</p>
+<p><strong>KB Article: The "Fix Not Available" Dilemma</strong>
+- <strong>Problem</strong>: Pipelines failing repeatedly due to CVEs in OS packages that Debian/Alpine maintainers haven't patched yet.
+- <strong>Cause</strong>: Security tools default to showing ALL vulnerabilities.
+- <strong>Resolution</strong>: Use <code>--ignore-unfixed</code>. It is an industry standard to accept the risk of unpatched OS vulnerabilities if no fix exists, rather than halting all software delivery indefinitely. Track these separately for when a patch drops.</p>
+<h1 id="best-practices-beginner-mistakes">Best Practices &amp; Beginner Mistakes</h1>
+<p><strong>Best Practices</strong>:
+1. <strong>Shift-Left</strong>: Security ko as early as possible integrate karo (IDE plugins, pre-commit hooks, CI pipelines).
+2. <strong>Standardize Output</strong>: Har tool ka output SARIF mein le ke ek single pane of glass (DefectDojo/GitHub AS) pe dekho.
+3. <strong>Use Distroless</strong>: OS-level attack surface drastically reduce karne ke liye <code>gcr.io/distroless/static</code> jaise base images use karein jisme shell (<code>/bin/sh</code>) ya package manager (<code>apt</code>) exist nahi karte.
+4. <strong>VEX (Vulnerability Exploitability eXchange)</strong>: Advanced teams use VEX documents to say "Yes, this CVE is in my package, but no, my application logic makes it unexploitable."</p>
+<p><strong>Beginner Mistakes</strong>:
+1. <strong>Failing pipelines on LOW/MEDIUM findings</strong>: Isse "Alert Fatigue" hota hai aur developers security team se nafrat karne lagte hain. Fail only on CRITICAL.
+2. <strong>Running massive DAST scans on every commit</strong>: DAST hours le sakta hai. CI ko fast rakhna DevOps ka primary goal hai. Use selective/API scans in CI and full spider scans nightly.
+3. <strong>Using SAST to find Secrets</strong>: SAST is for logic. Hardcoded passwords aur API keys dhoondhne ke liye Secret Scanners (TruffleHog, Gitleaks) alag se lagayein.</p>
+<h1 id="advanced-concepts">Advanced Concepts</h1>
+<ul>
+<li><strong>Abstract Syntax Tree (AST)</strong>: Advanced SAST tools simply regex pattern match nahi karte (warna bohot false positives aate). Code ko tree structure (AST) mein parse karte hain jisse unko variable ka data-flow aur context samajh aata hai.</li>
+<li><strong>Trivy Client/Server Architecture</strong>: Enterprise environments mein jahan hazaaro CI jobs din mein chalti hain, hum Trivy DB baar-baar pull nahi karte. Ek central Trivy server cluster mein chalate hain, aur CI runners sirf network payload bhej kar client mode (<code>trivy --server</code>) mein scan execute karte hain.</li>
+</ul>
+<h1 id="related-topics-flashcards-revision">Related Topics &amp; Flashcards &amp; Revision</h1>
+<ul>
+<li>[[09-Security-DevSecOps/SEC-01 DevSecOps Fundamentals]]</li>
+<li>[[03-Containerization/DOC-02 Dockerfile and Image Optimization]]</li>
+<li>[[09-Security-DevSecOps/SEC-03 Secret Scanning and Secret Management]] (Next Topic)</li>
+</ul>
+<p><strong>Flashcards</strong>:
+- Q: Kaunsa tool running web application par SQL injection test karega?
+  - A: DAST (OWASP ZAP).
+- Q: Kaunsa tool third-party node_modules mein CVE dhoondhega?
+  - A: SCA (Snyk/npm audit).</p>
+<p><strong>Revision</strong>:
+- 5 min: Read Cheat Sheet and Commands.
+- 15 min: Draw the pipeline decision tree in your head.
+- 30 min: Create a simple Node app, add a known vulnerable package, and block it using Trivy via CLI.</p>
+<h1 id="real-production-logs-commands-decision-tree">Real Production Logs &amp; Commands &amp; Decision Tree</h1>
+<p><strong>Log Snippet (Trivy Scan Result for Image)</strong>
+<div class="language-json highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="p">{</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="w">  </span><span class="nt">&quot;VulnerabilityID&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;CVE-2021-44228&quot;</span><span class="p">,</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="w">  </span><span class="nt">&quot;PkgName&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;log4j-core&quot;</span><span class="p">,</span>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="w">  </span><span class="nt">&quot;InstalledVersion&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2.14.1&quot;</span><span class="p">,</span>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="w">  </span><span class="nt">&quot;FixedVersion&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;2.15.0&quot;</span><span class="p">,</span>
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="w">  </span><span class="nt">&quot;Severity&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;CRITICAL&quot;</span><span class="p">,</span>
+</span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="w">  </span><span class="nt">&quot;Title&quot;</span><span class="p">:</span><span class="w"> </span><span class="s2">&quot;log4j: JNDI features do not protect against attacker controlled LDAP...&quot;</span>
+</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="p">}</span>
+</span></code></pre></div>
+<strong>Explanation</strong>: Scan detect kar raha hai ki image mein <code>log4j-core</code> library ka version <code>2.14.1</code> installed hai, jo ki famous Log4Shell critical vulnerability se affected hai, aur iska fix version <code>2.15.0</code> available hai.</p>
+<p><strong>Decision Tree (Vulnerability Remediation)</strong>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>Pipeline failed due to Trivy / SCA finding a CVE?
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>│
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>├──&gt; [Is Fix Available? (FixedVersion exists?)]
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>│    │
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>│    ├──&gt; [YES]
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>│    │    ├──&gt; Update package manager file (e.g. package.json, requirements.txt, pom.xml).
+</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>│    │    └──&gt; Rerun pipeline -&gt; Green.
+</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a>│    │
+</span><span id="__span-8-9"><a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a>│    └──&gt; [NO]
+</span><span id="__span-8-10"><a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a>│         ├──&gt; Is this a base OS package? 
+</span><span id="__span-8-11"><a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a>│         │    ├──&gt; Ensure pipeline uses `--ignore-unfixed` so build doesn&#39;t block.
+</span><span id="__span-8-12"><a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a>│         │    └──&gt; Document accepted risk in Security tracker.
+</span><span id="__span-8-13"><a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a>│         │
+</span><span id="__span-8-14"><a id="__codelineno-8-14" name="__codelineno-8-14" href="#__codelineno-8-14"></a>│         └──&gt; Is it an application dependency?
+</span><span id="__span-8-15"><a id="__codelineno-8-15" name="__codelineno-8-15" href="#__codelineno-8-15"></a>│              ├──&gt; Assess Exploitability (VEX). Does our app actually expose this function?
+</span><span id="__span-8-16"><a id="__codelineno-8-16" name="__codelineno-8-16" href="#__codelineno-8-16"></a>│              ├──&gt; Apply WAF rules (Virtual Patching).
+</span><span id="__span-8-17"><a id="__codelineno-8-17" name="__codelineno-8-17" href="#__codelineno-8-17"></a>│              └──&gt; Await patch from community.
+</span></code></pre></div></p>
+<h1 id="visuals">Visuals</h1>
+<p><strong>Mermaid Diagram: Modern DevSecOps Pipeline Architecture</strong>
+<pre class="mermaid"><code>graph TD
+    A[Developer Commits Code] --&gt;|Git Push| B(Source Code Repository)
+    B --&gt;|Hook| C{Secret Scanning&lt;br/&gt;TruffleHog / Gitleaks}
+    C --&gt;|Fails| Z[Block Push/PR]
+    C --&gt;|Passes| D{SAST&lt;br/&gt;Semgrep / SonarQube}
+    C --&gt;|Passes| E{SCA&lt;br/&gt;Snyk / Dependabot}
+    D &amp; E --&gt;|Critical Found| Z
+    D &amp; E --&gt;|Passes| F[Build Docker Image]
+    F --&gt; G{Container Scanner&lt;br/&gt;Trivy}
+    G --&gt;|CRITICAL CVE Found| Z
+    G --&gt;|Clean Image| H[Push to Image Registry]
+    H --&gt; I[Deploy to Staging Environment]
+    I --&gt; J{DAST&lt;br/&gt;OWASP ZAP API Scan}
+    J --&gt;|High Risks Found| Z
+    J --&gt;|Passes| K[Promote to Production]
+
+    classDef danger fill:#ffcccc,stroke:#ff0000,stroke-width:2px;
+    class Z danger;</code></pre></p>
+<h1 id="ai-enhancement">AI Enhancement</h1>
+<ul>
+<li>Added complete definitions and clear distinctions for SAST vs DAST vs SCA.</li>
+<li>Embedded a comprehensive DevSecOps Pipeline Mermaid diagram for architecture visualization.</li>
+<li>Included VEX, SBOM generation, and Client/Server architecture which are Senior/Architect level concepts.</li>
+<li>Expanded interview questions to cover FAANG scenarios and provided production-grade decision trees.</li>
+<li>Ensured Hinglish formatting is natural (80% Practical / 20% Theory) matching God Mode DevOps Vault standard.</li>
+</ul>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "search.suggest", "search.highlight", "content.code.copy", "content.code.annotate"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

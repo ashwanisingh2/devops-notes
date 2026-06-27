@@ -1,0 +1,3778 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="A production-grade, bilingual (English + Hindi) DevOps knowledge base.">
+      
+      
+        <meta name="author" content="Ashwani Singh (DevOps Community)">
+      
+      
+      
+        <link rel="prev" href="../REF-01%20DevOps%20Command%20Cheat%20Sheet/">
+      
+      
+        <link rel="next" href="../REF-03%20DevOps%20Roadmap%202025/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Interview Q&A - God Mode DevOps Vault</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#ref-02-devops-interview-qa-bank" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../.." title="God Mode DevOps Vault" class="md-header__button md-logo" aria-label="God Mode DevOps Vault" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            God Mode DevOps Vault
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Interview Q&A
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/ashwanisingh2/devops-notes" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    ashwanisingh2/devops-notes
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+    
+  
+  
+    
+    
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../Master-Index/" class="md-tabs__link">
+          
+  
+  
+  Home
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../00-Pre-Foundations/PRG-01%20Python%20for%20DevOps/" class="md-tabs__link">
+          
+  
+  
+  Phase 0 - Pre-Foundations
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../01-Linux-Foundation/LX-01%20Linux%20for%20DevOps/" class="md-tabs__link">
+          
+  
+  
+  Phase 1 - Linux Foundation
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../02-Version-Control/GIT-01%20Git%20Fundamentals/" class="md-tabs__link">
+          
+  
+  
+  Phase 2 - Version Control
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../03-Containerization/DOC-01%20Docker%20Fundamentals/" class="md-tabs__link">
+          
+  
+  
+  Phase 3 - Containerization
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../04-Orchestration/K8S-01%20Kubernetes%20Architecture/" class="md-tabs__link">
+          
+  
+  
+  Phase 4 - Orchestration
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../05-CI-CD/CICD-01%20CI-CD%20Concepts/" class="md-tabs__link">
+          
+  
+  
+  Phase 5 - CI/CD
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../06-IaC/TF-01%20Terraform%20Fundamentals/" class="md-tabs__link">
+          
+  
+  
+  Phase 6 - IaC
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../07-Cloud/AWS-01%20AWS%20Core%20Services%20for%20DevOps/" class="md-tabs__link">
+          
+  
+  
+  Phase 7 - Cloud
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../08-Monitoring-and-Observability/MON-01%20Prometheus%20and%20Grafana/" class="md-tabs__link">
+          
+  
+  
+  Phase 8 - Monitoring
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../09-Security-DevSecOps/SEC-01%20DevSecOps%20Fundamentals/" class="md-tabs__link">
+          
+  
+  
+  Phase 9 - DevSecOps
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../10-SRE-Practices/SRE-01%20SRE%20Fundamentals/" class="md-tabs__link">
+          
+  
+  
+  Phase 10 - SRE Practices
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../11-Additional-Tools/TOOLS-01%20Docker%20Swarm%20vs%20Kubernetes/" class="md-tabs__link">
+          
+  
+  
+  Phase 11 - Additional Tools
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../../12-Miscellaneous/MISC-01%20GitOps%20Flux%20vs%20ArgoCD/" class="md-tabs__link">
+          
+  
+  
+  Phase 12 - Miscellaneous
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../.." title="God Mode DevOps Vault" class="md-nav__button md-logo" aria-label="God Mode DevOps Vault" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    God Mode DevOps Vault
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/ashwanisingh2/devops-notes" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    ashwanisingh2/devops-notes
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+    
+    
+      
+        
+        
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_1" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_1" id="__nav_1_label" tabindex="">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_1_label" aria-expanded="true">
+          <label class="md-nav__title" for="__nav_1">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Home
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../Master-Index/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Master Index
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../REF-01%20DevOps%20Command%20Cheat%20Sheet/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Cheat Sheet
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Interview Q&A
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Interview Q&A
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#linux-shell-scripting-10" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Linux &amp; Shell Scripting (10)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#docker-containers-10" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Docker &amp; Containers (10)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#kubernetes-15" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Kubernetes (15)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cicd-10" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CI/CD (10)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#terraform-iac-10" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Terraform &amp; IaC (10)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ansible-10" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ansible (10)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#monitoring-observability-10" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Monitoring &amp; Observability (10)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#devsecops-5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DevSecOps (5)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sre-incident-management-5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SRE &amp; Incident Management (5)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#behavioral-devops-culture-5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Behavioral &amp; DevOps Culture (5)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#related-notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Related Notes
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../REF-03%20DevOps%20Roadmap%202025/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Roadmap 2025
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 0 - Pre-Foundations
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Phase 0 - Pre-Foundations
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../00-Pre-Foundations/PRG-01%20Python%20for%20DevOps/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Python for DevOps
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../00-Pre-Foundations/PRG-02%20Go%20Basics%20for%20DevOps/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Go Basics
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 1 - Linux Foundation
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Phase 1 - Linux Foundation
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../01-Linux-Foundation/LX-01%20Linux%20for%20DevOps/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Linux for DevOps
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--#complete"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../01-Linux-Foundation/LX-02%20Shell%20Scripting%20for%20DevOps/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Shell Scripting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../01-Linux-Foundation/LX-03%20Process%20and%20System%20Management/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Process Management
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../01-Linux-Foundation/LX-04%20OS%20Concepts%20for%20DevOps/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    OS Concepts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../01-Linux-Foundation/LX-05%20Networking%20for%20DevOps/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Networking
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_4" id="__nav_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 2 - Version Control
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Phase 2 - Version Control
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../02-Version-Control/GIT-01%20Git%20Fundamentals/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Git Fundamentals
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../02-Version-Control/GIT-02%20Branching%20Strategies/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Branching Strategies
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../02-Version-Control/GIT-03%20GitHub%20Advanced/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GitHub Advanced
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_5" >
+        
+          
+          <label class="md-nav__link" for="__nav_5" id="__nav_5_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 3 - Containerization
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_5">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Phase 3 - Containerization
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../03-Containerization/DOC-01%20Docker%20Fundamentals/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Docker Fundamentals
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../03-Containerization/DOC-02%20Dockerfile%20and%20Image%20Optimization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Dockerfile & Optimization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../03-Containerization/DOC-03%20Docker%20Compose/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Docker Compose
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../03-Containerization/DOC-04%20Docker%20Networking%20and%20Volumes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Docker Networking
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_6" >
+        
+          
+          <label class="md-nav__link" for="__nav_6" id="__nav_6_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 4 - Orchestration
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_6_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Phase 4 - Orchestration
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../04-Orchestration/K8S-01%20Kubernetes%20Architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    K8s Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../04-Orchestration/K8S-02%20Pods%20Deployments%20Services/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Pods, Deployments, Services
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../04-Orchestration/K8S-03%20ConfigMaps%20and%20Secrets/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ConfigMaps & Secrets
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../04-Orchestration/K8S-04%20Persistent%20Volumes%20and%20Storage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Volumes & Storage
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--#complete"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../04-Orchestration/K8S-05%20Ingress%20and%20Networking/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ingress & Networking
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../04-Orchestration/K8S-06%20RBAC%20and%20Security/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    RBAC & Security
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--#complete"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../04-Orchestration/K8S-07%20Helm%20Package%20Manager/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Helm Package Manager
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--#complete"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../04-Orchestration/K8S-08%20Service%20Mesh/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Service Mesh
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../04-Orchestration/K8S-09%20Kubernetes%20Operators%20and%20CRDs/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Operators & CRDs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../04-Orchestration/K8S-10%20Kubernetes%20Autoscaling/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Autoscaling
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" >
+        
+          
+          <label class="md-nav__link" for="__nav_7" id="__nav_7_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 5 - CI/CD
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Phase 5 - CI/CD
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../05-CI-CD/CICD-01%20CI-CD%20Concepts/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    CI/CD Concepts
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../05-CI-CD/CICD-02%20Jenkins/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Jenkins
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../05-CI-CD/CICD-03%20GitHub%20Actions/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GitHub Actions
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../05-CI-CD/CICD-04%20GitLab%20CI/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GitLab CI
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../05-CI-CD/CICD-05%20ArgoCD%20and%20GitOps/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ArgoCD & GitOps
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_8" >
+        
+          
+          <label class="md-nav__link" for="__nav_8" id="__nav_8_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 6 - IaC
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_8_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_8">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Phase 6 - IaC
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../06-IaC/TF-01%20Terraform%20Fundamentals/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Terraform Fundamentals
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../06-IaC/TF-02%20Terraform%20Modules/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Terraform Modules
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../06-IaC/TF-03%20Terraform%20State%20Management/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Terraform State
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../06-IaC/ANS-01%20Ansible%20Fundamentals/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ansible Fundamentals
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../06-IaC/ANS-02%20Ansible%20Playbooks/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ansible Playbooks
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../06-IaC/ANS-03%20Ansible%20Roles%20and%20Vault/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Ansible Roles & Vault
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_9" >
+        
+          
+          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 7 - Cloud
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Phase 7 - Cloud
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../07-Cloud/AWS-01%20AWS%20Core%20Services%20for%20DevOps/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AWS Core Services
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../07-Cloud/AWS-02%20AWS%20DevOps%20Tools/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    AWS DevOps Tools
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_10" >
+        
+          
+          <label class="md-nav__link" for="__nav_10" id="__nav_10_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 8 - Monitoring
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_10_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_10">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Phase 8 - Monitoring
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../08-Monitoring-and-Observability/MON-01%20Prometheus%20and%20Grafana/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Prometheus & Grafana
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../08-Monitoring-and-Observability/MON-02%20ELK%20Stack%20-%20Log%20Management/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    ELK Stack
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../08-Monitoring-and-Observability/MON-03%20Alerting%20and%20SLO-SLA-SLI/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Alerting & SLOs
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../08-Monitoring-and-Observability/MON-04%20Distributed%20Tracing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Distributed Tracing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_11" >
+        
+          
+          <label class="md-nav__link" for="__nav_11" id="__nav_11_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 9 - DevSecOps
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_11_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_11">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Phase 9 - DevSecOps
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../09-Security-DevSecOps/SEC-01%20DevSecOps%20Fundamentals/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    DevSecOps Fundamentals
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../09-Security-DevSecOps/SEC-02%20SAST%20DAST%20and%20Container%20Scanning/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SAST, DAST, Scanning
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../09-Security-DevSecOps/SEC-03%20Secrets%20Management/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Secrets Management
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../09-Security-DevSecOps/SEC-04%20Container%20and%20Kubernetes%20Security/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Container & K8s Security
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../09-Security-DevSecOps/SEC-05%20Supply%20Chain%20Security/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Supply Chain Security
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../09-Security-DevSecOps/SEC-06%20Network%20Security%20for%20DevOps/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Network Security
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_12" >
+        
+          
+          <label class="md-nav__link" for="__nav_12" id="__nav_12_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 10 - SRE Practices
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_12_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_12">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Phase 10 - SRE Practices
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../10-SRE-Practices/SRE-01%20SRE%20Fundamentals/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    SRE Fundamentals
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../10-SRE-Practices/SRE-02%20Incident%20Management/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Incident Management
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../10-SRE-Practices/SRE-03%20Chaos%20Engineering/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Chaos Engineering
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_13" >
+        
+          
+          <label class="md-nav__link" for="__nav_13" id="__nav_13_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 11 - Additional Tools
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_13_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_13">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Phase 11 - Additional Tools
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../11-Additional-Tools/TOOLS-01%20Docker%20Swarm%20vs%20Kubernetes/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Docker Swarm
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../11-Additional-Tools/TOOLS-02%20Vagrant/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Vagrant
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../11-Additional-Tools/TOOLS-03%20Packer/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Packer
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../11-Additional-Tools/TOOLS-04%20Consul/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Consul
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../11-Additional-Tools/TOOLS-05%20Vault%20Advanced%20-%20PKI%20and%20Dynamic%20Secrets/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Vault Advanced
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_14" >
+        
+          
+          <label class="md-nav__link" for="__nav_14" id="__nav_14_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Phase 12 - Miscellaneous
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_14_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_14">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Phase 12 - Miscellaneous
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../12-Miscellaneous/MISC-01%20GitOps%20Flux%20vs%20ArgoCD/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    GitOps Flux vs ArgoCD
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../12-Miscellaneous/MISC-02%20Serverless%20and%20FaaS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Serverless and FaaS
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../12-Miscellaneous/MISC-03%20Infrastructure%20Testing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Infrastructure Testing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../12-Miscellaneous/MISC-04%20FinOps%20Cloud%20Cost%20Management/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    FinOps
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#linux-shell-scripting-10" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Linux &amp; Shell Scripting (10)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#docker-containers-10" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Docker &amp; Containers (10)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#kubernetes-15" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Kubernetes (15)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cicd-10" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CI/CD (10)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#terraform-iac-10" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Terraform &amp; IaC (10)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ansible-10" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ansible (10)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#monitoring-observability-10" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Monitoring &amp; Observability (10)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#devsecops-5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DevSecOps (5)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sre-incident-management-5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SRE &amp; Incident Management (5)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#behavioral-devops-culture-5" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Behavioral &amp; DevOps Culture (5)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#related-notes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Related Notes
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="ref-02-devops-interview-qa-bank">REF-02 DevOps Interview Q&amp;A Bank</h1>
+<blockquote>
+<p>[!abstract] Overview
+The DevOps interview process is notoriously difficult because it spans multiple distinct disciplines: Systems Administration, Networking, Software Engineering, and Operations. This document contains 90 carefully curated interview questions ranging from conceptual basics to advanced troubleshooting scenarios, categorized by domain.</p>
+</blockquote>
+<hr />
+<h2 id="linux-shell-scripting-10">Linux &amp; Shell Scripting (10)</h2>
+<p><strong>Q1 (Conceptual):</strong> What is the difference between hard links and soft (symbolic) links?
+<strong>A:</strong> A hard link points directly to the underlying inode on the disk; if you delete the original file, the hard link still works because the data exists until all hard links are deleted. A soft link points to the filename/path; if you delete the original file, the soft link becomes a "dangling" broken link. Hard links cannot span across different filesystems, whereas soft links can.</p>
+<p><strong>Q2 (Practical):</strong> How do you find all files larger than 1GB in <code>/var/log</code> and delete them?
+<strong>A:</strong> I would use the <code>find</code> command combined with <code>xargs</code> or <code>-exec</code>. The command is: <code>find /var/log -type f -size +1G -exec rm -f {} +</code>. It searches specifically for files (<code>-type f</code>), larger than 1 Gigabyte (<code>-size +1G</code>), and executes the remove command efficiently.</p>
+<p><strong>Q3 (Troubleshooting):</strong> You try to write to a file, but the system says "No space left on device". You run <code>df -h</code> and see that <code>/</code> has 50% free space. What is the issue?
+<strong>A:</strong> The filesystem has run out of inodes. Even though there is physical disk space available, every file requires one inode to store metadata. If an application generated millions of tiny 1-byte files, all inodes are consumed, preventing new files from being created. I would use <code>df -i</code> to verify this.</p>
+<p><strong>Q4 (Scenario-based):</strong> <strong>Situation:</strong> A background script crashed, but you don't know why. <strong>Task:</strong> Find the exit code of the last command. <strong>Action:</strong> In Bash, I use the special variable <code>$?</code>. <strong>Result:</strong> Running <code>echo $?</code> immediately after the command executes will print the exit code (0 for success, non-zero for failure), allowing me to debug the crash.</p>
+<p><strong>Q5 (Deep dive):</strong> Explain what the <code>umask</code> value <code>022</code> means.
+<strong>A:</strong> <code>umask</code> dictates the default permissions applied when a new file or directory is created. It is subtracted from the system maximums (666 for files, 777 for directories). So, a <code>umask</code> of <code>022</code> means new files will have <code>666 - 022 = 644</code> (rw-r--r--) permissions, and new directories will have <code>777 - 022 = 755</code> (rwxr-xr-x) permissions.</p>
+<p><strong>Q6 (Practical):</strong> How do you safely stop a running process in Linux?
+<strong>A:</strong> First, I find the Process ID (PID) using <code>ps aux | grep process_name</code>. Then, I use <code>kill -15 &lt;PID&gt;</code> (SIGTERM) to ask the process to terminate gracefully, allowing it to close files and save state. I only use <code>kill -9 &lt;PID&gt;</code> (SIGKILL) as an absolute last resort, because it forces the kernel to terminate the process instantly, potentially causing data corruption.</p>
+<p><strong>Q7 (Conceptual):</strong> What is the purpose of the <code>/etc/fstab</code> file?
+<strong>A:</strong> The File System Table (<code>fstab</code>) is a configuration file that tells the Linux kernel how and where to mount disk drives and partitions. During boot, the system reads this file to automatically mount attached EBS volumes or NFS shares. If you configure a drive manually via the <code>mount</code> command, it will not survive a reboot unless added to <code>/etc/fstab</code>.</p>
+<p><strong>Q8 (Scenario-based):</strong> <strong>Situation:</strong> A developer's script is failing because of a syntax error inside a massive 10GB log file. <strong>Task:</strong> They need the first 20 lines of the file to debug it. <strong>Action:</strong> I use <code>head -n 20 error.log</code>. <strong>Result:</strong> Unlike opening the file in <code>vim</code> (which would crash trying to load 10GB into RAM), <code>head</code> reads exactly 20 lines and exits instantly, saving memory.</p>
+<p><strong>Q9 (Deep dive):</strong> What is the difference between <code>chmod</code> and <code>chown</code>?
+<strong>A:</strong> <code>chmod</code> (Change Mode) modifies the read, write, and execute permissions of a file for the owner, group, and others (e.g., <code>chmod 755 file.sh</code>). <code>chown</code> (Change Owner) changes who actually owns the file and which group it belongs to (e.g., <code>chown nginx:nginx /var/www</code>).</p>
+<p><strong>Q10 (Practical):</strong> Write a bash <code>if</code> statement to check if a directory <code>/data</code> exists.
+<strong>A:</strong> I would write:
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">if</span><span class="w"> </span><span class="o">[</span><span class="w"> </span>-d<span class="w"> </span><span class="s2">&quot;/data&quot;</span><span class="w"> </span><span class="o">]</span><span class="p">;</span><span class="w"> </span><span class="k">then</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="w">  </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Directory exists.&quot;</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="k">else</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="w">  </span><span class="nb">echo</span><span class="w"> </span><span class="s2">&quot;Directory missing.&quot;</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="k">fi</span>
+</span></code></pre></div></p>
+<hr />
+<h2 id="docker-containers-10">Docker &amp; Containers (10)</h2>
+<p><strong>Q11 (Conceptual):</strong> What is the difference between a Virtual Machine and a Container?
+<strong>A:</strong> A VM includes a full guest Operating System (Windows/Linux) running on top of a Hypervisor, making it heavy (GBs) and slow to boot. A container shares the host machine's OS kernel and only includes the application and its binaries/libraries, making it lightweight (MBs), incredibly fast to start, and highly portable.</p>
+<p><strong>Q12 (Practical):</strong> How do you reduce the size of a Docker image?
+<strong>A:</strong> First, use a minimal base image like <code>alpine</code> or <code>distroless</code>. Second, use Multi-Stage Builds to compile the code in a heavy "build" stage, but only copy the compiled binary into the final, lightweight "runtime" stage. Third, chain <code>RUN</code> commands with <code>&amp;&amp;</code> to minimize the number of intermediate layers created, and clean up package caches (e.g., <code>apt-get clean</code>) in the same layer.</p>
+<p><strong>Q13 (Troubleshooting):</strong> You run a container and it exits immediately with code 0. Why?
+<strong>A:</strong> Containers only stay alive as long as their primary foreground process (PID 1) is running. If you start a container to run a background service (like <code>/etc/init.d/nginx start</code>) or a script that finishes its task, PID 1 completes, and Docker shuts down the container. You must run the process in the foreground (e.g., <code>nginx -g 'daemon off;'</code>).</p>
+<p><strong>Q14 (Scenario-based):</strong> <strong>Situation:</strong> Two containers need to communicate securely without exposing ports to the host network. <strong>Task:</strong> Isolate their traffic. <strong>Action:</strong> I create a custom bridge network (<code>docker network create backend-net</code>) and run both containers attached to it. <strong>Result:</strong> They can resolve each other via DNS using their container names, but they are isolated from the host and other containers.</p>
+<p><strong>Q15 (Deep dive):</strong> What is the difference between <code>CMD</code> and <code>ENTRYPOINT</code> in a Dockerfile?
+<strong>A:</strong> <code>ENTRYPOINT</code> defines the executable that will <em>always</em> run when the container starts, and it is very hard to override from the CLI. <code>CMD</code> provides the default arguments passed to that <code>ENTRYPOINT</code>. If you run <code>docker run myimage bash</code>, it overrides the <code>CMD</code>, but the <code>ENTRYPOINT</code> still executes first. </p>
+<p><strong>Q16 (Practical):</strong> How do you persist data in a Docker container?
+<strong>A:</strong> Data inside a container's writable layer is lost when the container is deleted. To persist data, I use Volumes. I prefer <strong>Named Volumes</strong> (<code>docker volume create my-vol</code>, then mount with <code>-v my-vol:/data</code>) because Docker manages them securely, or <strong>Bind Mounts</strong> to link a specific host directory directly to the container.</p>
+<p><strong>Q17 (Conceptual):</strong> What is a <code>.dockerignore</code> file and why is it important?
+<strong>A:</strong> It is exactly like a <code>.gitignore</code> file, but for the Docker build context. When you run <code>docker build .</code>, the Docker CLI sends the entire current directory to the Docker daemon. If you don't ignore files like <code>node_modules</code> or <code>.git</code>, the build context becomes massive, significantly slowing down the build and risking secret leakage.</p>
+<p><strong>Q18 (Troubleshooting):</strong> You try to bind to port 80 inside a container, but it fails with "Permission Denied".
+<strong>A:</strong> Linux restricts binding to privileged ports (ports below 1024) to the <code>root</code> user. Since best security practices dictate running containers as a non-root user (<code>USER 1000</code> in the Dockerfile), the process cannot bind to port 80. The fix is to configure the application to listen on an unprivileged port (like 8080) and map it via Docker (<code>-p 80:8080</code>).</p>
+<p><strong>Q19 (Deep dive):</strong> Explain Docker namespaces and cgroups.
+<strong>A:</strong> These are the two fundamental Linux kernel features that make containers possible. <strong>Namespaces</strong> provide isolation (they ensure that Container A cannot see Container B's processes, networks, or mount points). <strong>Cgroups (Control Groups)</strong> provide resource limitation (they ensure Container A cannot consume more than 2GB of RAM or 1 CPU core, preventing the "noisy neighbor" problem).</p>
+<p><strong>Q20 (Scenario-based):</strong> <strong>Situation:</strong> You need to debug a running Nginx container that has no shell (like Alpine or Distroless). <strong>Task:</strong> Inspect its internal files. <strong>Action:</strong> Since <code>docker exec -it web sh</code> fails, I use <code>docker cp</code> to copy the config file out of the container to my host, read it locally, or use a sidecar container attached to the same network/volumes for debugging. <strong>Result:</strong> I debug the issue without compromising the secure base image.</p>
+<hr />
+<h2 id="kubernetes-15">Kubernetes (15)</h2>
+<p><strong>Q21 (Conceptual):</strong> What is the role of <code>etcd</code> in the Kubernetes Control Plane?
+<strong>A:</strong> <code>etcd</code> is a highly available, distributed key-value store that acts as the cluster's brain. It stores the absolute "desired state" and current state of the entire cluster. All K8s components read from and write to the API server, which is the only component allowed to talk directly to <code>etcd</code>. If <code>etcd</code> is lost and unbacked up, the entire cluster is effectively destroyed.</p>
+<p><strong>Q22 (Practical):</strong> How do you gracefully drain a node for maintenance?
+<strong>A:</strong> I run <code>kubectl cordon &lt;node-name&gt;</code> to mark it unschedulable (preventing new pods from landing there). Then, I run <code>kubectl drain &lt;node-name&gt; --ignore-daemonsets --delete-emptydir-data</code>. This safely evicts all running pods, allowing the ReplicaSets to recreate them on other healthy nodes before I shut down the node.</p>
+<p><strong>Q23 (Troubleshooting):</strong> A Pod is stuck in <code>CrashLoopBackOff</code>. How do you debug it?
+<strong>A:</strong> <code>CrashLoopBackOff</code> means the container starts, but the application immediately crashes, and K8s keeps trying to restart it. I would run <code>kubectl describe pod &lt;pod-name&gt;</code> to check the Events for Liveness probe failures or OOMKilled errors. Then, I would run <code>kubectl logs &lt;pod-name&gt; --previous</code> to see the actual application stack trace from the last crashed instance.</p>
+<p><strong>Q24 (Scenario-based / CKA):</strong> <strong>Situation:</strong> You deleted a Deployment, but the pods are immediately being recreated. <strong>Task:</strong> Stop the pods from returning. <strong>Action:</strong> The issue is that I deleted the Pods manually instead of the Deployment, or there is a higher-level controller (like a Helm release or ArgoCD Application) that is detecting the deletion as "drift" and forcing a sync. <strong>Result:</strong> I must delete the root controller (e.g., <code>kubectl delete deployment myapp</code>), which cascades the deletion down to the ReplicaSets and Pods.</p>
+<p><strong>Q25 (Deep dive):</strong> Explain the difference between Liveness, Readiness, and Startup probes.
+<strong>A:</strong> <strong>Liveness</strong> checks if the app is dead (e.g., deadlocked); if it fails, K8s restarts the pod. <strong>Readiness</strong> checks if the app is ready to accept traffic; if it fails, K8s temporarily removes the pod's IP from the Service load balancer (no restart). <strong>Startup</strong> is used for legacy apps that take 2 minutes to boot; it disables the other two probes until it passes, preventing K8s from infinitely killing slow-booting apps.</p>
+<p><strong>Q26 (Conceptual):</strong> What is a Headless Service and when do you use it?
+<strong>A:</strong> A Headless Service is created by setting <code>clusterIP: None</code>. Instead of load balancing traffic to a single virtual IP, DNS resolves the Service name directly to the individual Pod IPs. It is primarily used with <strong>StatefulSets</strong> (like Cassandra or MongoDB) where the client application needs to talk directly to a specific primary or replica pod, not a random load balancer.</p>
+<p><strong>Q27 (Practical):</strong> How do you inject a password securely into a Pod?
+<strong>A:</strong> I create a Kubernetes <code>Secret</code> object holding the base64-encoded password. In the Pod's YAML <code>spec</code>, I mount this Secret either as an Environment Variable (<code>valueFrom: secretKeyRef</code>) or mount it as a physical file inside a Volume (<code>secret: secretName</code>). I ensure RBAC prevents unauthorized users from reading the Secret object.</p>
+<p><strong>Q28 (Troubleshooting):</strong> Your Pod is stuck in <code>Pending</code> state permanently. Why?
+<strong>A:</strong> <code>Pending</code> means the K8s Scheduler cannot find a suitable Node to place the pod. Common causes include: lack of CPU/Memory resources on the cluster, No taints/tolerations match (the pod isn't allowed to schedule on available nodes), or a requested PersistentVolumeClaim (PVC) cannot be bound or provisioned.</p>
+<p><strong>Q29 (Scenario-based / CKA):</strong> <strong>Situation:</strong> You have a web app deployment running 3 replicas. Traffic spikes and you need 10 replicas immediately. <strong>Task:</strong> Scale the deployment declaratively. <strong>Action:</strong> I run <code>kubectl scale deployment webapp --replicas=10</code>. Later, I update the actual Git repository YAML to <code>replicas: 10</code> so the change is persisted and recorded in version control. <strong>Result:</strong> The ReplicaSet provisions 7 new pods instantly.</p>
+<p><strong>Q30 (Deep dive):</strong> What is the difference between a DaemonSet and a Deployment?
+<strong>A:</strong> A Deployment ensures a specific number of replicas (e.g., 5 pods) are running, spread randomly across the cluster based on resource availability. A DaemonSet ensures that exactly ONE copy of a pod runs on <em>every single node</em> in the cluster. DaemonSets are used for node-level agents, such as Fluentd (for log collection) or Calico (for networking).</p>
+<p><strong>Q31 (Conceptual):</strong> What is an Ingress Controller?
+<strong>A:</strong> An Ingress Controller is a specialized reverse proxy (like Nginx, Traefik, or HAProxy) running inside the cluster. It reads Kubernetes <code>Ingress</code> objects to generate its routing rules. It acts as the single entry point (LoadBalancer) for external traffic, providing path-based routing (e.g., <code>/api</code> goes to API pod, <code>/web</code> goes to UI pod) and TLS termination.</p>
+<p><strong>Q32 (Practical):</strong> Write the <code>kubectl</code> command to expose a deployment on port 8080 internally.
+<strong>A:</strong> <code>kubectl expose deployment my-api --port=8080 --target-port=8080 --type=ClusterIP</code></p>
+<p><strong>Q33 (Troubleshooting):</strong> You deployed an app, but accessing the Service IP returns a "Connection Refused".
+<strong>A:</strong> The Service might not be mapping to the Pods correctly. First, I check <code>kubectl get endpoints my-service</code>. If the endpoints list is empty, it means the <code>selector</code> labels in the Service YAML (e.g., <code>app: myapp</code>) do not exactly match the <code>labels</code> on the Pod. K8s relies strictly on label matching to connect Services to Pods.</p>
+<p><strong>Q34 (Scenario-based / CKA):</strong> <strong>Situation:</strong> An attacker compromised a pod and is trying to access the AWS API. <strong>Task:</strong> Revoke its permissions. <strong>Action:</strong> By default, every pod mounts a default ServiceAccount token. I edit the Pod or Deployment spec and add <code>automountServiceAccountToken: false</code>. <strong>Result:</strong> The compromised pod can no longer authenticate to the K8s API server, cutting off internal privilege escalation.</p>
+<p><strong>Q35 (Deep dive):</strong> Explain how <code>PersistentVolumes</code> (PV) and <code>PersistentVolumeClaims</code> (PVC) work.
+<strong>A:</strong> A <strong>PV</strong> is a piece of storage provisioned by the administrator (e.g., an AWS EBS volume of 100GB). A <strong>PVC</strong> is a request for storage made by a developer (e.g., "I need 10GB"). K8s automatically binds the PVC to a suitable PV based on size and access modes. The Pod then mounts the PVC, decoupling the pod specification from the underlying storage infrastructure details.</p>
+<hr />
+<h2 id="cicd-10">CI/CD (10)</h2>
+<p><strong>Q36 (Conceptual):</strong> What is the difference between Continuous Delivery and Continuous Deployment?
+<strong>A:</strong> Both automate the pipeline up to the staging environment. In Continuous <strong>Delivery</strong>, deploying to Production requires a human to manually click an "Approve/Deploy" button. In Continuous <strong>Deployment</strong>, there are no human gates; if the code passes all automated tests in the CI pipeline, it is automatically deployed straight to Production.</p>
+<p><strong>Q37 (Practical):</strong> How do you pass an artifact (like a compiled <code>.jar</code> file) from a Build job to a Deploy job in a CI pipeline?
+<strong>A:</strong> In most CI tools (GitLab, GitHub Actions, Jenkins), jobs run in isolated runners/containers. I must explicitly define the file as an "Artifact" in the Build job, which uploads it to the CI server's storage. The Deploy job then downloads that Artifact at the start of its run to use it.</p>
+<p><strong>Q38 (Troubleshooting):</strong> Your Jenkins pipeline is failing because it says "Docker command not found" when trying to build an image.
+<strong>A:</strong> The pipeline is likely running on a Jenkins agent node that does not have Docker installed, or the Jenkins user does not have permissions to run Docker. I would ensure the pipeline is pinned to a specific agent label (e.g., <code>agent { label 'docker-node' }</code>) or configure the Jenkins controller to spin up Docker-in-Docker containers for builds.</p>
+<p><strong>Q39 (Scenario-based):</strong> <strong>Situation:</strong> Developers are complaining that the CI pipeline takes 45 minutes to run, ruining productivity. <strong>Task:</strong> Optimize it. <strong>Action:</strong> I analyze the pipeline and find that <code>npm install</code> takes 20 minutes, and unit tests run sequentially. I implement dependency <strong>Caching</strong> (so <code>node_modules</code> is reused between runs) and use a <strong>Matrix strategy</strong> to split the tests into 5 parallel jobs. <strong>Result:</strong> Pipeline execution drops to 10 minutes.</p>
+<p><strong>Q40 (Deep dive):</strong> What is a Blue-Green deployment strategy?
+<strong>A:</strong> You maintain two identical production environments (Blue and Green). Blue is currently serving live customer traffic. You deploy the new version of the code to the idle Green environment. You run tests on Green safely. Once verified, you flip the load balancer switch, instantly routing all customer traffic from Blue to Green. If a bug is found, you flip the switch back for a 1-second rollback.</p>
+<p><strong>Q41 (Conceptual):</strong> What is GitOps, and how does it differ from traditional CI/CD?
+<strong>A:</strong> GitOps (using tools like ArgoCD) separates CI from CD. Traditional CI/CD uses a "Push" model, where Jenkins pushes YAML to the cluster. GitOps uses a "Pull" model. Jenkins only builds the image and updates the Git repository. ArgoCD, running <em>inside</em> the cluster, constantly polls Git. When it sees a change, it pulls the new desired state and reconciles the cluster automatically.</p>
+<p><strong>Q42 (Practical):</strong> How do you trigger a GitHub Actions workflow manually?
+<strong>A:</strong> In the workflow YAML file, under the <code>on:</code> section, I add the <code>workflow_dispatch:</code> event trigger. This adds a "Run workflow" button in the Actions tab on the GitHub UI, allowing developers to manually execute the pipeline and pass optional input parameters.</p>
+<p><strong>Q43 (Troubleshooting):</strong> A deployment to production failed, but the deployment script returned <code>exit 0</code>, causing the CI pipeline to falsely report "Success" (Green).
+<strong>A:</strong> The deployment script likely suppressed the error or used a pipe <code>|</code> where only the last command's exit code was evaluated. In bash scripts used in CI, always include <code>set -e</code> at the top to ensure the script immediately exits with a failure code if any single command fails. Also, set <code>set -o pipefail</code>.</p>
+<p><strong>Q44 (Scenario-based):</strong> <strong>Situation:</strong> You need to deploy a risky new feature, but want to test it on real users safely. <strong>Task:</strong> Implement a safe release strategy. <strong>Action:</strong> I use a <strong>Canary Deployment</strong>. I route 95% of traffic to the stable version, and 5% of traffic to the new "canary" version. <strong>Result:</strong> We monitor the error logs of the 5%. If it crashes, only 5% of users are impacted, and we rollback. If stable, we slowly scale to 100%.</p>
+<p><strong>Q45 (Deep dive):</strong> Explain what Trunk-Based Development is.
+<strong>A:</strong> It is a branching model where all developers merge their code directly into a central <code>main</code> branch multiple times a day, entirely avoiding long-lived feature branches. This requires heavy reliance on automated testing and Feature Flags (so unfinished code can be hidden in production). It drastically reduces painful merge conflicts and is a core prerequisite for true Continuous Integration.</p>
+<hr />
+<h2 id="terraform-iac-10">Terraform &amp; IaC (10)</h2>
+<p><strong>Q46 (Conceptual):</strong> What is Terraform State and why is it dangerous to commit it to Git?
+<strong>A:</strong> The state file (<code>terraform.tfstate</code>) is a JSON mapping of your HCL code to real-world cloud resources. It is highly sensitive because it stores all resource attributes—including database passwords, private keys, and API tokens—in plain text. Committing it to Git exposes all your infrastructure secrets. It must be stored in a secure Remote Backend (like S3).</p>
+<p><strong>Q47 (Practical):</strong> How do you lock a specific version of the AWS provider in Terraform?
+<strong>A:</strong> Inside the <code>terraform {}</code> block, under <code>required_providers</code>, I define the <code>aws</code> provider and use the <code>version</code> constraint. For example, <code>version = "~&gt; 5.0"</code> ensures Terraform only downloads 5.x versions and avoids breaking changes introduced in major version 6.0.</p>
+<p><strong>Q48 (Troubleshooting):</strong> You run <code>terraform plan</code> and it wants to destroy your production database and recreate it, even though you just changed a tag.
+<strong>A:</strong> You modified an immutable property of the database (or the provider has a bug). Terraform detects that the only way to apply the new configuration is to destroy the old resource entirely and build a new one. <strong>Do not apply.</strong> Revert the HCL change, use the <code>lifecycle { prevent_destroy = true }</code> block on critical resources to prevent this exact mistake.</p>
+<p><strong>Q49 (Scenario-based):</strong> <strong>Situation:</strong> A Junior dev accidentally deleted a crucial S3 bucket using the AWS Console instead of Terraform. <strong>Task:</strong> Fix the Terraform state. <strong>Action:</strong> I run <code>terraform plan</code>. <strong>Result:</strong> Terraform compares its state to reality, notices the bucket is missing, and offers a plan to seamlessly recreate it based on the existing HCL code. I just run <code>terraform apply</code>.</p>
+<p><strong>Q50 (Deep dive):</strong> How does State Locking work in Terraform, and why is DynamoDB used for AWS backends?
+<strong>A:</strong> State locking prevents two engineers (or two CI pipelines) from running <code>terraform apply</code> at the exact same millisecond, which would corrupt the state file. When using AWS S3 for remote state, S3 natively lacks atomic locking features. Therefore, Terraform integrates with a DynamoDB table, creating a "LockID" record when an apply starts, and deleting it when finished, ensuring safe concurrency.</p>
+<p><strong>Q51 (Conceptual):</strong> What is the difference between a <code>resource</code> and a <code>data</code> block?
+<strong>A:</strong> A <code>resource</code> block instructs Terraform to CREATE and manage a new piece of infrastructure (e.g., <code>resource "aws_instance"</code>). A <code>data</code> block instructs Terraform to READ information about infrastructure that already exists (perhaps created manually or by another team), so you can use its attributes (e.g., <code>data "aws_vpc"</code> to find the VPC ID).</p>
+<p><strong>Q52 (Practical):</strong> You have a generic VPC module. How do you provision 3 different VPCs for Dev, Staging, and Prod without duplicating the code?
+<strong>A:</strong> I write the VPC module once. Then, I create three separate workspace directories (or use Terraform Cloud Workspaces). In each directory, I call the exact same module block, but pass in different variables via a <code>.tfvars</code> file (e.g., <code>cidr_block="10.1.0.0/16"</code> for Dev, <code>cidr_block="10.2.0.0/16"</code> for Prod).</p>
+<p><strong>Q53 (Troubleshooting):</strong> You renamed an EC2 instance resource in your <code>main.tf</code> from <code>aws_instance.old</code> to <code>aws_instance.new</code>. Terraform wants to destroy the server and rebuild it. How do you prevent this?
+<strong>A:</strong> I use the <code>terraform state mv</code> command. I run <code>terraform state mv aws_instance.old aws_instance.new</code>. This surgically updates Terraform's memory (the state file) so it realizes the new code maps to the exact same AWS resource, resulting in a clean <code>plan</code> with no destruction.</p>
+<p><strong>Q54 (Scenario-based):</strong> <strong>Situation:</strong> The company acquired a startup that built their AWS infrastructure completely manually. <strong>Task:</strong> Bring it under Terraform control. <strong>Action:</strong> I write the corresponding HCL code in <code>main.tf</code> to match the real resources. Then, I use the <code>terraform import</code> command (e.g., <code>terraform import aws_s3_bucket.my_bucket real-bucket-name</code>). <strong>Result:</strong> Terraform links the real bucket to the code without recreating it.</p>
+<p><strong>Q55 (Deep dive):</strong> Explain what the <code>terraform taint</code> command (or the modern <code>-replace</code> flag) does.
+<strong>A:</strong> If a resource was created successfully by Terraform, but the software configuration failed (e.g., a bad bash script was run during EC2 provisioning), Terraform thinks it's perfectly healthy. By "tainting" the resource, you explicitly tell Terraform that the resource is broken and must be destroyed and recreated on the next <code>terraform apply</code>.</p>
+<hr />
+<h2 id="ansible-10">Ansible (10)</h2>
+<p><strong>Q56 (Conceptual):</strong> What does "Idempotency" mean in Ansible?
+<strong>A:</strong> Idempotency is the property that you can run an Ansible playbook 1,000 times, and the system will remain in the exact same desired state. If a package is already installed, Ansible detects it and does nothing (reports <code>OK</code>), rather than trying to install it again and causing errors. This allows you to safely run playbooks repeatedly.</p>
+<p><strong>Q57 (Practical):</strong> You need to restart Nginx, but ONLY if the configuration file was modified in a previous task. How do you do this?
+<strong>A:</strong> I use Handlers. I define the restart task in the <code>handlers:</code> section of the playbook. In the task that copies the config file, I add <code>notify: Restart Nginx</code>. The handler will only trigger at the end of the play IF the config copy task reported a status of <code>changed</code>.</p>
+<p><strong>Q58 (Troubleshooting):</strong> You run a playbook against 100 servers. It fails immediately with "UNREACHABLE" on 5 of them.
+<strong>A:</strong> This is an SSH connectivity issue. I would verify that the 5 servers are powered on, port 22 is open in their firewall, and that my Control Node has the correct private SSH key loaded to authenticate against those specific machines. I can test this using the Ad-Hoc command: <code>ansible failing_servers -m ping</code>.</p>
+<p><strong>Q59 (Scenario-based):</strong> <strong>Situation:</strong> You need to pass an API key to your playbook, but you cannot commit it to GitHub. <strong>Task:</strong> Secure the variable. <strong>Action:</strong> I use <strong>Ansible Vault</strong>. I run <code>ansible-vault encrypt secrets.yml</code> to encrypt the file containing the API key. <strong>Result:</strong> I commit the encrypted file to Git, and when executing, I pass <code>--ask-vault-pass</code> so Ansible decrypts it in memory at runtime.</p>
+<p><strong>Q60 (Deep dive):</strong> What are Ansible Facts?
+<strong>A:</strong> Facts are system properties gathered from the target nodes (e.g., OS distribution, IP addresses, CPU cores, available memory). By default, Ansible runs a hidden <code>setup</code> module at the start of every play to collect this data and stores it in variables (like <code>ansible_os_family</code>). This allows you to write conditional tasks (e.g., "Only run this <code>yum</code> task if the OS is RedHat").</p>
+<p><strong>Q61 (Conceptual):</strong> Why is Ansible considered "Agentless"?
+<strong>A:</strong> Unlike Puppet or Chef, Ansible does not require you to install any proprietary daemon or background service on the target servers. It operates completely over standard SSH (or WinRM for Windows). The target server only needs Python installed to execute the modules.</p>
+<p><strong>Q62 (Practical):</strong> How do you group servers logically in an Ansible inventory file?
+<strong>A:</strong> In an INI-format inventory file, I use brackets to define groups. For example:
+<div class="language-ini highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">[webservers]</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="na">10.0.0.1</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="na">10.0.0.2</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="k">[dbservers]</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="na">10.0.0.3</span>
+</span></code></pre></div>
+I can then target specific groups in my playbook using <code>hosts: webservers</code>.</p>
+<p><strong>Q63 (Troubleshooting):</strong> You use the <code>shell</code> module to run <code>echo "hello" &gt; test.txt</code>. The playbook reports <code>changed</code> every single time it runs, breaking idempotency.
+<strong>A:</strong> The <code>shell</code> and <code>command</code> modules are not natively idempotent; Ansible blindly executes them. To achieve idempotency, I should use native modules like <code>copy</code> or <code>lineinfile</code>. If I <em>must</em> use <code>shell</code>, I should add the <code>creates:</code> parameter (<code>creates: test.txt</code>), which tells Ansible to skip the command if the file already exists.</p>
+<p><strong>Q64 (Scenario-based):</strong> <strong>Situation:</strong> You are writing a playbook, and you find yourself copying and pasting the same 20 tasks to install Node.js across multiple projects. <strong>Task:</strong> Apply DRY principles. <strong>Action:</strong> I refactor the tasks, variables, and templates into an <strong>Ansible Role</strong> using <code>ansible-galaxy init nodejs-role</code>. <strong>Result:</strong> I can now just call <code>role: nodejs-role</code> in any future playbook with one line of code.</p>
+<p><strong>Q65 (Deep dive):</strong> Explain Variable Precedence in Ansible. What overrides what?
+<strong>A:</strong> Ansible has 22 levels of variable precedence. Generally, variables defined in the Inventory are the weakest. Variables defined in the Playbook (<code>vars:</code> block) are stronger. Variables passed via the command line (<code>-e "my_var=1"</code>) are the absolute strongest and will override almost everything else.</p>
+<hr />
+<h2 id="monitoring-observability-10">Monitoring &amp; Observability (10)</h2>
+<p><strong>Q66 (Conceptual):</strong> What are the "Three Pillars of Observability"?
+<strong>A:</strong> 1. <strong>Metrics</strong> (Prometheus): Aggregated numerical data identifying <em>if</em> there is a problem (e.g., CPU is at 100%). 2. <strong>Logs</strong> (ELK Stack): Discrete text records identifying <em>why</em> the problem occurred (e.g., Java NullPointerException). 3. <strong>Traces</strong> (Jaeger): The context of a single request traversing microservices, identifying <em>where</em> the bottleneck is.</p>
+<p><strong>Q67 (Practical):</strong> A developer wants to graph total HTTP requests in Grafana using Prometheus data. They use the query <code>http_requests_total</code>. The graph is a useless, ever-climbing mountain. How do you fix it?
+<strong>A:</strong> <code>http_requests_total</code> is a Counter metric, which only goes up. Graphing raw counters is useless. You must calculate the per-second rate of increase using a time window. I would change the query to <code>rate(http_requests_total[5m])</code>, which shows the actual requests-per-second, providing a readable traffic graph.</p>
+<p><strong>Q68 (Troubleshooting):</strong> Kibana is running extremely slowly, and Elasticsearch reports "High Disk Watermark [95%] exceeded".
+<strong>A:</strong> When Elasticsearch hits 95% disk usage, it automatically puts all indices into "Read-Only" mode to prevent catastrophic failure, dropping all new logs. I must immediately add more disk space, or delete old indices (<code>curl -X DELETE localhost:9200/old-logs-2023.01</code>), and then manually run an API call to remove the read-only block.</p>
+<p><strong>Q69 (Scenario-based):</strong> <strong>Situation:</strong> The team suffers from "Alert Fatigue" because they get 50 PagerDuty emails a day for high CPU usage. <strong>Task:</strong> Fix the alerting culture. <strong>Action:</strong> I delete all alerts based on internal causes (CPU, RAM). I replace them with symptom-based alerts targeting the user experience (e.g., "Alert if API Latency &gt; 2s for 5 mins" or "Alert if 5xx Error Rate &gt; 5%"). <strong>Result:</strong> The team only gets woken up when users are actually impacted.</p>
+<p><strong>Q70 (Deep dive):</strong> Explain the difference between a Push and a Pull model in monitoring.
+<strong>A:</strong> In a <strong>Push</strong> model (like Datadog or InfluxDB), the servers actively send their metrics to the central hub. This can overwhelm the hub and requires configuring outbound credentials on every server. In a <strong>Pull</strong> model (like Prometheus), the central server reaches out (scrapes) the targets via HTTP <code>/metrics</code> endpoints. This is highly scalable, easier to secure, and allows developers to easily scrape metrics locally on their laptops.</p>
+<p><strong>Q71 (Conceptual):</strong> What is the purpose of Logstash in the ELK stack?
+<strong>A:</strong> Logstash is the data processing pipeline. Unstructured logs (like raw Nginx strings) are useless for querying. Logstash ingests the raw string, uses Grok patterns (Regex) to parse it into structured JSON fields (extracting the IP address, HTTP status code, and URL separately), and then outputs that clean JSON into Elasticsearch.</p>
+<p><strong>Q72 (Practical):</strong> How do you calculate the 99th percentile (P99) latency in Prometheus?
+<strong>A:</strong> I use a Histogram metric combined with the <code>histogram_quantile</code> function. The query looks like: <code>histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket[5m])) by (le))</code>. This proves that 99% of all requests are served faster than the resulting number.</p>
+<p><strong>Q73 (Troubleshooting):</strong> You deployed the OpenTelemetry Collector, but traces from the Python app are not appearing in Jaeger.
+<strong>A:</strong> Trace context propagation is likely failing. First, check the Python app's stdout to ensure the OTel SDK is initialized. Second, check the OTel Collector logs to ensure it is successfully receiving gRPC traffic on port 4317. Finally, check if network firewalls are blocking the Collector from exporting data to the Jaeger backend port (14250).</p>
+<p><strong>Q74 (Scenario-based):</strong> <strong>Situation:</strong> A massive network switch fails, causing 500 servers to drop offline. <strong>Task:</strong> Prevent 500 separate PagerDuty phone calls from waking the engineer. <strong>Action:</strong> I configure <strong>Alertmanager Grouping</strong>. <strong>Result:</strong> By setting <code>group_by: ['datacenter']</code>, Alertmanager queues the alerts for 30 seconds, sees 500 alerts for the same datacenter, and bundles them into a single, comprehensive incident notification.</p>
+<p><strong>Q75 (Deep dive):</strong> What is an Error Budget?
+<strong>A:</strong> It is the mathematical allowance for failure. If your Service Level Objective (SLO) is 99.9% uptime per month, your Error Budget is 0.1% (about 43 minutes of allowed downtime). If the budget is exhausted, policy dictates a strict deployment freeze—developers cannot launch new features until the budget recovers, forcing the team to focus entirely on reliability.</p>
+<hr />
+<h2 id="devsecops-5">DevSecOps (5)</h2>
+<p><strong>Q76 (Conceptual):</strong> What is an SBOM and why is it legally mandated in many industries now?
+<strong>A:</strong> A Software Bill of Materials (SBOM) is a comprehensive, machine-readable inventory of every third-party open-source library, version, and nested dependency used in your software. It is critical for Supply Chain Security. If a new zero-day vulnerability (like Log4Shell) is announced, you query your SBOMs to instantly locate which microservices are affected, rather than manually searching millions of lines of code.</p>
+<p><strong>Q77 (Practical):</strong> How do you prevent developers from deploying containers running as the root user in Kubernetes?
+<strong>A:</strong> I implement an Admission Controller like OPA Gatekeeper or Kyverno. I write a policy that evaluates incoming Pod YAMLs. If the <code>securityContext.runAsNonRoot</code> field is missing or set to <code>false</code>, the Admission Controller rejects the API request and blocks the deployment before it ever reaches <code>etcd</code>.</p>
+<p><strong>Q78 (Troubleshooting):</strong> A DAST scanner running in your CI pipeline takes 4 hours to complete, completely blocking developer velocity. How do you resolve this?
+<strong>A:</strong> A full DAST spider crawl is too aggressive for CI. I would modify the CI pipeline to run an "API Baseline Scan" targeting only critical endpoints, which takes 2 minutes. I would then schedule the comprehensive 4-hour DAST scan to run asynchronously every weekend, shifting the heavy security workload out of the immediate developer feedback loop.</p>
+<p><strong>Q79 (Scenario-based):</strong> <strong>Situation:</strong> A developer accidentally pushes a hardcoded AWS Access Key to a public GitHub repository. <strong>Task:</strong> Secure the environment. <strong>Action:</strong> I immediately log into the AWS Console and deactivate/delete that specific IAM key. <strong>Result:</strong> I do NOT start by trying to delete the GitHub commit, because scraping bots steal keys in milliseconds. Revoking the key in AWS neutralizes the threat instantly.</p>
+<p><strong>Q80 (Deep dive):</strong> Explain the difference between SAST and SCA.
+<strong>A:</strong> SAST (Static Application Security Testing) analyzes your <em>custom written source code</em> for logical vulnerabilities, like SQL injection or cross-site scripting (e.g., SonarQube). SCA (Software Composition Analysis) ignores your custom code and strictly analyzes your <code>package.json</code> or <code>requirements.txt</code> to find known public vulnerabilities (CVEs) in <em>third-party open-source libraries</em> (e.g., Snyk, Trivy).</p>
+<hr />
+<h2 id="sre-incident-management-5">SRE &amp; Incident Management (5)</h2>
+<p><strong>Q81 (Conceptual):</strong> What is the core definition of "Toil" in SRE?
+<strong>A:</strong> Toil is manual, repetitive, tactical work that provides no enduring value and scales linearly as the system grows (e.g., manually resetting user passwords or running a database backup script by hand). SREs have a strict mandate to cap toil at 50% of their time, spending the other 50% writing software/automation to eliminate the toil permanently.</p>
+<p><strong>Q82 (Practical):</strong> You are the Incident Commander (IC) during a massive SEV-1 outage. Two engineers are arguing in Slack over what the root cause is. What is your action?
+<strong>A:</strong> The IC's job is to impose order and focus on mitigation. I would intervene: "Stop arguing. Alice, spend 5 minutes proving it's the network. Bob, spend 5 minutes proving it's the database. Report back here." The IC does NOT debug the issue themselves; they delegate, time-box investigations, and maintain control.</p>
+<p><strong>Q83 (Troubleshooting):</strong> During a Chaos Engineering GameDay, you kill a primary database pod. The replica takes over successfully, but the web application returns HTTP 500s. Why?
+<strong>A:</strong> The web application code lacks resilience. It likely caches the database IP address on startup or lacks a retry mechanism for dropped connections. When the primary DB died, the web app refused to reconnect to the new replica's IP. The fix is implementing a Circuit Breaker pattern and connection pooling retry logic in the application code.</p>
+<p><strong>Q84 (Scenario-based):</strong> <strong>Situation:</strong> An engineer runs a script that accidentally deletes a production table, causing a 2-hour outage. <strong>Task:</strong> Conduct the postmortem. <strong>Action:</strong> I lead a <strong>Blameless Postmortem</strong>. Instead of asking "Why did Bob make a mistake?", we ask "Why did the system allow a human to execute a destructive command in production without an automated safety check?". <strong>Result:</strong> Action items are generated to implement Terraform and revoke manual CLI access to production databases.</p>
+<p><strong>Q85 (Deep dive):</strong> Why is attempting to achieve 100% availability considered an anti-pattern in SRE?
+<strong>A:</strong> 100% availability is physically impossible due to factors outside your control (AWS region failures, cosmic rays). More importantly, the cost of going from 99.9% (3 Nines) to 99.999% (5 Nines) is exponentially higher in engineering effort. Aiming for 100% requires freezing all feature deployments, which bankrupts the business by stopping innovation. You should only aim for the reliability level your actual users require.</p>
+<hr />
+<h2 id="behavioral-devops-culture-5">Behavioral &amp; DevOps Culture (5)</h2>
+<p><strong>Q86 (Behavioral):</strong> Tell me about a time you broke production.
+<strong>A:</strong> <em>(STAR Format Example)</em> <strong>S:</strong> I was a junior engineer updating a routing table. <strong>T:</strong> I needed to add a single IP. <strong>A:</strong> I wrote the command incorrectly, overwrote the entire routing table instead of appending to it, and brought down the API. I immediately declared an incident and rolled back the config. <strong>R:</strong> During the postmortem, I took responsibility. We implemented an automated CI syntax checker (OPA) for all routing changes so nobody could ever make that mistake again.</p>
+<p><strong>Q87 (Behavioral):</strong> How do you handle a developer who refuses to write unit tests, claiming it "slows down their velocity"?
+<strong>A:</strong> I would empathize with their desire for speed, but use data to shift their perspective. I would show them metrics indicating that bugs caught in production take 10x longer to fix (and require painful rollback meetings) compared to bugs caught in CI. I would offer to pair-program with them to set up test templates, proving that automated tests actually <em>increase</em> deployment velocity by removing the need for manual QA.</p>
+<p><strong>Q88 (Behavioral):</strong> Describe a time you automated a process that saved your team significant time.
+<strong>A:</strong> <strong>S:</strong> Our team spent 4 hours every Friday manually generating compliance reports by querying 5 different databases. <strong>T:</strong> It was pure toil. <strong>A:</strong> I wrote a Python script utilizing Pandas that queried the databases, generated a formatted PDF report, and scheduled it in Jenkins to run automatically on Friday mornings. <strong>R:</strong> It saved the team 16 hours a month, allowing us to focus on our Kubernetes migration project.</p>
+<p><strong>Q89 (Behavioral):</strong> What does the term "DevOps" actually mean to you?
+<strong>A:</strong> To me, DevOps is not a job title or a toolset like Docker or Jenkins. It is a cultural philosophy of shared responsibility. Historically, Devs threw code over the wall, and Ops suffered the 3 AM pagers. DevOps means breaking down that silo: Devs take responsibility for how their code runs in production (on-call), and Ops uses software engineering practices to automate infrastructure.</p>
+<p><strong>Q90 (Behavioral):</strong> How do you stay updated with the rapidly changing DevOps landscape?
+<strong>A:</strong> I focus on understanding foundational concepts (like networking, Linux kernel, and distributed systems architecture) rather than chasing every new tool. A new CI tool is easy to learn if you understand CI principles. I also follow the CNCF (Cloud Native Computing Foundation) landscape, read engineering blogs from companies like Netflix and Cloudflare, and maintain a personal home lab (Raspberry Pi or AWS Free Tier) to test new technologies hands-on.</p>
+<hr />
+<h2 id="related-notes">Related Notes</h2>
+<p>[[00-MOC/Master-Index|Master Index]]
+[[00-MOC/REF-01 DevOps Command Cheat Sheet|Cheat Sheet]]</p>
+
+
+
+
+
+
+
+  
+  
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "../..", "features": ["navigation.tabs", "navigation.sections", "navigation.top", "search.suggest", "search.highlight", "content.code.copy", "content.code.annotate"], "search": "../../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
